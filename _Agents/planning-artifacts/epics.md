@@ -36,7 +36,7 @@ inputDocuments:
 - NFR-3: 入库成功率——符合 P1 抓取范围的来源入库"已就绪"比例 ≥80%（SM-3）。
 - NFR-4: 安全——单人自用但守本地边界：不外泄收藏内容与密钥（FR-12）。
 - NFR-5: 可演进——实现须为 P2–P5 预留接口（检索策略不硬编码进生成路径、Provider/存储走端口抽象）。
-- NFR-6: 一致性——查询向量与入库向量同模型同 1024 维，维度不符即报错（AD-4）。
+- NFR-6: 一致性——查询向量与入库向量须同模型、同 `dimension`（维度由所接模型决定，当前 1024），不符即报错、不回退静默作答；存储不设维度上限（AD-4）。
 
 **NFR → Story 追溯：** NFR-1→2.2｜NFR-2→2.1, 2.3｜NFR-3→1.2｜NFR-4→1.1｜NFR-5→1.1（ports 接口文件）｜NFR-6→1.1, 2.1。
 
@@ -45,7 +45,7 @@ inputDocuments:
 - 分层：后端 `routes / orchestration / pipeline / ports / adapters`；前端 Vite+React 用 `useChat`（AD-1）。
 - 存储写权唯一：只有 ParadeDB 适配器经 Repository 端口读写库；**建表走迁移，业务不动态建表**（AD-2）。
 - 数据模型：`resources/chunks/embeddings/sessions/messages`，chunks 与 embeddings 分表，去 tenant（AD-3）。
-- 向量：`halfvec(1024)` + HNSW 表达式索引；混合检索 向量 + ParadeDB `pg_search`/BM25（中文 Lindera）（AD-4/5）。
+- 向量：`halfvec` 不定长列 + 按 `dimension` 分建 partial HNSW（当前只建 1024 一条；无对应索引的维度退化为 seq scan，结果仍正确）；混合检索 向量 + ParadeDB `pg_search`/BM25（中文 Lindera）（AD-4/5）。
 - 流式契约：AI SDK UI Message Stream；引用作 `sources` data part 先于/随答案下发，正文用 `[n]` 标记；MVP 不做断线重连（AD-6）。
 - Provider：Embedding=本地 Ollama Qwen3-Embedding（1024 维）；对话=DeepSeek / 百炼（OpenAI 兼容，可切换）（AD-7）。
 - 本地安全：仅 127.0.0.1，Key 存服务端 env（AD-8）。
@@ -117,7 +117,7 @@ So that 这篇资源能后续在问答中被检索到。
 
 **Given** 应用已运行、Story 1.1 迁移已建表
 **When** 提交一个有效且可静态抓取正文的 URL
-**Then** 经 Repository 端口写入该 Resource，状态从 `处理中` → `已就绪`；每个 Chunk 写入 `halfvec(1024)` 向量 + BM25 可检索内容
+**Then** 经 Repository 端口写入该 Resource，状态从 `处理中` → `已就绪`；每个 Chunk 写入 `halfvec` 向量（`dimension` 记实际维度，当前 1024）+ BM25 可检索内容
 **And** Chunk 保留可回溯到 Resource 的定位信息（`chunk_index`/起止）
 **And** 入库管线入口支持取消信号（AbortController），供 Story 1.4 取消进行中的 fetch/embed 并丢弃未完成 Chunk
 **When** 解析后得到 0 个 Chunk
@@ -180,7 +180,7 @@ So that 我能快速找回资源里的内容且不被编造。
 **Given** 知识库已有已就绪的 Resource
 **When** 提交一个有依据的问题
 **Then** 混合检索（向量 HNSW + ParadeDB BM25）命中相关 Chunk，生成仅依据这些 Chunk 的回答；经 Repository 端口写入 `sessions`/`messages`
-**And** 查询向量与入库向量同为 1024 维；**维度不符返回明确错误并拒绝作答，不回退 BM25-only 静默作答**（AD-4/NFR-6）
+**And** 查询向量与入库向量须同模型、同 `dimension`；**维度不符返回明确错误并拒绝作答，不回退 BM25-only 静默作答**；若查询维度**未建 partial 索引**则走 seq scan，结果仍正确、不视为错误（AD-4/NFR-6）
 **When** 未命中，或向量相似度与 BM25 得分均低于默认下限（如 cosine sim < 0.30 且 BM25 < 3.0，可 env 覆盖，交付须带默认可验证）
 **Then** 回复"知识库中未找到相关内容"，不作答
 **When** 知识库为空

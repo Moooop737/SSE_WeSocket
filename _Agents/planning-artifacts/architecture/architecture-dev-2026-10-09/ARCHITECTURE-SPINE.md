@@ -47,11 +47,15 @@ companions: []
 - **Prevents:** chunk 与向量混一张表 vs 分表两处各建各的。
 - **Rule:** 实体 `resources / chunks / embeddings / sessions / messages`；**chunks 与 embeddings 分表**（照 WeKnora），embeddings 以 `source_id + source_type` 关联 chunk；resource 状态取 `处理中/已就绪/失败`（见 PRD Glossary）。去掉 WeKnora 的 tenant 维度。
 
-### AD-4 — 向量维度不变量 [ADOPTED]
+### AD-4 — 向量维度与半精度索引 [ADOPTED]
 
 - **Binds:** FR-4, FR-6, FR-10
-- **Prevents:** 查询向量与入库向量维度/模型不一致导致检索静默返回垃圾。
-- **Rule:** embedding 固定 **1024 维**，`embeddings.embedding` 存 `halfvec(1024)`，HNSW 建在 `embedding::halfvec(1024)` 表达式索引上。查询向量必须同模型同 1024 维，不一致直接报错（参考 WeKnora 维度校验码 2201）。**pgvector halfvec HNSW 上限 4000 维**，故禁直接索 4096。
+- **Prevents:** 查询向量与入库向量维度/模型不一致导致检索静默返回垃圾；也把某个具体维度当架构常量、绑死模型选择。
+- **Rule:**
+  - **存储**：`embeddings.embedding` 存**不定长 `halfvec`**（照 WeKnora 单表混维）——列本身**不设维度上限**，任何维度都能存。
+  - **索引**：只为需要检索加速的维度**各建一条 partial HNSW 表达式索引** `USING hnsw ((embedding::halfvec(N)) halfvec_cosine_ops) WHERE dimension = N`，每条 `N ≤ 4000`（pgvector halfvec HNSW 上限）。**当前 P1 只用一个 1024 维模型 → 只有一条 1024 索引**；未来加维度 = 加一条索引，不动表。
+  - **查询期一致性**：查询向量的模型与 `dimension` 必须与被检索行相等，不符直接报错、不回退静默作答（参考 WeKnora 维度校验码 2201）。若查询维度**没有对应的 partial 索引**，Postgres 退化为 **seq scan**（结果仍正确，仅性能下降），不作为拒绝理由。
+  - **命中索引的表达式形式**：查询必须写 `embedding::halfvec(N) <=> $1::halfvec(N)`（与 partial 索引定义同表达式），否则优化器不走索引。
 
 ### AD-5 — 混合检索 [ADOPTED]
 
@@ -82,7 +86,7 @@ companions: []
 | Concern | Convention |
 | --- | --- |
 | Naming | 实体/表 snake_case（`resources`,`chunks`,`embeddings`）；TS 类型 PascalCase；端口名词（`Repository`,`Retriever`,`Embedder`,`ChatModel`），适配器 `*Adapter` |
-| Data & formats | 所有主键 `id` = UUID；时间 UTC ISO8601；向量 `halfvec(1024)`；错误统一 `{code,message}` 结构 |
+| Data & formats | 所有主键 `id` = UUID；时间 UTC ISO8601；向量 `halfvec`（不定长，按 `dimension` 分建 partial HNSW）；错误统一 `{code,message}` 结构 |
 | State & cross-cutting | 状态变更只经 Repository 端口（AD-2）；配置来自环境变量；日志最小可用；无 auth（单人自用） |
 
 ## Stack（SEED — 冷启动为真，代码落地后由代码拥有；精确版本 scaffold 时钉）
