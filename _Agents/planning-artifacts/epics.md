@@ -143,9 +143,12 @@ So that 我的笔记也能被问答检索。
 
 **Given** 应用已运行
 **When** 粘贴或导入 Markdown/纯文本内容
-**Then** 跳过 fetch，内容直接进入 parse（Markdown 分支）→ chunk → embed → 写；复用 Story 1.2 的 chunk/embed/写三段，parse 源不同但分块策略一致
-**When** 内容为空、编码异常或不可读
-**Then** 拒绝入库并提示，不创建 Resource
+**Then** 跳过 fetch，内容直接进入 parse → chunk → embed → 写；复用 Story 1.2 的 chunk/embed/写三段
+**And** `markdown` 与 `plaintext` 在 P1 **共用同一条 parse 分支**（正文原样交分块器，代码块/表格由 legacy 分块器的保护段兜住）；`content_type` 仅作存档与后续分支的预留位，不改变当前处理路径
+**When** 内容无效
+**Then** 在**创建 Resource 行之前**拒绝、不创建 Resource；P1 的「无效」只有两种 —— body 非合法 JSON 对象（`E_BAD_JSON`）、`content` 为空白串（`E_EMPTY_CONTENT`）
+**And** **不做内容级「不可读/编码异常」启发式检测**：类型判定归前端（文件按后缀名、粘贴由用户自选 markdown / plaintext，图片等非文本由前端 accept 与后缀名挡在上传层），后端只收到字符串、不猜内容质量
+**And** 粘贴内容**不去重**（同一段粘两次 = 两条 Resource）；无来源内容的 `data_uri` 保持自动生成的 uuid urn，其展示语义属 FR-11
 
 ### Story 1.4: 知识库查看与删除
 **Implements:** FR-5

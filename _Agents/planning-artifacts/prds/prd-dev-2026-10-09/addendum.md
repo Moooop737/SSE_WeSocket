@@ -43,5 +43,6 @@ P1 只实现 **网页 URL 抓取** 与 **Markdown/纯文本**。其余格式的�
 | P1 | 喂文档 → 检索问答 + 引用 + 流式 | `streamText`、embed、RAG 编排 |
 | P2 | 多轮会话管理 + 结构化输出 | 会话状态、`generateObject` |
 | P3 | 检索/联网变成"工具"，Agent loop | tool calling、agents |
+| P3 工程项 | 批量入库 + 后台队列 + 跨进程取消（**Redis 在此进**，作队列存储） | 无 AI SDK 点；练队列/并发/幂等/跨进程取消 |
 | P4 | 回答内渲染图表/卡片组件 | `streamUI`、React Server Components |
 | P5 | MCP 集成 / 多模态输入 / 部署上线 | MCP client、multimodal、生产部署 |

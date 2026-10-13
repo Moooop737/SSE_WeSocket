@@ -227,6 +227,7 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 - **P1（本文档范围）** RAG 检索问答 + 流式 + 引用 —— `streamText` / embed。
 - **P2** 多轮会话管理 + 结构化输出 —— 会话状态、`generateObject`。
 - **P3** 检索/联网升级为"工具"，引入 Agent loop —— tool calling、agents。
+  - **P3 工程项（与能力主线并行，不占同一轮）**：**批量入库 + 后台队列 + 跨进程取消**。多文件一次提交；入库从"占着 HTTP 请求跑完"改成交给后台队列（**Redis 在此引入**，作队列存储，参照 WeKnora 的 asynq 用法——它自己的 Redis 就是队列不是取消信箱）；任务带超时/重试/死信；取消信号跨进程可达，取代 P1 的进程内 `InflightRegistry`。练的是并发、队列与幂等，**不是 AI SDK 能力**，故不挤占 P3 主线那一轮。P1 已留好接口位：`Pipeline.batch(KBData[])` 已实现但没有任何端点调用它。
 - **P4** 回答内渲染图表 / 交互卡片 —— `streamUI`、React Server Components（简历亮点；对前端选型有约束，见 `addendum.md` A）。
 - **P5** MCP 集成 + 多模态输入（图片/音频入库）+ 部署上线 —— MCP client、multimodal、生产部署。
 
