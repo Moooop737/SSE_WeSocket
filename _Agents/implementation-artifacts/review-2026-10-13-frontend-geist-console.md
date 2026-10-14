@@ -65,6 +65,57 @@ persona: bmad-review
 - **F9 视觉记录本身不可核对**：每组件只存 1 张 PNG、文件名不含主题标识，Playwright 未留可复跑脚本 → "双档都验过"无法被第三方复核。
 - **F20 仓库卫生**：`src/routeTree.gen.ts` 与 `.tanstack/` 未跟踪也未忽略；干净 clone 上 `npm run build` 第一步 `tsc --noEmit` 就会 TS2307。
 
-## 五 · 判定
+## 五 · 第一轮判定
 
-第一轮**不通过**：十条交叉命中的真 bug + 一批动画/一致性问题。本轮已全部落地修复并复跑三 lens，结果见同目录后续报告。
+第一轮**不通过**：十条交叉命中的真 bug + 一批动画/一致性问题。
+
+---
+
+# 第二轮（同一 diff 重跑三 lens）
+
+第二轮评审对象＝`story1-2..HEAD` 的完整前端变更集（41 文件 / 3433 行，Lynx 13:07 的 `story 1-3` 提交把上一轮成果一并收了进去）。
+
+## 六 · 第二轮结论：第一轮的"修复"里有三条本身是回归
+
+| 自述修复 | 实际结果 |
+|---|---|
+| #4 FrozenOutlet 止住双发 GET | **换成了每次导航内容区空白 180ms**（退场帧返回 null，连 PageHeader 一起消失），且与 #19 的 `scrollRestoration` 对冲：恢复滚动时容器高度≈0，scrollTop 被夹回顶部 —— 两条修复互相拆台 |
+| #8 点阵改纯 CSS「零 WebGL context」 | 探针 `useWebGlReady()` 写在 `variant` 判断**之前**、每个实例各跑一次 —— 探针本身就分配 context，等于把泄漏从 DotGrid 搬到探针，claim 不成立 |
+| #3 滑块常驻不再闪没 | `style.width` 与 `animate.width` 仍在打架；且只测 x 不测 y |
+| #16 尺寸全面 token 化 | 只做约六成：31 处 `text-[13px]`、`select` 的 `h-8`、`banner` 的 `min-h-12`、折叠侧栏 `w-14` 全是字面量 |
+| #20 `127.0.0.1:3000` 收敛 | 三处用户可见文案仍写死，只有 `alert.tsx`/`__root.tsx` 用了常量 |
+| #17 HealthPill 接线 | 接上了，但侧栏挂在 AnimatePresence 之外只挂载一次 → **档位永不更新**，后端起来后会出现"胶囊说不可达、右边全绿" |
+| #10 `resource:null` 走警示分支 | 该分支**当前不可达**（409 是非 2xx，走 ApiError），修了一条进不了的路 |
+| — | 后端 `resources.ts:35` 其实**已有 `DELETE /:id`**（还有 `POST /:id/abort`），而 `resource-list.tsx` 注释仍写"后端还没有 DELETE 端点" |
+
+第二轮另外新报：`<Link>` 里套 `<Button>`（非法交互嵌套、双 tab stop）、文件选择器 `display:none` 键盘不可达、重复选同一文件不触发 change、失败时清空用户输入、`Select` 无 listbox 语义与键盘路径、`--color-raised`/`--color-sunken` 名值反向（暗档 hover 变纯黑像禁用）、li `exit height:0` 没有 overflow 会两行重叠、画廊 PageHeader 样例 `overflow-hidden` 与 sticky 只能二选一、`detail: []` 与"无 detail"被混为一谈、未知 `status` 会让整页崩、`checks` 浅校验不够、`.dots-backdrop` 写在 `@layer` 外会盖掉 utility、`STORAGE_KEY` 在 index.html 与 theme.ts 各一份、`.tanstack/tmp/<hash>` 已被提交进 git（后补的 .gitignore 对已跟踪文件无效）。
+
+## 七 · 第三轮做了什么（并附运行时证据）
+
+改法与验证都跑在 Playwright MCP 上（内置 browser-use 的截图通道在本机不可用）：
+
+| 项 | 处置 | 证据 |
+|---|---|---|
+| 页面切换 | 退掉 AnimatePresence 与 FrozenOutlet，改成**只做入场**（key=pathname，无 exit） | 采样 t=29…267ms：`h1` 全程存在、body 字符数 198→285 稳定，**无空白帧** |
+| 滑块对齐 | 常驻节点 + 同时测 `offsetLeft/offsetTop/offsetWidth`；`p-px`+`h-7` 让 32px 算式闭合 | 量得 `dx:0, dy:0, dh:0`（dw 0.3–0.4 为 spring 亚像素）；修 y 之前 `dy:-1` |
+| WebGL | 探测改模块级 + 懒执行 + 探完 `loseContext()` 归还 | `document.querySelectorAll('canvas').length`：概览 **5 → 1** |
+| 健康状态 | 收成模块级 store（`useSyncExternalStore` + 单一订阅集合），侧栏/概览/探针页共用一份快照，进 /health 主动重探 | 生产构建一次导航 = `[/api/resources, /api/health]`；dev 各 ×2 = StrictMode 双调用 |
+| reduced-motion | `MotionConfig reducedMotion="user"` + CSS media query | 同一元素 `::after` 的 `animationName`：关=`loading-skeleton`、开=`none`（实测） |
+| token | 新增 `--text-control/caption/micro`、`--spacing-sidebar-sm` 等；`text-[13px]` 等 34 处字面量批量替换 | 替换后 `grep -oE 'text-\[[0-9]+px\]'` = **0 命中** |
+| raised/sunken | 行 hover 改 `bg-fill`，注释写死每档明度方向 | — |
+| a11y | 文件输入 `sr-only` + 选后清 `input.value`；Select 补 `role=listbox/option`、方向键/Enter/Home/End/Esc、Esc 还焦点；`×/✓/›` 裸字符换成图标 | — |
+| 崩溃面 | `StatusBadge` 未知档兜底；`fetchHealth` 深校验 `checks`；`resource:null` 分支改成契约错误 | — |
+| 截图 | 每组件 `light` + `dark` 两张，命名统一带主题 | 46 张、0 失败；旧的无主题标识文件已删 |
+
+`npm run build`（`tsc --noEmit && vite build`）全绿：CSS 29.3 kB（gzip 6.7）、JS 510 kB（gzip 164）。
+
+## 八 · 仍未闭环（诚实清单）
+
+1. **一次导航仍出现 1 次多余的 `/api/resources`**（进 /health 时）。生产构建 1 次、dev 2 次已定位到 StrictMode 双调用，但"进 /health 为什么要拉资源列表"没查到根因；两个请求都在点击后 ~10ms 内发出。**不当已修**。
+2. **后端已实现 `DELETE /:id` 与 `POST /:id/abort`，前端一个都没接**。这属 story 1.4 的范围，按"一次一个 story"没顺手做，等放行。
+3. `warning`（可能抓不全）路径代码已通，但**从未真跑过**：后端不启动就产不出 201+warning。
+4. `app/web` 零测试、零 lint（按 owner 规则不由 agent 主动加）；`api.ts` 与后端 `types.ts` 仍是手抄副本，没有编译期约束。
+5. `.tanstack/tmp/<hash>` 与 `src/routeTree.gen.ts` 已在 git 里；要按 .gitignore 的意图排除需 `git rm --cached`，**这是改你的仓库索引，我没动**。
+6. `src/use-health.ts` 与 23 张 `.dark.png` 目前未跟踪；用 `git commit -am` 收尾会提交出一个 `tsc` 过不去的树。
+7. 暗档 accent 对比度是我按 WCAG 估的（#53a3f5 / #82bcff），不是 Vercel 线上值——线上 CSS 里 `--ds-blue-700` 两档几乎同值，没有可直接抄的暗档链接色。
+

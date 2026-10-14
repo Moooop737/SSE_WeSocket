@@ -3,4 +3,5 @@
 _bmad
 app/
 Weknora-main/
-.DS_Store
+.DS_Store/
+.playwright-mcp

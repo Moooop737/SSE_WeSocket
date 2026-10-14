@@ -124,6 +124,8 @@ graph LR
 
 ## Deferred（本 MVP 决定不做，留接口/后续阶段）
 
+- **会话所有权在客户端，后端只认 `sessionId`**（2026-10-14 Lynx 定）：用户点「新对话」建会话，之后每个请求带 id。UUID 不可猜 = 当下的隔离手段，P1 无 auth（AD-8 仅本地监听）。**业务 SQL 里不写 `user_id = $1` 这类 owner 谓词，也不给 resources/chunks/messages 补 owner 列** —— 隔离的归属只能有一个来源。
+- **未来的多用户隔离走 Postgres RLS，不走应用层过滤**（同上决定）。上 RLS 的硬前提记在这里，别到时候踩：`pg-pool` 复用连接，身份必须在**事务内**用 `SET LOCAL app.user_id = …` 下发（`connect → BEGIN → SET LOCAL → query → COMMIT`）；沿用现在的 `pool.query()` 会让上一条请求设的会话级 `GUC` 跟着连接漏给下一个请求。⇒ 那是改数据访问形状的活，属 P3 工程项那一刀，不在 Epic 2 范围内。
 - 断线重连 / continue-stream / Redis 事件流（WeKnora 那套，本地自用不需要）。
 - 多租户、账号、权限、协作。
 - 父/子分块层级、chunk 图关系、重排序（rerank）模型。

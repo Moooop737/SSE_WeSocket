@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-09-2026 14:30
-last_updated: 10-13-2026 14:12
+last_updated: 10-13-2026 15:36
 project: Knowledge Copilot
 project_key: NOKEY
 tracking_system: file-system
@@ -41,9 +41,9 @@ development_status:
   1-2-添加网页-url-入库: done
   # 1-3 done @2026-10-13: 无需新实现 —— 主干由 build3 的 content 分支交付（passthrough + text-parser + 复用 chunk/embed/写），空内容拒绝由 resources.ts 的 E_EMPTY_CONTENT 落地。同日拍板：不做不可读/编码启发式（类型判定归前端后缀名 + 粘贴自选 md/plaintext），粘贴不去重（data_uri 保持 uuid urn，语义属 FR-11）。
   1-3-导入-markdown-纯文本: done
-  # 1-4 review @2026-10-13: 后端三条 AC 全部落码并实测（真库+Ollama+真 URL）。build1 = softDeleteResource（resources 留痕 + chunks 物理删 + embeddings 经 FK CASCADE 带走，实测全库孤儿向量 0）+ DELETE /resources/:id。build2 = 取消信号改服务端持有（src/pipeline/inflight.ts 进程级 Map）、POST /resources/:id/abort（取消但不删，202）、DELETE 遇 processing 先 abort 再软删、writeChunksWithEmbeddings 加 `AND deleted_at IS NULL` 写守卫、客户端断连不再取消入库、fail() 补日志。前端按 Lynx 定案整体挂起 → frontend-deferred.md（两个按钮 + 列表轮询，Epic 2 动界面时一起接）。
-  1-4-知识库查看与删除: review
-  epic-1-retrospective: optional
+  # 1-4 done @2026-10-13: 后端三条 AC 全部落码并实测（真库+Ollama+真 URL）。build1 = softDeleteResource（resources 留痕 + chunks 物理删 + embeddings 经 FK CASCADE 带走，实测全库孤儿向量 0）+ DELETE /resources/:id。build2 = 取消信号改服务端持有（src/pipeline/inflight.ts 进程级 Map）、POST /resources/:id/abort（取消但不删，202）、DELETE 遇 processing 先 abort 再软删、writeChunksWithEmbeddings 加 `AND deleted_at IS NULL` 写守卫、客户端断连不再取消入库。build3 = 三 lens review（review-2026-10-13-epic1-story4-build2-findings.md）：C1 取消落在写入期会提交成 ready —— 已修并复现；C2 死锁断言经 200 轮实测否证；一致性账（E_CANCELLED/E_TIMEOUT/E_RESOURCE_GONE 专属码、chunks 端点 400/404 口径、软删行不再被改写、一行结构化日志）已清。前端两个按钮 + 列表轮询按 Lynx 定案整体挂起 → frontend-deferred.md（Epic 2 动界面时一起接），故本 story 的验收口径 = 后端能力 + API，界面项不计入。
+  1-4-知识库查看与删除: done
+  epic-1-retrospective: done
 
   epic-2: backlog
   2-1-混合检索问答-基础: backlog
@@ -52,3 +52,73 @@ development_status:
   2-4-原文回链-source-ref: backlog
   2-5-会话内多轮: backlog
   epic-2-retrospective: optional
+action_items:
+  - id: "epic-1-retro-1-health-gate"
+    epic: 1
+    action: "定去留：degraded 是否拦入库 —— 实现 readiness 门，或改 epics.md:105-106 那句 AC"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-2-cleanup-port"
+    epic: 1
+    action: "启动清扫收进 Repository 端口（填 findResourcesByStatus），并用一次真崩溃端到端验证"
+    owner: "agent（待放行）"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-3-spine-ad1"
+    epic: 1
+    action: "补 ARCHITECTURE-SPINE AD-1 的入库路径箭头 + StageRegistry 唯一 new 位，撤掉 deferred-work
+      第 8 行"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-4-ux-scope"
+    epic: 1
+    action: "界面口径对账：更新 epics.md:57 承认已落地的设计系统，或反向收敛"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-5-tanstack-cached"
+    epic: 1
+    action: "git -C app/web rm --cached .tanstack/tmp/866573c1-aff24f9fe2dd5ce14c7370ceff025509"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-6-commits"
+    epic: 1
+    action: "提交 app/server（build3 4 文件）与 app/web（双主题改造）未提交面；并决定 app/ 是否纳入外层 git"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-7-assertions"
+    epic: 1
+    action: "决定新行为的断言守护（取消/写守卫/断连翻转/batch 信号分支/chunks id 校验/fail 日志），并让 legacy.test.ts
+      真的被执行"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-8-frontend-at-22"
+    epic: 1
+    action: "Story 2.2 动界面时一并接上 frontend-deferred.md 四条（两个函数 + 两个按钮 + 列表轮询）"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-9-nonhtml"
+    epic: 1
+    action: "定去留：FR-1「非 P1 支持类型直接拒绝」是否实现（现在 PDF/图片 URL 被当文本吞）"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-10-freeze-ingest"
+    epic: 1
+    action: "Epic 2 开工前设显式约束：不再重构入库地基（证据：story1.2 一次整条 rewrite、story1.4 一天内换取消触发源）"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
+  - id: "epic-1-retro-11-story-artifacts"
+    epic: 1
+    action: "决定要不要补 story 工件文件 —— 现在 implementation-artifacts 下没有 story-*.md，story
+      边界只在 commit subject 与 handoff 标题里"
+    owner: "Lynx"
+    status: open
+    ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"

@@ -16,3 +16,16 @@ Lynx 定：下面三件**不再分开拖**，合成一刀做，落点是 **PRD �
 - **入库改后台队列（不占 HTTP 请求）** — 与上一条同一刀。顺带解掉这轮"客户端断连不再取消"留下的账：一个没人在等的请求，现在仍会一路跑到 ready 才返回。
 - **跨进程取消** — P1 的取消开关住在 `app/server/src/pipeline/inflight.ts` 的进程内 `Map`，第二个进程或重启后即失效（`POST /resources/:id/abort` 那时诚实回 `409 E_NOT_ABORTABLE` 并提示改用 DELETE，属设计内）。队列化之后取消 = 从队列撤任务，`InflightRegistry` 这一层可整体退役。
   - **别走回头路**：Redis 存不了 `AbortController`（进程内活对象，序列化即失效），跨进程只能传"取消意图"，收到的一方仍要按自己手里那个开关。这是 2026-10-13 否掉「把 in-flight Map 搬进 Redis」的理由。WeKnora 的 Redis 也印证了这个分工——它是 asynq 任务队列（`WeKnora-main/docker-compose.yml:556`、`internal/router/task_inspector.go`），不是取消信箱。
+
+## Deferred from: Story 2.1 检索与拒答设计 (2026-10-14)
+
+- **拒答判定的正解是 ReAct（模型调工具表态），P1 不做，留到 P3** — Lynx 2026-10-14 定：「目前先不去支持，当作缺口 P3 再补」。
+  - 为什么它才是正解：实测证明**相似度分数区分不了「库里有没有这个主题」**——库里已无 WeKnora 部署内容，`WeKnora 怎么部署` 仍拿到全库最高的 `sim=0.5502`，比含糊问句 `是什么`（0.5023）还高；垃圾串 `abcdEfgh` 多喂两篇文档后从 0.4061 涨到 0.4589，顶穿了 0.42 下限。所以「够不够依据」是语义判断，任何数字阈值都拦不住。
+  - P1 现在怎么做（临时口径，别当终局）：检索只负责「别漏」，捞回来的都当候选；0 命中时后端直接回「未找到」不调模型，有命中则由模型判资料是否足够（判定信号见 `_Agents/planning-artifacts/epics.md` Story 2.1 的 AC 改法）。
+  - P3 补法：给模型两个工具位 `answerWithEvidence` / `noAnswerInKnowledgeBase`，调用哪个即判定 —— 届时把 P1 的判定信号（固定话术匹配或首行标记）**整体拔掉**，不留兼容层。
+  - 定论证据：真打一次 `deepseek-chat` 带 `tools` 的请求，看返回里 `tool_calls` 是否稳定出现（此家的 function calling 尚未实测，不凭文档承诺）。
+- **`minSimilarity` / BM25 阈值都依赖语料分布，P1 交付的默认值不是标定值** — 上面那条实测就是证据：同一句垃圾串在 27 块单文档 vs 多篇混合语料下，top1 相似度差 0.05+。落码时按「只兜字符噪声」定位（`minSimilarity≈0.35`、BM25 只去 `score=0`），不承诺语义过滤能力。定论证据：等真实资料灌到几十篇量级，重跑 `app/server/test/probe-retriever.ts` 看分布再调。
+- **`AC: epics.md:187` 那句「低于默认下限 ⇒ 未找到」与实现各说一半** — 待随生成那一刀一起改成「检索 0 命中，或模型判定资料不足」。修法是改 spec。
+- **[未决] 模型「资料不足」这个判定，后端怎么机器可辨地读出来** — Lynx 2026-10-14 定为**未决、后续处理**，本轮不再讨论。两个候选：a 固定话术匹配（prompt 要求只输出那句、后端比字符串；零新机制，正确性押在措辞上）／b 首行标记（`[NO_EVIDENCE]`／`[EVIDENCE]`，后端读一行再剥掉；判定与话术解耦，代价是 2.2 流式要把剥标记挪进 token 流）。
+  - 卡住的范围：Story 2.1 的生成侧（`generateText` + prompt 组装）与上面那条 AC 改法，都要等这个信号定了才落。
+  - 不受它阻塞、可以先做的：BM25 stage 接进空着的装配位（`score > 0`）、`minSimilarity` 降到 0.35、空库／全无 ready 两条确定性分支。
