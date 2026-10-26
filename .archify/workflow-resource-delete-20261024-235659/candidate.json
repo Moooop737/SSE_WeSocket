@@ -1,0 +1,240 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Story 1.4 删除、取消与写守卫",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-resource-delete-20261024-235659/resource-delete.html"
+  },
+  "lanes": [
+    {
+      "id": "http",
+      "label": "HTTP 入口"
+    },
+    {
+      "id": "ingest",
+      "label": "取消"
+    },
+    {
+      "id": "db",
+      "label": "数据库"
+    },
+    {
+      "id": "fail",
+      "label": "失败 / 拒绝",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "delete",
+      "lane": "http",
+      "col": 0,
+      "type": "backend",
+      "label": "DELETE /:id",
+      "sublabel": "软删入口",
+      "width": 140
+    },
+    {
+      "id": "read",
+      "lane": "http",
+      "col": 1,
+      "type": "backend",
+      "label": "读当前状态",
+      "sublabel": "deleted_at IS NULL",
+      "width": 150
+    },
+    {
+      "id": "abort",
+      "lane": "ingest",
+      "col": 2,
+      "type": "security",
+      "label": "inflight.abort",
+      "sublabel": "处理中先按取消",
+      "width": 150
+    },
+    {
+      "id": "soft",
+      "lane": "db",
+      "col": 3,
+      "type": "database",
+      "label": "软删 resources",
+      "sublabel": "UPDATE deleted_at",
+      "width": 150
+    },
+    {
+      "id": "chunks",
+      "lane": "db",
+      "col": 4,
+      "type": "database",
+      "label": "物理删 chunks",
+      "sublabel": "同事务",
+      "width": 150
+    },
+    {
+      "id": "cascade",
+      "lane": "db",
+      "col": 5,
+      "type": "database",
+      "label": "embeddings 级联",
+      "sublabel": "FK CASCADE",
+      "width": 150
+    },
+    {
+      "id": "done",
+      "lane": "http",
+      "col": 5,
+      "type": "backend",
+      "label": "204",
+      "sublabel": "已删",
+      "width": 100
+    },
+    {
+      "id": "abort-only",
+      "lane": "http",
+      "col": 2,
+      "type": "backend",
+      "label": "POST /:id/abort",
+      "sublabel": "只取消不删",
+      "width": 150
+    },
+    {
+      "id": "not-found",
+      "lane": "fail",
+      "col": 1,
+      "type": "security",
+      "label": "404 E_NOT_FOUND",
+      "sublabel": "已删 / 不存在",
+      "width": 150
+    },
+    {
+      "id": "not-inflight",
+      "lane": "fail",
+      "col": 2,
+      "type": "security",
+      "label": "409 E_NOT_INFLIGHT",
+      "sublabel": "按不下去",
+      "width": 150
+    },
+    {
+      "id": "aborted",
+      "lane": "http",
+      "col": 3,
+      "type": "backend",
+      "label": "202",
+      "sublabel": "取消已按下",
+      "width": 100
+    }
+  ],
+  "edges": [
+    {
+      "id": "delete-read",
+      "from": "delete",
+      "to": "read",
+      "label": "先读",
+      "variant": "emphasis"
+    },
+    {
+      "id": "read-404",
+      "from": "read",
+      "to": "not-found",
+      "label": "没有活行",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "read-abort",
+      "from": "read",
+      "to": "abort",
+      "label": "processing",
+      "variant": "default"
+    },
+    {
+      "id": "read-soft",
+      "from": "read",
+      "to": "soft",
+      "label": "ready / failed",
+      "variant": "default"
+    },
+    {
+      "id": "abort-soft",
+      "from": "abort",
+      "to": "soft",
+      "label": "取消后软删",
+      "variant": "emphasis"
+    },
+    {
+      "id": "soft-chunks",
+      "from": "soft",
+      "to": "chunks",
+      "label": "同事务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "chunks-cascade",
+      "from": "chunks",
+      "to": "cascade",
+      "label": "级联",
+      "variant": "default"
+    },
+    {
+      "id": "cascade-done",
+      "from": "cascade",
+      "to": "done",
+      "label": "提交",
+      "variant": "emphasis"
+    },
+    {
+      "id": "abort-only-abort",
+      "from": "abort-only",
+      "to": "abort",
+      "label": "按下",
+      "variant": "default"
+    },
+    {
+      "id": "abort-only-409",
+      "from": "abort-only",
+      "to": "not-inflight",
+      "label": "无登记",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "abort-202",
+      "from": "abort",
+      "to": "aborted",
+      "label": "异步生效",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "软删语义",
+      "items": [
+        "resources 留 deleted_at",
+        "chunks 物理删",
+        "embeddings 随 FK 级联"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "取消不删",
+      "items": [
+        "abort 只回答是否按下",
+        "删除处理中先 abort 再软删",
+        "按不下去就标 failed(入库中断)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "写守卫",
+      "items": [
+        "写入前查 deleted_at",
+        "写完再查并撤回 ready",
+        "客户端断连不再取消入库"
+      ]
+    }
+  ]
+}

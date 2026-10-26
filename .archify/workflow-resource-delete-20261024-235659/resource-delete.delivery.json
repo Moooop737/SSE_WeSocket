@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d9837cf6-cb03-453b-b8b8-abb73bd4befd",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-resource-delete-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-resource-delete-20261024-235659/resource-delete.html",
+  "specification": {
+    "sha256": "a9a01bced8232de7ec01532d5f936e6f20c0656478609889151d135f3d5bb0bf",
+    "bytes": 4890
+  },
+  "artifact": {
+    "sha256": "f99fb2b5b567f098ea80aad5a5f8f2c12aef316b62a8a3a731a15a0366042ef4",
+    "bytes": 825695
+  }
+}

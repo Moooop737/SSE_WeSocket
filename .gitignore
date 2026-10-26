@@ -5,3 +5,4 @@ app/
 Weknora-main/
 .DS_Store/
 .playwright-mcp
+.DS_Store

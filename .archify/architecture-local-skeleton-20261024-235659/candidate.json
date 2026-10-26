@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Story 1.1 本地骨架与安全边界",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "local user", "pos": [20, 300], "size": [120, 60] },
+    { "id": "web", "type": "frontend", "label": "Web UI", "sublabel": "Vite + React :5173", "pos": [200, 300], "size": [140, 64] },
+    { "id": "api", "type": "backend", "label": "Hono API", "sublabel": "127.0.0.1:3000", "pos": [460, 300], "size": [170, 78], "tag": "local only" },
+    { "id": "config", "type": "security", "label": "AppConfig", "sublabel": "env + fail-fast", "pos": [460, 100], "size": [170, 64] },
+    { "id": "db", "type": "database", "label": "ParadeDB", "sublabel": "pgvector · pg_search", "pos": [720, 200], "size": [170, 78] },
+    { "id": "ollama", "type": "backend", "label": "Ollama", "sublabel": "local embeddings", "pos": [720, 360], "size": [160, 64] },
+    { "id": "llm", "type": "cloud", "label": "Chat provider", "sublabel": "keys server-side", "pos": [460, 560], "size": [180, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Local services · loopback only", "wraps": ["web", "api", "config", "db", "ollama"] }
+  ],
+  "connections": [
+    { "id": "browser-web", "from": "browser", "to": "web", "label": "HTTP", "variant": "default" },
+    { "id": "web-api", "from": "web", "to": "api", "label": "REST / SSE", "variant": "emphasis" },
+    { "id": "config-api", "from": "config", "to": "api", "label": "env fail-fast", "variant": "security" },
+    { "id": "api-db", "from": "api", "to": "db", "label": "SQL", "variant": "emphasis" },
+    { "id": "api-ollama", "from": "api", "to": "ollama", "label": "embed", "variant": "default" },
+    { "id": "api-llm", "from": "api", "to": "llm", "label": "chat", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "启动与健康", "items": ["Hono 只绑定 127.0.0.1", "/health 探 ParadeDB 与 Ollama", "缺 Key 在启动期退出"] },
+    { "dot": "emerald", "title": "数据地基", "items": ["一次迁移建 5 张表", "启动清扫 processing → failed(入库中断)"] },
+    { "dot": "rose", "title": "安全边界", "items": ["Provider Key 只进服务端 env", "浏览器拿不到 Key", "本地服务不暴露到公网"] }
+  ]
+}

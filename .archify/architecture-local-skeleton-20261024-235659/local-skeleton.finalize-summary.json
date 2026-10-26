@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/candidate.json",
+    "sha256": "c43a3905d9eab809239961250f7d3d39f7669008a963148dcabe6b79126a3f32",
+    "bytes": 2471
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+    "sha256": "855a51fbabda2343c20ce7408ee73636db032eebf13b99955522aa2dd080b0da",
+    "bytes": 819828
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 527,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  }
+}

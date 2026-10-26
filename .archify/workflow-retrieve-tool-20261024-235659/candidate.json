@@ -1,0 +1,204 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Story 2.6 模型自己调用检索",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.html"
+  },
+  "lanes": [
+    {
+      "id": "model",
+      "label": "模型"
+    },
+    {
+      "id": "tool",
+      "label": "工具"
+    },
+    {
+      "id": "retrieval",
+      "label": "检索"
+    },
+    {
+      "id": "response",
+      "label": "回答"
+    },
+    {
+      "id": "error",
+      "label": "结构化错误",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "prompt",
+      "lane": "model",
+      "col": 0,
+      "type": "external",
+      "label": "User question",
+      "sublabel": "query",
+      "width": 140
+    },
+    {
+      "id": "step1",
+      "lane": "model",
+      "col": 1,
+      "type": "backend",
+      "label": "Model step 1",
+      "sublabel": "决定调工具",
+      "width": 150
+    },
+    {
+      "id": "call",
+      "lane": "model",
+      "col": 2,
+      "type": "backend",
+      "label": "tool call",
+      "sublabel": "retrieve + topK",
+      "width": 150
+    },
+    {
+      "id": "search",
+      "lane": "tool",
+      "col": 3,
+      "type": "backend",
+      "label": "Retriever.search",
+      "sublabel": "两路融合",
+      "width": 150
+    },
+    {
+      "id": "hits",
+      "lane": "retrieval",
+      "col": 4,
+      "type": "backend",
+      "label": "hits",
+      "sublabel": "tool output",
+      "width": 120
+    },
+    {
+      "id": "step2",
+      "lane": "model",
+      "col": 4,
+      "type": "backend",
+      "label": "Model step 2",
+      "sublabel": "带 tool output 作答",
+      "width": 160
+    },
+    {
+      "id": "answer",
+      "lane": "response",
+      "col": 5,
+      "type": "backend",
+      "label": "Answer",
+      "sublabel": "200 答案体",
+      "width": 140
+    },
+    {
+      "id": "err",
+      "lane": "error",
+      "col": 3,
+      "type": "security",
+      "label": "structured error",
+      "sublabel": "E_DIMENSION_MISMATCH",
+      "width": 170
+    }
+  ],
+  "edges": [
+    {
+      "id": "prompt-step1",
+      "from": "prompt",
+      "to": "step1",
+      "label": "prompt",
+      "variant": "default"
+    },
+    {
+      "id": "step1-call",
+      "from": "step1",
+      "to": "call",
+      "label": "call",
+      "variant": "emphasis"
+    },
+    {
+      "id": "call-search",
+      "from": "call",
+      "to": "search",
+      "label": "execute",
+      "variant": "emphasis"
+    },
+    {
+      "id": "search-hits",
+      "from": "search",
+      "to": "hits",
+      "label": "hits",
+      "variant": "default"
+    },
+    {
+      "id": "search-err",
+      "from": "search",
+      "to": "err",
+      "label": "检索失败",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "hits-step2",
+      "from": "hits",
+      "to": "step2",
+      "label": "tool output",
+      "variant": "emphasis"
+    },
+    {
+      "id": "err-step2",
+      "from": "err",
+      "to": "step2",
+      "label": "error output",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "step2-answer",
+      "from": "step2",
+      "to": "answer",
+      "label": "final text",
+      "variant": "emphasis"
+    },
+    {
+      "id": "answer-stop",
+      "from": "step2",
+      "to": "call",
+      "label": "未超 5 步可重查",
+      "variant": "dashed",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "有界",
+      "items": [
+        "stopWhen: stepCountIs(5)",
+        "最多 4 次检索往返",
+        "换词重查由模型决定"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "错误",
+      "items": [
+        "RetrieverError 变成结构化 output",
+        "不 throw 抹掉 message",
+        "/chat 仍 200"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "另一条路",
+      "items": [
+        "/retrieve 保留",
+        "混维仍回 409",
+        "工具不串联其他工具"
+      ]
+    }
+  ]
+}

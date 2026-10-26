@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/candidate.json",
+    "sha256": "f94cbdb14a95750299121a677fd1e897c65b0ff212fe76305aa4c8a870c7d20f",
+    "bytes": 3205
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.html",
+    "sha256": "7e8f9c2073c125c615e13a0e976f52135d205d7a8cc3080f5bef44c1e08d7272",
+    "bytes": 815121
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2456,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

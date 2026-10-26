@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/candidate.json",
+    "sha256": "1a2d8a72b82abfdcd8aa48e1db55d62737ca67163468efaa2bf2607854c693e9",
+    "bytes": 4031
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.html",
+    "sha256": "b6a41975e76f7d5bab8caa3c896374c2c8f9cbbcf10654e55e51c5a76b453af1",
+    "bytes": 821664
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2358,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

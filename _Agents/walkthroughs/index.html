@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Copilot · Story Walkthroughs</title>
+<style>
+:root {
+  --bg: #f5f2ec;
+  --panel: #fffdf8;
+  --panel-2: #ece8df;
+  --ink: #1b232b;
+  --ink-2: #46515d;
+  --ink-3: #78838f;
+  --line: #dcd7cc;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --ok: #15803d;
+  --shadow: 0 14px 40px rgba(27, 35, 43, .08);
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+html[data-theme="dark"] {
+  --bg: #0c1116;
+  --panel: #121a21;
+  --panel-2: #18222b;
+  --ink: #e7edf3;
+  --ink-2: #adb9c5;
+  --ink-3: #7d8a97;
+  --line: #263440;
+  --accent: #5eead4;
+  --accent-2: #fbbf24;
+  --ok: #86efac;
+  --shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 34rem),
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 30rem),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+a { color: inherit; text-decoration: none; }
+code, kbd, .mono { font-family: var(--mono); }
+code {
+  font-size: .88em;
+  color: var(--ink-2);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: .08em .34em;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.page { max-width: 1240px; margin: 0 auto; padding: 30px 24px 60px; }
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 44px 46px 38px;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: .26;
+  mask-image: radial-gradient(circle at 78% 8%, #000, transparent 66%);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  top: -120px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 68%);
+  pointer-events: none;
+}
+.hero > * { position: relative; }
+.kicker {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.hero h1 {
+  margin: 16px 0 12px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.08;
+  letter-spacing: -.03em;
+}
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  transition: border-color .18s ease, transform .18s ease, color .18s ease;
+}
+.button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.button.primary { background: var(--accent); border-color: var(--accent); color: #06221f; font-weight: 650; }
+.button.primary:hover { color: #06221f; transform: translateY(-1px); }
+html[data-theme="dark"] .button.primary { color: #06221f; }
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 26px;
+}
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+  padding: 5px 12px;
+}
+.stat strong { font-family: var(--mono); font-size: 14px; color: var(--ink); }
+.stat span { font-size: 11px; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(27, 35, 43, .06);
+}
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+.search-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 15px;
+  pointer-events: none;
+}
+.search input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 42px 9px 32px;
+  appearance: none;
+}
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.search kbd {
+  position: absolute;
+  right: 9px;
+  font-size: 10px;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: var(--panel-2);
+}
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.filter:hover { border-color: var(--accent); color: var(--accent); }
+.filter[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #06221f; font-weight: 650; }
+.toolbar-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.count { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.count strong { color: var(--ink); }
+.theme {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.theme:hover { border-color: var(--accent); color: var(--accent); }
+
+main { margin-top: 12px; }
+.epic { margin-top: 48px; scroll-margin-top: 92px; }
+.epic-head {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 4px 18px;
+  align-items: start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.epic-no {
+  grid-row: span 2;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--accent);
+  padding-top: 7px;
+}
+.epic-head h2 {
+  margin: 0;
+  font-size: clamp(23px, 3vw, 31px);
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+.epic-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(276px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.card {
+  --card-accent: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 238px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--card-accent);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--card-accent) 55%, var(--line));
+  box-shadow: 0 18px 44px rgba(27, 35, 43, .12);
+}
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.card-no { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--card-accent); }
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 26%, transparent);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.status::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.card h3 {
+  margin: 12px 0 7px;
+  font-size: 17px;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+}
+.card p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.66;
+}
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+.tags span {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--panel-2);
+}
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.open { color: var(--card-accent); font-weight: 600; }
+html[data-theme="dark"] .card-no,
+html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%, #fff); }
+
+.guide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 54px;
+}
+.guide-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+}
+.guide-card h2 { margin: 10px 0 10px; font-size: 21px; letter-spacing: -.01em; }
+.guide-card p { margin: 8px 0 0; color: var(--ink-2); font-size: 13px; }
+.guide-card ol { margin: 10px 0 0 18px; padding: 0; color: var(--ink-2); font-size: 13px; }
+.guide-card li { margin: 7px 0; }
+.guide-card code { white-space: nowrap; }
+.muted { color: var(--ink-3) !important; font-size: 12px !important; }
+
+.empty {
+  margin: 48px 0;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--panel-2) 35%, transparent);
+  font-size: 13px;
+}
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 54px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+@media (max-width: 760px) {
+  .page { padding: 16px 14px 40px; }
+  .hero { padding: 28px 22px 26px; border-radius: 18px; }
+  .hero h1 { font-size: clamp(30px, 9vw, 42px); }
+  .toolbar { position: static; padding: 10px; }
+  .toolbar-end { margin-left: 0; }
+  .epic-head { grid-template-columns: 1fr; gap: 6px; }
+  .epic-no { grid-row: auto; padding-top: 0; }
+  .cards { grid-template-columns: 1fr; }
+  .guide { grid-template-columns: 1fr; }
+  .card { min-height: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .card, .button { transition: none; }
+}
+</style>
+<link rel="stylesheet" href="assets/walkthrough.css?v=20261026r">
+</head>
+<body class="docs-index">
+<header class="docs-topbar">
+  <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
+  <span class="docs-crumb">Story Walkthroughs</span>
+  <span class="docs-topbar-spacer"></span>
+  <span class="chip">14 stories · 14 diagrams</span>
+</header>
+<div class="page">
+  <header class="hero">
+    <span class="kicker">KNOWLEDGE COPILOT · P1 CLOSED · 2026-10-24</span>
+    <h1>Story <em>Walkthroughs</em><br>把每一格讲清楚</h1>
+    <p class="hero-sub">14 个 story 的代码走读页：每页一张交互图（iframe）、真实文件、行号注解、请求旅行、可复制的验证命令。按 Epic 分组，也可以直接搜。</p>
+    <div class="hero-actions">
+      <a class="button primary" href="epic1-story1-local-skeleton.html">从 1.1 开始 <span aria-hidden="true">→</span></a>
+      <a class="button" href="epic3-story4-ingest-stages.html">看最新 trace 页 <span aria-hidden="true">→</span></a>
+      <a class="button" href="#how-to-read">怎么读这些页</a>
+    </div>
+    <div class="stats" aria-label="走读页统计">
+      <div class="stat"><strong>14</strong><span>pages</span></div>
+      <div class="stat"><strong>14</strong><span>diagrams</span></div>
+      <div class="stat"><strong>3</strong><span>epics</span></div>
+      <div class="stat"><strong>167</strong><span>code blocks</span></div>
+      <div class="stat"><strong>633</strong><span>annotations</span></div>
+      <div class="stat"><strong>123</strong><span>journey steps</span></div>
+    </div>
+  </header>
+
+  <div class="toolbar" role="region" aria-label="搜索与筛选">
+    <div class="search" role="search">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="q" type="search" placeholder="搜 story、关键词：检索 / 2.6 / Langfuse…" aria-label="搜索走读页" autocomplete="off">
+      <kbd>/</kbd>
+    </div>
+    <div class="filters" role="group" aria-label="按 Epic 筛选">
+      <button class="filter" type="button" data-epic="all" aria-pressed="true">全部</button>
+      <button class="filter" type="button" data-epic="1" aria-pressed="false">Epic 1</button>
+      <button class="filter" type="button" data-epic="2" aria-pressed="false">Epic 2</button>
+      <button class="filter" type="button" data-epic="3" aria-pressed="false">Epic 3</button>
+    </div>
+    <div class="toolbar-end">
+      <span class="count" aria-live="polite"><strong id="count">14</strong> / 14</span>
+      <a class="theme" href="anim/index.html" style="text-decoration:none">动画目录</a>
+      <button class="theme" type="button" id="theme">深色</button>
+    </div>
+  </div>
+
+  <main>
+    <section class="epic" id="epic-1">
+      <header class="epic-head">
+        <span class="epic-no">EPIC 01</span>
+        <h2>搭好底座，把资源变成可查知识库</h2>
+        <p>本地骨架 → URL / 文本入库 → 查看与删除。</p>
+      </header>
+      <div class="cards">
+        <a class="card" href="epic1-story1-local-skeleton.html" data-epic="1" data-search="1.1 本地骨架 基础设施 安全边界 hono vite node 127.0.0.1 health 迁移 env fail-fast 启动清扫 ports" style="--card-accent:#0e7490">
+          <div class="card-top"><span class="card-no">Story 1.1</span><span class="status">done · P1</span></div>
+          <h3>本地骨架 + 基础设施 + 安全边界</h3>
+          <p>Hono/Vite 骨架、只绑 127.0.0.1、5 张表迁移、Key 缺失 fail-fast、启动清扫。</p>
+          <div class="tags"><span>骨架</span><span>安全边界</span><span>迁移</span></div>
+          <div class="card-foot"><span>13 code · 31 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic1-story2-url-ingest.html" data-epic="1" data-search="1.2 添加网页 url 入库 fetch readability html parse markdown chunk 分块 embed 向量 write 事务 幂等 warning 取消" style="--card-accent:#047857">
+          <div class="card-top"><span class="card-no">Story 1.2</span><span class="status">done · P1</span></div>
+          <h3>添加网页 URL 入库</h3>
+          <p>抓取 → Readability → Markdown → 分块 → 向量 → 单事务写入；失败留痕、幂等、warning。</p>
+          <div class="tags"><span>入库</span><span>fetch</span><span>分块</span><span>embedding</span></div>
+          <div class="card-foot"><span>13 code · 50 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic1-story3-text-ingest.html" data-epic="1" data-search="1.3 导入 markdown 纯文本 粘贴 content passthrough text parser E_BAD_JSON E_EMPTY_CONTENT 不去重 content_type" style="--card-accent:#4d7c0f">
+          <div class="card-top"><span class="card-no">Story 1.3</span><span class="status">done · P1</span></div>
+          <h3>导入 Markdown / 纯文本</h3>
+          <p>复用 1.2 主链的 content 分支；两条拒绝码；不做内容启发式、粘贴不去重。</p>
+          <div class="tags"><span>文本</span><span>content 分支</span><span>边界</span></div>
+          <div class="card-foot"><span>12 code · 30 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic1-story4-resource-delete.html" data-epic="1" data-search="1.4 查看 删除 soft delete 软删 abort 取消 inflight 写守卫 孤儿向量 chunks embeddings 级联" style="--card-accent:#9f1239">
+          <div class="card-top"><span class="card-no">Story 1.4</span><span class="status">done · P1</span></div>
+          <h3>知识库查看与删除</h3>
+          <p>软删留痕 + chunks 物理删 + embeddings 级联；处理中先 abort；写入期取消要撤回 ready。</p>
+          <div class="tags"><span>删除</span><span>取消</span><span>写守卫</span></div>
+          <div class="card-foot"><span>10 code · 45 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="epic" id="epic-2">
+      <header class="epic-head">
+        <span class="epic-no">EPIC 02</span>
+        <h2>向知识库提问，得到带引用、可回原文的流式回答</h2>
+        <p>混合检索 → 流式输出 → 引用与原文回链 → 多轮 → 检索工具化。</p>
+      </header>
+      <div class="cards">
+        <a class="card" href="epic2-story1-hybrid-retrieval.html" data-epic="2" data-search="2.1 混合检索 向量 hnsw bm25 rrf 融合 retrieve chat 阈值 维度 拒答" style="--card-accent:#3730a3">
+          <div class="card-top"><span class="card-no">Story 2.1</span><span class="status">done · P1</span></div>
+          <h3>混合检索问答（基础）</h3>
+          <p>向量 HNSW + BM25 + RRF 名次融合；/retrieve 与第一版 /chat；维度、阈值、拒答口径。</p>
+          <div class="tags"><span>检索</span><span>RRF</span><span>阈值</span></div>
+          <div class="card-foot"><span>14 code · 56 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic2-story2-streaming.html" data-epic="2" data-search="2.2 流式 streaming sse ui message stream usechat loading 首 token 中断 超时 deferred" style="--card-accent:#1d4ed8">
+          <div class="card-top"><span class="card-no">Story 2.2</span><span class="status">done · P1</span></div>
+          <h3>流式输出与 Loading</h3>
+          <p>AI SDK UI Message Stream + useChat 逐字渲染；首 token Loading、错误/中断提示；超时 deferred。</p>
+          <div class="tags"><span>SSE</span><span>useChat</span><span>loading</span></div>
+          <div class="card-foot"><span>12 code · 39 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic2-story3-citations.html" data-epic="2" data-search="2.3 引用 citation n chunkid tool-retrieve 映射 面板 越界 纯文本" style="--card-accent:#6b21a8">
+          <div class="card-top"><span class="card-no">Story 2.3</span><span class="status">done · P1</span></div>
+          <h3>引用标记与映射</h3>
+          <p>[n] 从同一条流的 tool-retrieve output 映射；越界降级纯文本；引用面板与 8 位 chunkId。</p>
+          <div class="tags"><span>引用</span><span>tool part</span><span>映射</span></div>
+          <div class="card-foot"><span>10 code · 36 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic2-story4-source-ref.html" data-epic="2" data-search="2.4 原文 回链 source ref 抽屉 drawer 快照 来源已删除 404" style="--card-accent:#86198f">
+          <div class="card-top"><span class="card-no">Story 2.4</span><span class="status">done · P1</span></div>
+          <h3>原文回链 Source Ref</h3>
+          <p>点引用开抽屉：原文片段 + 来源标识；来源已删除时仍看消息内快照并标注。</p>
+          <div class="tags"><span>抽屉</span><span>快照</span><span>来源</span></div>
+          <div class="card-foot"><span>12 code · 30 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic2-story5-multiturn.html" data-epic="2" data-search="2.5 多轮 会话 sessions messages parts sequence 历史 6 轮 标题 多会话" style="--card-accent:#c2410c">
+          <div class="card-top"><span class="card-no">Story 2.5</span><span class="status">done · P1</span></div>
+          <h3>会话内多轮</h3>
+          <p>sessions/messages 的 parts 真源；只回灌 text、最近 6 轮；多会话列表、标题可改。</p>
+          <div class="tags"><span>多轮</span><span>parts</span><span>会话</span></div>
+          <div class="card-foot"><span>14 code · 63 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic2-story6-retrieve-tool.html" data-epic="2" data-search="2.6 检索 工具化 tool calling retrieve stopwhen 5 409 error output 模型 有界重查" style="--card-accent:#92400e">
+          <div class="card-top"><span class="card-no">Story 2.6</span><span class="status">done · P1</span></div>
+          <h3>检索工具化（模型自己调用检索）</h3>
+          <p>retrieve 包成 tool；stopWhen 5；检索错误进 tool output；/chat 200 vs /retrieve 409。</p>
+          <div class="tags"><span>tool calling</span><span>stopWhen</span><span>有界重查</span></div>
+          <div class="card-foot"><span>11 code · 47 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="epic" id="epic-3">
+      <header class="epic-head">
+        <span class="epic-no">EPIC 03</span>
+        <h2>让链路可见 — 观测与 trace</h2>
+        <p>通用 endpoint 壳 → chat / retrieve / ingest 三类专属轨迹。</p>
+      </header>
+      <div class="cards">
+        <a class="card" href="epic3-story1-endpoint-trace.html" data-epic="3" data-search="3.1 通用 端点 轨迹 trace x-trace-id traces pino payloads endpoint" style="--card-accent:#0f766e">
+          <div class="card-top"><span class="card-no">Story 3.1</span><span class="status">done · P1.x</span></div>
+          <h3>通用端点轨迹</h3>
+          <p>全局 endpoint 壳、X-Trace-Id、/traces 读接口、pino 日志、payloads 白名单。</p>
+          <div class="tags"><span>trace</span><span>pino</span><span>payloads</span></div>
+          <div class="card-foot"><span>10 code · 51 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic3-story2-chat-langfuse.html" data-epic="3" data-search="3.2 chat 聊天 langfuse spanprocessor als session trace telemetry 流 onend" style="--card-accent:#6d28d9">
+          <div class="card-top"><span class="card-no">Story 3.2</span><span class="status">done · P1.x</span></div>
+          <h3>chat → Langfuse</h3>
+          <p>三件套装配、telemetry functionId、SpanProcessor 经 ALS 关联 session/trace；onEnd 收口整条流。</p>
+          <div class="tags"><span>Langfuse</span><span>ALS</span><span>stream trace</span></div>
+          <div class="card-foot"><span>9 code · 37 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic3-story3-retrieve-stages.html" data-epic="3" data-search="3.3 检索 retrieve 五段 stage sink otel traces 阶段面板 瀑布" style="--card-accent:#b45309">
+          <div class="card-top"><span class="card-no">Story 3.3</span><span class="status">done · P1.x</span></div>
+          <h3>retrieve 五段</h3>
+          <p>Retriever.search 五段 runner；/retrieve 走 DB sink、chat tool 走 Langfuse sink；阶段面板。</p>
+          <div class="tags"><span>stage</span><span>sink</span><span>OTel</span></div>
+          <div class="card-foot"><span>17 code · 80 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic3-story4-ingest-stages.html" data-epic="3" data-search="3.4 入库 ingest 五段 stage runner resource_id embedding telemetry fetch parse chunk write" style="--card-accent:#a1224f">
+          <div class="card-top"><span class="card-no">Story 3.4</span><span class="status">done · P1.x</span></div>
+          <h3>ingest 五段</h3>
+          <p>Ingest.run 接 DB sink；fetch/parse/chunk/embed/write；resource_id 回填；失败只写 error stage。</p>
+          <div class="tags"><span>ingest</span><span>stage runner</span><span>resource_id</span></div>
+          <div class="card-foot"><span>10 code · 38 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+      </div>
+    </section>
+
+    <div class="empty" id="empty" hidden>没有匹配的走读页。试试「检索」「2.6」「Langfuse」，或清空筛选。</div>
+
+    <section class="guide" id="how-to-read">
+      <div class="guide-card">
+        <span class="kicker">HOW TO READ</span>
+        <h2>怎么用这些页</h2>
+        <ol>
+          <li><strong>先看图</strong>：每页顶部有一张内联图；先看边界与失败分支，再看一句话结论。</li>
+          <li><strong>点注解</strong>：右边卡片点一下，左边代码对应行高亮；代码来自当前工作区。</li>
+          <li><strong>看徽章</strong>：后续 story 的补丁用 <code>2.5</code>、<code>DI</code>、<code>3.2</code> 标出，不是本页交付。</li>
+          <li><strong>行号会漂</strong>：代码改动后要在同一次改动里重建对应页。</li>
+        </ol>
+      </div>
+      <div class="guide-card">
+        <span class="kicker">READING ORDER</span>
+        <h2>推荐顺序</h2>
+        <p><strong>1.1 → 1.4</strong> 打地基；<strong>2.1 → 2.6</strong> 看问答链；<strong>3.1 → 3.4</strong> 看 trace。每页独立，也可以按问题直接跳。</p>
+        <p class="muted">生成记录：每页的 config、memlog、validation 在 <code>.runs/&lt;epic-story&gt;/</code>；页面本身不进 app/web 构建。</p>
+        <p class="muted">图以懒加载 iframe 嵌入每页；点节点看语义护照；iframe 跟随页面深浅色，小屏可横向滑动。交互版在 <code>walkthroughs/diagrams/</code>；<code>.archify/</code> 是生成源。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Knowledge Copilot · Story Walkthroughs</span>
+    <span>2026-10-24 · 14 pages · 14 diagrams · iframe embedded</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var Cards = Array.prototype.slice.call(document.querySelectorAll('.card'))
+  var Sections = Array.prototype.slice.call(document.querySelectorAll('.epic'))
+  var Buttons = Array.prototype.slice.call(document.querySelectorAll('.filter'))
+  var Input = document.getElementById('q')
+  var Count = document.getElementById('count')
+  var Empty = document.getElementById('empty')
+  var Active = 'all'
+
+  function apply() {
+    var Query = Input.value.trim().toLowerCase()
+    var Visible = 0
+    Cards.forEach(function (Card) {
+      var MatchEpic = Active === 'all' || Card.getAttribute('data-epic') === Active
+      var MatchText = Query === '' || Card.getAttribute('data-search').toLowerCase().indexOf(Query) !== -1
+      var Show = MatchEpic && MatchText
+      Card.hidden = !Show
+      if (Show) Visible += 1
+    })
+    Sections.forEach(function (Section) {
+      var HasVisible = Array.prototype.some.call(Section.querySelectorAll('.card'), function (Card) {
+        return !Card.hidden
+      })
+      Section.hidden = !HasVisible
+    })
+    Count.textContent = String(Visible)
+    Empty.hidden = Visible !== 0
+  }
+
+  Buttons.forEach(function (Button) {
+    Button.addEventListener('click', function () {
+      Active = Button.getAttribute('data-epic')
+      Buttons.forEach(function (Item) {
+        Item.setAttribute('aria-pressed', String(Item === Button))
+      })
+      apply()
+    })
+  })
+
+  Input.addEventListener('input', apply)
+  document.addEventListener('keydown', function (Event) {
+    var Tag = document.activeElement && document.activeElement.tagName
+    if (Event.key === '/' && Tag !== 'INPUT' && Tag !== 'TEXTAREA') {
+      Event.preventDefault()
+      Input.focus()
+    }
+    if (Event.key === 'Escape' && document.activeElement === Input) {
+      Input.value = ''
+      apply()
+      Input.blur()
+    }
+  })
+
+  var Root = document.documentElement
+  var Theme = document.getElementById('theme')
+  var Key = 'kc-walkthrough-theme'
+  var Saved = null
+  try { Saved = localStorage.getItem(Key) } catch (Error) {}
+  var Prefers = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+
+  function setTheme(Value) {
+    Root.setAttribute('data-theme', Value)
+    Theme.textContent = Value === 'dark' ? '浅色' : '深色'
+    Theme.setAttribute('aria-label', Value === 'dark' ? '切换到浅色主题' : '切换到深色主题')
+  }
+
+  setTheme(Saved || (Prefers ? 'dark' : 'light'))
+  Theme.addEventListener('click', function () {
+    var Next = Root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+    setTheme(Next)
+    try { localStorage.setItem(Key, Next) } catch (Error) {}
+  })
+})();
+</script>
+</body>
+</html>

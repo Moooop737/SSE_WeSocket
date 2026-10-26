@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档 ↔ 代码 · 最小例子</title>
+<style>
+  :root {
+    --bg: #0b0c0f;
+    --panel: #111318;
+    --line: #262a31;
+    --text: #e6e8ec;
+    --muted: #8b919c;
+    --accent: #7ba7f7;
+    --green: #3dd6c3;
+    --orange: #f0a35e;
+    --red: #f2777a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 ui-sans-serif, -apple-system, "PingFang SC", sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  h1 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .controls { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  input[type="checkbox"] { accent-color: #9ca3af; }
+  button {
+    appearance: none; border: 1px solid var(--line); background: #15171b; color: var(--text);
+    padding: 5px 10px; border-radius: 6px; font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: #3a3f47; }
+  main {
+    flex: 1; display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 1px;
+    background: var(--line); min-height: 0;
+  }
+  section { background: var(--panel); padding: 14px 16px; overflow: auto; }
+  h2 { font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .meta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
+  pre {
+    margin: 0 0 10px; padding: 10px 12px; background: #0c0e12; border: 1px solid var(--line);
+    border-radius: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: #c8cdd5; line-height: 1.55; overflow: auto;
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .node { cursor: default; }
+  .node.clickable { cursor: pointer; }
+  .node rect, .node circle { fill: #1b1f26; stroke: #3a4049; stroke-width: 1.2; }
+  .node text { fill: var(--text); font-size: 12px; }
+  .node .sub { fill: var(--muted); font-size: 10px; }
+  .node.external rect { stroke-dasharray: 4 3; }
+  .node.active rect, .node.active circle { stroke: var(--accent); stroke-width: 2; fill: #1b2633; }
+  .node.match rect { stroke: var(--green); stroke-width: 2; fill: #12231f; }
+  .node.dim { opacity: .32; }
+  .edge { stroke: #3d4550; stroke-width: 1.2; fill: none; }
+  .edge.hl { stroke: var(--green); stroke-width: 2; }
+  .edge-label { fill: var(--muted); font-size: 10px; }
+  .edge-label.hl { fill: var(--green); }
+  .panel-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  #steps { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 12px; color: #c8cdd5; }
+  #steps li::marker { color: var(--muted); }
+  #steps li b { color: var(--text); font-weight: 500; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 999px; border: 1px solid var(--line); font-size: 10px; color: var(--muted); margin-left: 4px; }
+  .tag.ok { color: var(--green); border-color: #1f6f55; }
+  .tag.warn { color: var(--orange); border-color: #7a4a1d; }
+  .tag.bad { color: var(--red); border-color: #6e2a2c; }
+  .result {
+    margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px;
+    background: #0c0e12; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    color: #c8cdd5; white-space: pre-wrap;
+  }
+  .hint { color: var(--muted); font-size: 11.5px; margin-top: 10px; line-height: 1.6; }
+  footer { border-top: 1px solid var(--line); padding: 8px 20px; color: var(--muted); font-size: 11.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>文档 ↔ 代码 · 最小例子 <small>双向邻居 → 候选 → 选择</small></h1>
+  <div class="controls">
+    <label><input type="checkbox" id="pathHint" checked> 文档路径提供模块提示</label>
+    <button id="run">查询 Handler</button>
+    <button id="break">模拟代码改名</button>
+    <button id="reset">重置</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>① 文档层（自己生成）</h2>
+    <div class="meta" id="docMeta">docs/a.md · 第 3 节「A 模块」</div>
+    <pre>sequenceDiagram
+  User->>Handler: GET /a</pre>
+    <div class="panel-title">文档图 · 点击 Handler</div>
+    <svg viewBox="0 0 380 180" aria-label="文档时序图">
+      <line class="edge" x1="76" y1="70" x2="214" y2="70" marker-end="url(#arrowDoc)"/>
+      <text class="edge-label" x="145" y="60" text-anchor="middle">GET /a</text>
+      <g class="node external" id="docUser" transform="translate(20,48)">
+        <rect width="86" height="44" rx="7"/>
+        <text x="43" y="22" text-anchor="middle">User</text>
+        <text class="sub" x="43" y="35" text-anchor="middle">external</text>
+      </g>
+      <g class="node clickable" id="docHandler" transform="translate(214,48)">
+        <rect width="112" height="44" rx="7"/>
+        <text x="56" y="22" text-anchor="middle">Handler</text>
+        <text class="sub" x="56" y="35" text-anchor="middle">点击我</text>
+      </g>
+      <defs>
+        <marker id="arrowDoc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#3d4550"/>
+        </marker>
+      </defs>
+      <text class="edge-label" x="20" y="140">同图邻居：User、消息 GET /a</text>
+    </svg>
+    <div class="hint">文档层只知道这一页和它自己的链接；它不知道代码长什么样。</div>
+  </section>
+
+  <section>
+    <h2>② 查询过程</h2>
+    <ol id="steps">
+      <li>点击左侧的 <b>Handler</b> 开始。</li>
+    </ol>
+    <div class="result" id="result">等待查询…</div>
+    <div class="hint" id="why">
+      名称 → 文档邻居 → 代码邻居；只有缩不小的时候才让 LLM 在候选里选。
+    </div>
+  </section>
+
+  <section>
+    <h2>③ 代码层（自己生成）</h2>
+    <div class="panel-title">代码图 · 调用关系（双向）</div>
+    <svg viewBox="0 0 440 300" aria-label="代码调用图">
+      <line class="edge" id="edgeA" x1="116" y1="70" x2="272" y2="70" marker-end="url(#arrowCode)"/>
+      <text class="edge-label" id="labelA" x="194" y="60" text-anchor="middle">call · /a</text>
+      <line class="edge" id="edgeB" x1="116" y1="220" x2="272" y2="220" marker-end="url(#arrowCode)"/>
+      <text class="edge-label" id="labelB" x="194" y="210" text-anchor="middle">call · /b</text>
+
+      <g class="node" id="codeAController" transform="translate(20,48)">
+        <rect width="96" height="44" rx="7"/>
+        <text x="48" y="22" text-anchor="middle">AController</text>
+        <text class="sub" x="48" y="35" text-anchor="middle">路由 /a</text>
+      </g>
+      <g class="node" id="codeA" transform="translate(272,48)">
+        <rect width="112" height="44" rx="7"/>
+        <text id="codeAName" x="56" y="22" text-anchor="middle">Handler</text>
+        <text class="sub" x="56" y="35" text-anchor="middle">a.ts</text>
+      </g>
+
+      <g class="node" id="codeBController" transform="translate(20,198)">
+        <rect width="96" height="44" rx="7"/>
+        <text x="48" y="22" text-anchor="middle">BController</text>
+        <text class="sub" x="48" y="35" text-anchor="middle">路由 /b</text>
+      </g>
+      <g class="node" id="codeB" transform="translate(272,198)">
+        <rect width="112" height="44" rx="7"/>
+        <text x="56" y="22" text-anchor="middle">Handler</text>
+        <text class="sub" x="56" y="35" text-anchor="middle">b.ts</text>
+      </g>
+
+      <defs>
+        <marker id="arrowCode" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#3d4550"/>
+        </marker>
+      </defs>
+      <text class="edge-label" x="20" y="278">每个节点都有 in / out 邻居；查候选时只看这些邻居。</text>
+    </svg>
+    <div class="hint">代码层只知道符号和调用关系；它不知道文档存在。</div>
+  </section>
+</main>
+
+<footer>只有索引和双向邻居，没有关联表；查不到就让 LLM 在候选里选一次。</footer>
+
+<script>
+const state = { selected: null, broken: false }
+
+const pathHint = document.getElementById('pathHint')
+const stepsEl = document.getElementById('steps')
+const resultEl = document.getElementById('result')
+const docMeta = document.getElementById('docMeta')
+const codeAName = document.getElementById('codeAName')
+const docHandler = document.getElementById('docHandler')
+
+function clearHighlights() {
+  for (const el of document.querySelectorAll('.node')) el.classList.remove('active', 'match', 'dim')
+  for (const el of document.querySelectorAll('.edge')) el.classList.remove('hl')
+  for (const el of document.querySelectorAll('.edge-label')) el.classList.remove('hl')
+}
+
+function step(html) {
+  const li = document.createElement('li')
+  li.innerHTML = html
+  stepsEl.appendChild(li)
+}
+
+function resetSteps() {
+  stepsEl.innerHTML = ''
+}
+
+function showResult(kind, text) {
+  const color = kind === 'ok' ? 'var(--green)' : kind === 'bad' ? 'var(--red)' : 'var(--muted)'
+  resultEl.style.color = color
+  resultEl.textContent = text
+}
+
+function resolveHandler() {
+  clearHighlights()
+  resetSteps()
+  state.selected = null
+  docHandler.classList.add('active')
+
+  const candidateA = state.broken ? 'RequestHandler' : 'Handler'
+  const candidates = state.broken ? ['b.ts#Handler'] : ['a.ts#Handler', 'b.ts#Handler']
+
+  step(`名称搜索 <b>Handler</b> → ${candidates.length} 个候选` + (state.broken ? ' <span class="tag warn">a.ts 已改名</span>' : ''))
+
+  if (state.broken) {
+    if (pathHint.checked) {
+      step('文档路径 <b>docs/a.md</b> → 指向 a.ts，但 a.ts 里已经没有 Handler')
+    } else {
+      step('候选只剩 <b>b.ts#Handler</b>；文档消息 <b>GET /a</b> 与它的 <b>/b</b> 不匹配')
+    }
+    step('结果是 <b>unresolved</b>：文档照常读，这一步暂时跳不过去')
+    showResult('bad', 'unresolved\na.ts#Handler 已不存在\n文档内容不受影响')
+    document.getElementById('why').textContent = '文档层和代码层各自完好；只是这次翻译失败。'
+    return
+  }
+
+  if (pathHint.checked) {
+    step('文档路径 <b>docs/a.md</b> + 章节「A 模块」→ 只指向 a.ts')
+    step('唯一命中 <b>a.ts#Handler</b>，不需要 LLM')
+    selectA('路径命中')
+    return
+  }
+
+  step('路径无模块提示：候选仍是 2 个')
+  step('文档邻居：<b>User</b>、消息 <b>GET /a</b>')
+  step('代码邻居：<b>a.ts#Handler</b> ← AController（路由 /a）；<b>b.ts#Handler</b> ← BController（路由 /b）')
+  step('匹配 <b>GET /a ↔ /a</b> → 选 a.ts#Handler；LLM 只在 2 个候选里选（步数 1/6）')
+  selectA('邻居匹配')
+}
+
+function selectA(reason) {
+  state.selected = 'a'
+  document.getElementById('codeA').classList.add('match')
+  document.getElementById('codeB').classList.add('dim')
+  document.getElementById('edgeA').classList.add('hl')
+  document.getElementById('labelA').classList.add('hl')
+  showResult('ok', `a.ts#Handler\n依据：${reason}\nb.ts#Handler 被排除`)
+  document.getElementById('why').textContent = '没有关联表：命中是这次查询用双向邻居算出来的，代码/文档一变就重算。'
+}
+
+docHandler.addEventListener('click', resolveHandler)
+document.getElementById('run').addEventListener('click', resolveHandler)
+document.getElementById('break').addEventListener('click', () => {
+  state.broken = !state.broken
+  codeAName.textContent = state.broken ? 'RequestHandler' : 'Handler'
+  document.getElementById('break').textContent = state.broken ? '恢复代码' : '模拟代码改名'
+  resolveHandler()
+})
+document.getElementById('reset').addEventListener('click', () => {
+  state.broken = false
+  pathHint.checked = true
+  docMeta.textContent = 'docs/a.md · 第 3 节「A 模块」'
+  codeAName.textContent = 'Handler'
+  document.getElementById('break').textContent = '模拟代码改名'
+  docHandler.classList.remove('active')
+  clearHighlights()
+  resetSteps()
+  step('点击左侧的 <b>Handler</b> 开始。')
+  showResult('', '等待查询…')
+  document.getElementById('why').textContent = '名称 → 文档邻居 → 代码邻居；只有缩不小的时候才让 LLM 在候选里选。'
+})
+pathHint.addEventListener('change', () => {
+  docMeta.textContent = pathHint.checked ? 'docs/a.md · 第 3 节「A 模块」' : 'docs/index.md · 第 3 节'
+  if (state.selected || state.broken) resolveHandler()
+})
+</script>
+</body>
+</html>

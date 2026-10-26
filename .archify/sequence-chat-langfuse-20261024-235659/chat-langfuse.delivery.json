@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e0dfb234-7d58-44b0-bbc5-6ac4f41a58ee",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.html",
+  "specification": {
+    "sha256": "f94cbdb14a95750299121a677fd1e897c65b0ff212fe76305aa4c8a870c7d20f",
+    "bytes": 3205
+  },
+  "artifact": {
+    "sha256": "7e8f9c2073c125c615e13a0e976f52135d205d7a8cc3080f5bef44c1e08d7272",
+    "bytes": 815121
+  }
+}

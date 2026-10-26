@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/candidate.json",
+    "sha256": "9b0b995ed37e23c15b5f0852e79036eea8b840942f4bce183e9c55b9e7a9d55a",
+    "bytes": 4485
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/text-ingest.html",
+    "sha256": "1e598e5712a730184cc01f0965185412740e7e83c5e9e624d2b4302138e8cb62",
+    "bytes": 823796
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/text-ingest.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/text-ingest.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/text-ingest.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3276,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

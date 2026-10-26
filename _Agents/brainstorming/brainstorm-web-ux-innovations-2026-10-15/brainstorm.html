@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>纸 · 光 · 呼吸 — Knowledge Copilot 前端 UX 头脑风暴纪念品</title>
+<script>document.documentElement.className = "js";</script>
+<style>
+:root{ color-scheme: light; }
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background:#ded9cd;
+  font-family:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.62;
+  letter-spacing:.005em;
+}
+.stage{
+  --paper:#f3f0e8;
+  --paper-2:#faf8f2;
+  --paper-3:#ece7db;
+  --ink:#1b1f24;
+  --ink-2:#4b525a;
+  --ink-3:#79818b;
+  --hair:rgba(27,31,36,.16);
+  --hair-2:rgba(27,31,36,.08);
+  --dot:rgba(27,31,36,.17);
+  --sheen:rgba(255,255,255,.72);
+  --ink-citrus:#b96a12;
+  --ink-moss:#4f6b44;
+  --ink-slate:#42586d;
+  --ink-plum:#66456b;
+  --citrus:#d98b2a;
+  --moss:#6d8a5c;
+  --slate:#5d7690;
+  --plum:#8a6390;
+  --glow:rgba(217,139,42,.40);
+  --glow-blur:22px;
+  --glow-spread:1px;
+  --glow-alpha:.55;
+  --breath:8s;
+  --sweep:26s;
+  min-height:100vh;
+  background:var(--paper);
+  color:var(--ink);
+  position:relative;
+  overflow-x:hidden;
+}
+input[type=radio],input[type=checkbox]{ position:absolute; opacity:0; pointer-events:none; }
+#theme:checked ~ .stage{
+  color-scheme: dark;
+  --paper:#101317;
+  --paper-2:#161a20;
+  --paper-3:#0b0e11;
+  --ink:#e9e5da;
+  --ink-2:#a9a498;
+  --ink-3:#7b7770;
+  --hair:rgba(233,229,218,.16);
+  --hair-2:rgba(233,229,218,.07);
+  --dot:rgba(233,229,218,.13);
+  --sheen:rgba(255,255,255,.09);
+  --citrus:#e8a44a;
+  --moss:#8fab7c;
+  --slate:#87a4c0;
+  --plum:#b18bb6;
+  --glow:rgba(232,164,74,.30);
+  --glow-blur:40px;
+  --glow-spread:6px;
+  --glow-alpha:.85;
+  --breath:9s;
+}
+#m0:checked ~ .stage{ --breath:0s; --sweep:0s; }
+#m2:checked ~ .stage{ --breath:3.4s; --sweep:11s; --glow:rgba(217,139,42,.55); }
+#m2:checked ~ .stage .drycard{ box-shadow:0 0 var(--glow-blur) 0 var(--glow); }
+#m0:checked ~ .stage .anim,#m0:checked ~ .stage .sheen{ animation:none !important; }
+#m0:checked ~ .stage .flashbar::after,#m0:checked ~ .stage .ongoing,#m0:checked ~ .stage .heavewrap i{ animation:none !important; }
+#m0:checked ~ .stage .sheen,#m0:checked ~ .stage .breath::before,#m0:checked ~ .stage .pulsedot::after,#m0:checked ~ .stage .hero-mesh{ display:none; }
+#m0:checked ~ .stage .breath::before{ box-shadow:0 0 0 1px var(--hair); animation:none; }
+#m0:checked ~ .stage [data-reveal]{ opacity:1 !important; transform:none !important; transition:none !important; }
+@media (prefers-reduced-motion:reduce){
+  .anim,.sheen,.breath::before{ animation:none !important; }
+  [data-reveal]{ opacity:1 !important; transform:none !important; transition:none !important; }
+}
+.paper{
+  background-image:radial-gradient(var(--dot) .9px,transparent 1px);
+  background-size:5px 5px;
+}
+.wrap{ max-width:1160px; margin:0 auto; padding:0 30px 120px; }
+.mono{ font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace; }
+.serif{ font-family:"Songti SC","Noto Serif CJK SC","Source Han Serif SC",Georgia,"Times New Roman",serif; }
+.tag{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); }
+
+.sheen{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:1; }
+.sheen::after{
+  content:""; position:absolute; top:-30%; bottom:-30%; left:0; width:26%;
+  background:linear-gradient(104deg,transparent 0%,var(--sheen) 48%,transparent 100%);
+  transform:translateX(-120%) rotate(6deg);
+  animation:sweep var(--sweep) linear infinite;
+}
+@keyframes sweep{ 0%{transform:translateX(-140%) rotate(6deg)} 70%{transform:translateX(520%) rotate(6deg)} 100%{transform:translateX(520%) rotate(6deg)} }
+.breath::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 var(--glow-blur) var(--glow-spread) var(--glow);
+  opacity:var(--glow-alpha);
+  animation:breath var(--breath) ease-in-out infinite;
+}
+@keyframes breath{ 0%,100%{opacity:.18} 50%{opacity:var(--glow-alpha)} }
+.pulsedot{ position:relative; width:9px; height:9px; border-radius:50%; background:var(--citrus); display:inline-block; }
+.pulsedot::after{ content:""; position:absolute; inset:-6px; border-radius:50%; box-shadow:0 0 14px 3px var(--glow); animation:breath var(--breath) ease-in-out infinite; }
+
+.rail{
+  position:sticky; top:0; z-index:40;
+  background:var(--paper);
+  background:color-mix(in srgb,var(--paper) 88%,transparent);
+  border-bottom:1px solid var(--hair);
+  backdrop-filter:saturate(120%) blur(6px);
+}
+.rail-in{ max-width:1160px; margin:0 auto; padding:10px 30px; display:flex; flex-wrap:wrap; gap:18px; align-items:center; }
+.ctrl{ display:flex; align-items:center; gap:0; border:1px solid var(--hair); }
+.ctrl label{ font-size:11.5px; padding:5px 11px; cursor:pointer; color:var(--ink-3); border-left:1px solid var(--hair-2); letter-spacing:.06em; }
+.ctrl label:first-child{ border-left:0; }
+#m0:checked ~ .stage .lb0,#m1:checked ~ .stage .lb1,#m2:checked ~ .stage .lb2{ background:var(--ink); color:var(--paper); }
+#theme:checked ~ .stage .lb-dark{ background:var(--ink); color:var(--paper); }
+#theme:not(:checked) ~ .stage .lb-light{ background:var(--ink); color:var(--paper); }
+.rail-idx{ display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-3); }
+.rail-idx a{ color:inherit; text-decoration:none; border-bottom:1px solid var(--hair-2); padding-bottom:1px; }
+.rail-idx a:hover{ color:var(--ink); border-bottom-color:var(--ink); }
+
+header.hero{ position:relative; padding:74px 0 46px; border-bottom:1px solid var(--hair); overflow:hidden; }
+.hero-mesh{ position:absolute; inset:-25% -10% auto -10%; height:70%; opacity:.5; z-index:0;
+  background:
+    radial-gradient(60% 70% at 18% 30%,var(--glow),transparent 70%),
+    radial-gradient(50% 60% at 74% 12%,rgba(138,99,144,.35),transparent 72%),
+    radial-gradient(40% 60% at 46% 62%,rgba(93,118,144,.30),transparent 74%);
+  filter:blur(28px);
+  animation:drift 26s ease-in-out infinite alternate;
+}
+#m0:checked ~ .stage .hero-mesh{ animation:none; }
+@keyframes drift{ from{transform:translate3d(-2%,-1%,0) scale(1)} to{transform:translate3d(3%,2%,0) scale(1.07)} }
+.hero-in{ position:relative; z-index:2; }
+.eyebrow{ display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+h1{ font-family:"Songti SC","Noto Serif CJK SC","Source Han Serif SC",Georgia,serif;
+  font-weight:600; font-size:clamp(34px,5.4vw,60px); line-height:1.12; margin:0 0 6px; letter-spacing:-.01em; }
+h1 .thin{ display:block; font-size:clamp(18px,2.3vw,26px); color:var(--ink-2); font-weight:400; margin-top:12px; letter-spacing:.02em; }
+.meta{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0; margin-top:38px; border-top:1px solid var(--hair); }
+.meta div{ padding:16px 20px 18px; border-bottom:1px solid var(--hair-2); border-right:1px solid var(--hair-2); }
+.meta dt{ font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin:0 0 7px; }
+.meta dd{ margin:0; font-size:14.5px; color:var(--ink); }
+.chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:26px; }
+.chip{ font-size:12.5px; padding:4px 11px; border:1px solid var(--hair); background:var(--paper-2); color:var(--ink-2); }
+.chip b{ color:var(--ink); font-weight:600; }
+
+section{ padding:74px 0 20px; border-bottom:1px solid var(--hair-2); position:relative; }
+.sec-head{ display:grid; grid-template-columns:64px 1fr auto; gap:20px; align-items:baseline; margin-bottom:34px; }
+.sec-num{ font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--ink-3); letter-spacing:.1em; }
+.sec-head h2{ margin:0; font-size:clamp(22px,3vw,32px); font-weight:600; letter-spacing:-.005em; }
+.sec-head h2 em{ font-style:normal; font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:.62em; color:var(--ink-3); letter-spacing:.06em; margin-left:14px; font-weight:400; }
+.sec-head .gloss{ margin:8px 0 0; color:var(--ink-2); font-size:14.5px; max-width:70ch; }
+.count{ font-size:11.5px; color:var(--ink-3); white-space:nowrap; }
+
+.drycard{ background:var(--paper-2); border:1px solid var(--hair); position:relative; }
+.drycard:hover{ border-color:var(--ink-3); }
+
+.knives{ display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:18px; }
+.knife{ padding:20px 20px 8px; }
+.knife .blade{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.letter{ width:52px; height:52px; display:grid; place-items:center; font-family:"Songti SC",Georgia,serif; font-size:30px; line-height:1;
+  background:var(--paper-3); border:1px solid var(--hair); color:var(--acc,var(--ink)); position:relative; }
+.letter::after{ content:""; position:absolute; inset:3px; border:1px solid var(--hair-2); }
+.knife h3{ margin:0; font-size:16px; font-weight:600; }
+.knife .verb{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--acc,var(--ink-3)); }
+.knife ol{ margin:0; padding:0; list-style:none; counter-reset:k; }
+.knife li{ padding:12px 0 13px; border-top:1px solid var(--hair-2); font-size:13.9px; color:var(--ink-2); position:relative; padding-left:20px; }
+.knife li::before{ content:""; position:absolute; left:2px; top:19px; width:7px; height:7px; border:1px solid var(--acc,var(--ink-3)); }
+.knife li b{ color:var(--ink); font-weight:600; }
+.closer{ margin-top:22px; padding:20px 24px; display:flex; gap:16px; align-items:flex-start; }
+.closer .lab{ font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--citrus); white-space:nowrap; padding-top:4px; }
+.closer p{ margin:0; font-size:15px; }
+
+.bridges{ display:grid; grid-template-columns:repeat(auto-fill,minmax(430px,1fr)); gap:2px 26px; }
+.bridge{ display:grid; grid-template-columns:150px 44px 1fr; align-items:center; gap:0; border-bottom:1px solid var(--hair-2); padding:11px 0; }
+.dom{ font-size:13.2px; font-weight:600; color:var(--ink); }
+.dom span{ display:block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-weight:400; margin-top:2px; }
+.wire{ position:relative; height:1px; background:var(--hair); }
+.wire::before,.wire::after{ content:""; position:absolute; top:-2.5px; width:6px; height:6px; border-radius:50%; background:var(--paper); border:1px solid var(--ink-3); }
+.wire::before{ left:-1px; } .wire::after{ right:-2px; background:var(--citrus); border-color:var(--citrus); }
+.take{ font-size:13.7px; color:var(--ink-2); padding-left:16px; }
+.take b{ color:var(--ink); font-weight:600; }
+.thick{ margin-top:34px; padding:24px; }
+.thick h4{ margin:0 0 14px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--citrus); font-weight:600; }
+.thick ul{ margin:0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+.thick li{ border-left:2px solid var(--citrus); padding:2px 0 2px 14px; font-size:14.2px; }
+.thick li span{ display:block; font-size:11px; color:var(--ink-3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+
+.master{ margin:0 0 30px; padding:22px 24px 18px; }
+.master .track{ position:relative; height:34px; margin:16px 2px 6px;
+  background:repeating-linear-gradient(90deg,var(--hair) 0 1px,transparent 1px calc(100%/11));
+  border-bottom:1px solid var(--ink-3); }
+.master .track i{ position:absolute; bottom:0; width:1px; height:12px; background:var(--ink-3); }
+.master .knob{ position:absolute; bottom:-6px; right:0; width:16px; height:26px; background:var(--ink); box-shadow:0 0 var(--glow-blur) 2px var(--glow); }
+.master .nums{ display:flex; justify-content:space-between; font-size:10px; color:var(--ink-3); letter-spacing:.08em; }
+.master .nums b:last-child{ color:var(--citrus); font-size:15px; }
+.faders{ display:grid; gap:3px; }
+.fader{ display:grid; grid-template-columns:1fr minmax(120px,240px); gap:26px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--hair-2); }
+.fader:hover{ background:var(--paper-2); }
+.fader .ext{ font-size:14.2px; color:var(--ink); }
+.fader .ext s{ text-decoration:none; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--plum); margin-right:9px; }
+.fader .steal{ font-size:13.4px; color:var(--ink-2); margin-top:6px; padding-left:12px; border-left:1px solid var(--hair); }
+.fader .steal em{ font-style:normal; color:var(--moss); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; margin-right:8px; }
+.slide{ position:relative; height:1px; background:var(--hair); }
+.slide::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,var(--hair-2) 0 1px,transparent 1px 10%); }
+.slide .k{ position:absolute; top:-7px; left:calc(var(--p,100) * 1%); width:14px; height:14px; margin-left:-7px; background:var(--ink); transform:rotate(45deg); }
+.slide .s{ position:absolute; top:-4px; left:calc(var(--s,20) * 1%); width:2px; height:8px; background:var(--citrus); }
+.pull{ margin:26px 0 0; padding:26px 28px; }
+.pull p{ margin:0; font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif; font-size:clamp(17px,2.2vw,22px); line-height:1.5; }
+.pull .lab{ display:block; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--citrus); margin-bottom:12px; font-family:inherit; }
+
+.senses{ display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:18px; }
+.sense{ padding:0 0 18px; overflow:hidden; }
+.swatch{ height:92px; position:relative; border-bottom:1px solid var(--hair-2); background:var(--paper-3); overflow:hidden; }
+.sense .sense-lab{ font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--acc,var(--ink-3)); padding:16px 20px 0; }
+.sense h4{ margin:5px 0 8px; padding:0 20px; font-size:15.5px; font-weight:600; }
+.sense p{ margin:0; padding:0 20px; font-size:13.6px; color:var(--ink-2); }
+.pressing .mini{ position:absolute; left:22px; bottom:-14px; width:104px; height:52px; background:var(--paper-2); border:1px solid var(--hair); box-shadow:0 8px 14px -8px rgba(0,0,0,.35); transition:transform .18s ease,box-shadow .18s ease; }
+.pressing:hover .mini{ transform:translateY(1px); box-shadow:0 3px 7px -6px rgba(0,0,0,.30); }
+.moving .chip1,.moving .chip2{ position:absolute; width:58px; height:40px; background:var(--paper-2); border:1px solid var(--hair); transition:box-shadow .3s ease,transform .3s ease; }
+.moving .chip1{ left:18px; top:26px; } .moving .chip2{ right:18px; top:26px; }
+.moving:hover .chip1{ transform:translate(52px,-6px); box-shadow:0 16px 20px -12px rgba(0,0,0,.45); }
+.moving:hover .chip2{ transform:translate(-52px,4px); box-shadow:0 6px 9px -8px rgba(0,0,0,.4); }
+.grained .gmin{ position:absolute; inset:0; display:grid; place-items:center; font-size:34px; letter-spacing:.06em; color:var(--ink); opacity:.35; }
+.grained::after{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .3s ease;
+  background-image:linear-gradient(120deg,var(--slate),transparent 40%,var(--plum)); mix-blend-mode:multiply; }
+.grained:hover::after{ opacity:.5; }
+.flashbar{ position:absolute; left:20px; right:20px; top:24px; height:10px; border:1px solid var(--hair); background:var(--paper-2); }
+.flashbar::after{ content:""; position:absolute; inset:0; background:var(--citrus); opacity:0; animation:oneflash 6s steps(1,end) infinite; }
+#m2:checked ~ .stage .flashbar::after{ animation-duration:2.6s; }
+@keyframes oneflash{ 0%,3%{opacity:.9} 4%,100%{opacity:0} }
+.ongoing{ position:absolute; left:20px; right:20px; bottom:20px; height:10px; background:var(--citrus); opacity:.45; animation:breath calc(var(--breath) / 2 + 1s) ease-in-out infinite; }
+.tempwrap{ position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; }
+.tempwrap span:first-child{ background:linear-gradient(150deg,#e0964a,#c9722a); }
+.tempwrap span:last-child{ background:linear-gradient(150deg,#5d7690,#3d4f60); }
+.heavewrap{ position:absolute; inset:0; display:flex; gap:12px; align-items:flex-end; padding:18px 20px; }
+.heavewrap i{ display:block; background:var(--paper-2); border:1px solid var(--hair); animation:settle .9s ease both; }
+.heavewrap .light{ width:56px; height:34px; animation-delay:0s; }
+.heavewrap .heavy{ width:130px; height:44px; animation-delay:.06s; }
+@keyframes settle{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+.wetwrap{ position:absolute; inset:0; display:grid; place-items:center; gap:0; grid-auto-flow:column; }
+.wet,.dry{ width:52px; height:52px; border-radius:50%; background:var(--citrus); }
+.wet{ opacity:.28; box-shadow:0 0 38px 12px var(--glow); }
+.dry{ opacity:.7; box-shadow:0 0 7px 0 var(--glow); }
+.tastewrap{ position:absolute; inset:0; display:flex; }
+.tastewrap span{ flex:1; position:relative; }
+.tastewrap span::after{ content:attr(data-n); position:absolute; bottom:8px; left:0; right:0; text-align:center; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.85); }
+
+.worst{ display:grid; gap:2px; }
+.wrow{ display:grid; grid-template-columns:1fr 62px 1fr; gap:0; align-items:stretch; border-bottom:1px solid var(--hair-2); }
+.bad{ padding:18px 22px 18px 0; font-size:13.9px; color:var(--ink-2);
+  background-image:repeating-linear-gradient(135deg,var(--hair-2) 0 1px,transparent 1px 7px); }
+.bad b{ display:block; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--plum); margin-bottom:6px; }
+.turn{ display:grid; place-items:center; position:relative; }
+.turn i{ width:100%; height:1px; background:var(--ink-3); }
+.turn::after{ content:""; position:absolute; right:20px; width:7px; height:7px; border-top:1px solid var(--ink-3); border-right:1px solid var(--ink-3); transform:rotate(45deg); }
+.turn span{ position:absolute; font-size:11px; letter-spacing:.2em; color:var(--citrus); background:var(--paper); padding:2px 4px; }
+.good{ padding:18px 0 18px 22px; font-size:13.9px; color:var(--ink); }
+.good b{ display:block; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--moss); margin-bottom:6px; }
+
+.hmw{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
+.hmwcard{ padding:0; position:relative; }
+.hmwcard .q{ padding:18px 20px 14px; border-bottom:1px dashed var(--hair); font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif; font-size:16.5px; position:relative; }
+.hmwcard .q span{ color:var(--citrus); font-size:11px; letter-spacing:.16em; text-transform:uppercase; display:block; margin-bottom:7px; font-family:"SF Mono",ui-monospace,Menlo,monospace; }
+.hmwcard .a{ padding:16px 20px 20px; font-size:13.8px; color:var(--ink-2); }
+.hmwcard .a::before{ content:"→"; display:block; color:var(--moss); margin-bottom:6px; font-size:14px; }
+
+.map{ position:relative; aspect-ratio:16/10; margin:6px 0 30px; }
+.map .thread{ position:absolute; left:50%; top:50%; height:1px; width:var(--len,320px); background:var(--hair); transform-origin:0 0; transform:rotate(var(--rot,0deg)); z-index:1; }
+.hub{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:5;
+  width:min(220px,44%); padding:16px 18px; text-align:center; background:var(--paper); border:1px solid var(--ink-3); }
+.hub b{ display:block; font-family:"Songti SC",Georgia,serif; font-size:19px; }
+.hub i{ font-style:normal; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); display:block; margin-top:6px; }
+.cluster{ position:absolute; z-index:3; width:min(268px,32%); padding:14px 16px 16px; background:var(--paper-2); border:1px solid var(--hair); left:calc(var(--x) * 1%); top:calc(var(--y) * 1%); transform:translate(-50%,-50%); }
+.cluster:hover{ border-color:var(--acc); z-index:6; }
+.cluster .cl{ display:flex; align-items:center; gap:9px; margin-bottom:8px; }
+.cluster .cl u{ text-decoration:none; width:22px; height:22px; display:grid; place-items:center; font-size:12px; background:var(--acc); color:var(--paper); font-weight:600; }
+.cluster h5{ margin:0; font-size:13.6px; font-weight:600; line-height:1.35; }
+.cluster .mem{ display:flex; flex-wrap:wrap; gap:5px; }
+.cluster .mem span{ font-size:11.4px; color:var(--ink-2); border:1px solid var(--hair-2); padding:2px 7px; background:var(--paper); }
+.cluster:hover .mem span{ border-color:var(--hair); }
+.conn{ display:grid; gap:2px; margin-top:34px; border-top:1px solid var(--hair); }
+.connrow{ display:grid; grid-template-columns:190px 1fr; gap:0; padding:22px 0; border-bottom:1px solid var(--hair-2); position:relative; }
+.connrow:hover{ background:var(--paper-2); }
+.connrow .who{ padding-right:22px; }
+.connrow .who b{ display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--citrus); margin-bottom:8px; }
+.connrow .who p{ margin:0; font-size:13.2px; color:var(--ink-3); }
+.connrow .what{ border-left:1px solid var(--hair); padding-left:26px; }
+.connrow .what h4{ margin:0 0 9px; font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif; font-size:19px; line-height:1.4; font-weight:600; }
+.connrow .what p{ margin:0; font-size:14px; color:var(--ink-2); }
+
+.moscow{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--hair); border:1px solid var(--hair); }
+.quad{ background:var(--paper-2); padding:26px 28px 30px; position:relative; }
+.quad .ql{ display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+.quad h3{ margin:0; font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif; font-size:26px; font-weight:600; }
+.quad .qn{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); }
+.quad .note{ margin:0 0 18px; font-size:13px; color:var(--ink-3); }
+.quad ul{ margin:0; padding:0; list-style:none; }
+.quad li{ padding:11px 0 11px 30px; border-top:1px solid var(--hair-2); font-size:14px; position:relative; color:var(--ink-2); }
+.quad li b{ color:var(--ink); font-weight:600; }
+.quad li::before{ content:""; position:absolute; left:4px; top:16px; width:13px; height:13px; border:1px solid var(--acc,var(--ink-3)); }
+#qMust li::before{ background:var(--citrus); border-color:var(--citrus); }
+#qWont li::before{ border-color:var(--ink-3); background:linear-gradient(45deg,transparent 42%,var(--ink-3) 42% 58%,transparent 58%); }
+#qWont li{ color:var(--ink-3); }
+#qMust{ box-shadow:inset 0 0 60px -20px var(--glow); }
+.breathing#qMust::before{ box-shadow:0 0 var(--glow-blur) var(--glow-spread) var(--glow); animation:breath var(--breath) ease-in-out infinite; }
+
+footer{ padding:56px 0 20px; }
+.colo{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--hair-2); border-top:1px solid var(--hair); }
+.colo div{ background:var(--paper); padding:18px 20px; }
+.colo b{ display:block; font-family:"Songti SC",Georgia,serif; font-size:30px; line-height:1; color:var(--ink); }
+.colo span{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); display:block; margin-top:8px; }
+.colophon{ margin:26px 0 0; font-size:12.5px; color:var(--ink-3); max-width:78ch; }
+
+.js [data-reveal]{ opacity:0; transform:translateY(14px); transition:opacity .6s ease,transform .6s ease; }
+.js [data-reveal].in{ opacity:1; transform:none; }
+
+@media (max-width:980px){
+  .map{ aspect-ratio:auto; display:grid; gap:12px; }
+  .cluster,.hub{ position:static; transform:none; width:auto; }
+  .map .thread{ display:none; }
+  .bridge{ grid-template-columns:1fr; gap:6px; }
+  .wire{ display:none; } .take{ padding-left:0; }
+  .fader{ grid-template-columns:1fr; gap:10px; }
+  .wrow{ grid-template-columns:1fr; }
+  .bad{ padding:16px 0 4px; } .good{ padding:8px 0 18px; } .turn{ height:26px; }
+  .connrow{ grid-template-columns:1fr; }
+  .connrow .who{ padding:0 0 10px; } .connrow .what{ border-left:0; padding-left:0; }
+  .moscow{ grid-template-columns:1fr; }
+  .sec-head{ grid-template-columns:44px 1fr; }
+  .count{ grid-column:1/-1; }
+}
+</style>
+</head>
+<body>
+
+<input type="radio" name="motion" id="m0">
+<input type="radio" name="motion" id="m1" checked>
+<input type="radio" name="motion" id="m2">
+<input type="checkbox" id="theme">
+
+<div class="stage">
+
+<div class="rail">
+  <div class="rail-in">
+    <div class="ctrl" role="group" aria-label="视效强度三档">
+      <label class="lb0 mono" for="m0">静默</label>
+      <label class="lb1 mono" for="m1">克制</label>
+      <label class="lb2 mono" for="m2">尽情</label>
+    </div>
+    <div class="ctrl" role="group" aria-label="亮暗双档">
+      <label class="lb-light mono" for="theme">亮档 · 干</label>
+      <label class="lb-dark mono" for="theme">暗档 · 湿润</label>
+    </div>
+    <nav class="rail-idx mono" aria-label="索引">
+      <a href="#s1">01 SCAMPER</a>
+      <a href="#s2">02 Cross-Pollination</a>
+      <a href="#s3">03 Dial to 11</a>
+      <a href="#s4">04 Sensory</a>
+      <a href="#s5">05 Worst Possible</a>
+      <a href="#s6">06 How Might We</a>
+      <a href="#s7">07 收敛</a>
+      <a href="#s8">08 MoSCoW</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero paper">
+  <div class="hero-mesh" aria-hidden="true"></div>
+  <div class="sheen" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <div class="eyebrow">
+      <span class="pulsedot" aria-hidden="true"></span>
+      <span class="tag mono">brainstorm keepsake · autonomous session</span>
+    </div>
+    <h1>Knowledge Copilot 前端本轮 UX 优化
+      <span class="thin">布局 / 视效 / 人机交互 —— 三维创新点的一次头脑风暴</span>
+    </h1>
+
+    <dl class="meta">
+      <div><dt>date</dt><dd>2026-10-15</dd></div>
+      <div><dt>mode</dt><dd>autonomous</dd></div>
+      <div><dt>status</dt><dd>complete</dd></div>
+      <div><dt>updated</dt><dd class="mono">2026-10-15T13:14</dd></div>
+      <div style="grid-column:1/-1"><dt>topic</dt><dd>Knowledge Copilot 前端本轮 UX 优化：布局 / 视效 / 人机交互 三维创新点</dd></div>
+      <div style="grid-column:1/-1"><dt>goal</dt><dd>产出可落地的创新点清单，直接喂给本轮 app/web 的改造（Widget bug、shader 头像、可自定义侧栏、入库面板重做）</dd></div>
+    </dl>
+
+    <div class="chips">
+      <span class="chip"><b>三个维度</b> 布局 · 视效 · 人机交互</span>
+      <span class="chip"><b>喂给</b> Widget bug</span>
+      <span class="chip"><b>喂给</b> shader 头像</span>
+      <span class="chip"><b>喂给</b> 可自定义侧栏</span>
+      <span class="chip"><b>喂给</b> 入库面板重做</span>
+    </div>
+
+    <p class="colophon">
+      这件纪念品本身是会话结论的一次落地：顶栏那把三档推子就是 Cross-Pollination 里的「调音台总推子」（静默档 = 全站零动画、只剩纸纹与 hairline），
+      亮暗双档的柔光参数差就是 Sensory 里的「湿度」，纸纹与斜光泽是既有美术语言的「纸 / 光」，会呼吸的那圈光是「呼吸」。
+    </p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="s1" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">01</span>
+    <div>
+      <h2>七把刀<em>SCAMPER Method</em></h2>
+      <p class="gloss">同一套 Widget / 头像 / 侧栏 / 入库面板，被七把刀各割一遍。Eliminate 与 Reverse 各留下一条最可能直接落地的。</p>
+    </div>
+    <span class="count mono">21 idea · 7 knives</span>
+  </div>
+
+  <div class="knives">
+    <article class="knife drycard" style="--acc:var(--citrus)">
+      <div class="blade"><span class="letter">S</span><div><h3>Substitute</h3><span class="verb mono">替换</span></div></div>
+      <ol>
+        <li>把 Widget 的四个按钮（左移/右移/换宽/移出）换成一套<b>「面板即插口」</b>隐喻——每张卡有一个拖拽把手，但保留按钮作为键盘等价路径</li>
+        <li>把头像的两档 CSS 径向渐变整个换成一只 <b>WebGL shader 圆</b>，用同一套 @theme token 取色，品牌色不再例外</li>
+        <li>把入库页右侧「这条管线在做什么」那块介绍，换成一条会动的<b>管线进度带</b>（抓取→解析→切块→嵌入→写库），介绍由动画自己讲</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--moss)">
+      <div class="blade"><span class="letter">C</span><div><h3>Combine</h3><span class="verb mono">合并</span></div></div>
+      <ol>
+        <li>把侧栏自定义与概览面板自定义合并成同一个「 customize 」动词与同一套存档 hook，界面只在两处入口</li>
+        <li>头像 shader 与概览空态的 ShaderBackdrop 共用一个调色板发生器，用户配好的头像色可以<b>一键广播成全站强调色</b></li>
+        <li>把入库面板的 URL/正文二段切换与「最近入库」合并成一张<b>时间线卡</b>，输入在上方、刚进来的在下方同一视野</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--slate)">
+      <div class="blade"><span class="letter">A</span><div><h3>Adapt</h3><span class="verb mono">借用</span></div></div>
+      <ol>
+        <li>借音乐 DAW 的<b>轨道布局</b>做概览面板——每张卡是一条可折叠轨，宽度=该指标的重要度</li>
+        <li>借 macOS 通知中心的<b>「分组+聚合」</b>做侧栏——同类导航聚合成一枚可展开的胶囊</li>
+        <li>借游戏 HUD 的<b>血条设计</b>做 StatusBar：把状态分布做成一根会呼吸的管线带</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--plum)">
+      <div class="blade"><span class="letter">M</span><div><h3>Modify</h3><span class="verb mono">改变</span></div></div>
+      <ol>
+        <li>Widget 提供<b>三种尺寸</b>（1/2 列 + 一个「全宽高卡」）而不是两档，并把 resize 做成可撤销</li>
+        <li>头像 shader 参数做成 <b>6 个可组合旋钮</b>（效果类型/配色/速度/尺度/噪点/边框），任何组合都存本机</li>
+        <li>入库表单在提交中把<b>已完成步骤点亮</b>（抓取完成→解析完成…），而不是只有一个 spinner</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--citrus)">
+      <div class="blade"><span class="letter">P</span><div><h3>Put to other use</h3><span class="verb mono">另作他用</span></div></div>
+      <ol>
+        <li>pulse 柔光这层不只给忙状态，也用来标<b>「刚刚变过的那张卡」</b>（5 秒内）</li>
+        <li>Find 过滤框除了筛导航，兼作全站<b>命令面板入口</b>（mod+K 二次按下进命令模式）</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--moss)">
+      <div class="blade"><span class="letter">E</span><div><h3>Eliminate</h3><span class="verb mono">删除</span></div></div>
+      <ol>
+        <li>删掉入库页所有介绍性段落，只留一个 placeholder 与一个<b>「下一步会发生什么」</b>的 inline 计时</li>
+        <li>删掉概览页编辑态的「加回」独立条，改成卡片之间插入一张<b>虚线空位</b>（少一块 UI，位置语义更直白）</li>
+        <li>删掉卡片 exit 动画里的 <b>scale</b>，只留 opacity——scale 与 layout 投影同元素是布局挤压 bug 的温床</li>
+      </ol>
+    </article>
+
+    <article class="knife drycard" style="--acc:var(--slate)">
+      <div class="blade"><span class="letter">R</span><div><h3>Reverse</h3><span class="verb mono">反转</span></div></div>
+      <ol>
+        <li>不是「卡片从面板移出」，而是<b>「面板挑卡」</b>：默认只显示 3 张，其余在抽屉里，用户是往里加而不是往外删</li>
+        <li>不是用户去找数据，而是让<b>最紧急的那张卡自己爬上来</b>（有 failed 时失败清单自动置顶并发光）</li>
+        <li>侧栏不排「页面」，排<b>「意图」</b>（我要找答案 / 我要喂库 / 我要看健不健康），页面变成意图下的子项</li>
+      </ol>
+    </article>
+  </div>
+
+  <div class="closer drycard breath">
+    <span class="lab mono">closer</span>
+    <p>SCAMPER 收尾：Eliminate 那条（去掉 exit 动画里的 scale）与 Reverse 那条（面板挑卡）是<b>本轮最可能直接落地的两条</b>。</p>
+  </div>
+</section>
+
+<section id="s2" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">02</span>
+    <div>
+      <h2>跨域采蜜<em>Cross-Pollination · ER / 机场 / 唱片柜 / 相机取景器 / 图书馆</em></h2>
+      <p class="gloss">左边是外来的行业，右边是偷回来的东西。桥越粗，说明这条花蜜最后真的进了本轮清单。</p>
+    </div>
+    <span class="count mono">17 idea · 16 桥</span>
+  </div>
+
+  <div class="bridges">
+    <div class="bridge"><div class="dom">急诊室分诊台<span>ER triage</span></div><div class="wire" aria-hidden="true"></div><div class="take">入库队列照 <b>triage</b> 做——每条待入库带一个「预计还需 N 秒」与一条色带，越久等越往左移，护士（用户）一眼看到谁在恶化</div></div>
+    <div class="bridge"><div class="dom">急诊室<span>ER</span></div><div class="wire" aria-hidden="true"></div><div class="take">全站只有一个<b>「当前最要紧」的位置</b>（顶栏那条会呼吸的带子），谁抢走了它一目了然，避免每张卡各自喊话</div></div>
+    <div class="bridge"><div class="dom">机场航显牌<span>flip-board</span></div><div class="wire" aria-hidden="true"></div><div class="take">最近入库列表做成<b>翻牌式</b>（flip-board）逐行更新，一行变化只有那一行翻，视觉噪音极低却绝对可见</div></div>
+    <div class="bridge"><div class="dom">机场<span>airport</span></div><div class="wire" aria-hidden="true"></div><div class="take">侧栏每个入口带一个极简<b>「状态点」</b>（资源=数量 / 探针=红绿 / 入库=忙），导航从纯静态变成仪表板</div></div>
+    <div class="bridge"><div class="dom">唱片柜<span>crate digging</span></div><div class="wire" aria-hidden="true"></div><div class="take">头像组合器做成 <b>crate-digging</b> 隐喻——效果是一排封面，点中即换，随机按钮叫 shuffle，保存的叫 press a record</div></div>
+    <div class="bridge"><div class="dom">相机取景器<span>viewfinder</span></div><div class="wire" aria-hidden="true"></div><div class="take">入库面板提交后不是弹 Alert，而是<b>「合焦」动效</b>：取景框四角收拢一下再展开结果，成功有物理感</div></div>
+    <div class="bridge"><div class="dom">相机<span>shutter</span></div><div class="wire" aria-hidden="true"></div><div class="take">把 dryRun 做成<b>「半按快门」</b>——只对焦不拍照（只做校验不写库）</div></div>
+    <div class="bridge"><div class="dom">图书馆索书号<span>call number</span></div><div class="wire" aria-hidden="true"></div><div class="take">引用溯源用<b>「架位」语言</b>（第 3 块 / 第 12 段），并把回链做成一条可点的书脊</div></div>
+    <div class="bridge"><div class="dom">博物馆展签<span>label</span></div><div class="wire" aria-hidden="true"></div><div class="take">所有解释性文字改成<b>展签模式</b>——默认只有一行标题，点展签才抽出说明，把介绍从布局里拿掉但不丢信息</div></div>
+    <div class="bridge"><div class="dom">棋盘 / 桌面游戏<span>board game</span></div><div class="wire" aria-hidden="true"></div><div class="take">Widget 换位用<b>「棋子抬起-落下」两帧</b>（阴影变大→变小），比现在的 transform 补间更能表达「换了个格子」</div></div>
+    <div class="bridge"><div class="dom">电梯面板<span>lift panel</span></div><div class="wire" aria-hidden="true"></div><div class="take">侧栏自定义用<b>「按楼层」隐喻</b>——用户点亮的入口留在面板上，没亮的灰掉但不删</div></div>
+    <div class="bridge"><div class="dom">调音台<span>mixing desk</span></div><div class="wire" aria-hidden="true"></div><div class="take">把「视效强度」做成一个<b>总推子</b>（0 静默 / 1 克制 / 2 尽情），一键决定全站动画与 shader 的密度，减动效不再是二进制</div></div>
+    <div class="bridge"><div class="dom">电视购物<span>反面样本</span></div><div class="wire" aria-hidden="true"></div><div class="take">抽卡/开箱机制用在入库成功上（chunk 数与命中质量是一次开箱），提高重复入库的愉悦——<b>需谨慎，容易变噪音</b></div></div>
+    <div class="bridge"><div class="dom">扑克筹码<span>chips</span></div><div class="wire" aria-hidden="true"></div><div class="take">KPI 条的四格数字改成<b>可堆叠的筹码</b>，点击展开成 7 天趋势微型图</div></div>
+    <div class="bridge"><div class="dom">地图 App<span>lock &amp; follow</span></div><div class="wire" aria-hidden="true"></div><div class="take">滚动时侧栏当前项的<b>指示块跟随</b>，但到分组边界时「换车厢」有一个明确的分段声（视觉上的跳格）</div></div>
+    <div class="bridge"><div class="dom">自动驾驶 HUD<span>radar</span></div><div class="wire" aria-hidden="true"></div><div class="take">检索命中过程做成<b>雷达扫描</b>，命中点从扫描圈外飞入列表，方向感替代纯 loading</div></div>
+  </div>
+
+  <div class="thick drycard paper breath">
+    <h4>最值得留的三条 · 最粗的三根桥</h4>
+    <ul>
+      <li><span>调音台</span>调音台总推子（视效强度三档）</li>
+      <li><span>博物馆</span>展签模式（介绍不删只抽）</li>
+      <li><span>电梯面板</span>侧栏灰掉而不删</li>
+    </ul>
+  </div>
+</section>
+
+<section id="s3" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">03</span>
+    <div>
+      <h2>推到十一<em>Crank the Dial to 11 · 把视效这一维推到荒谬极值</em></h2>
+      <p class="gloss">黑方块是极值本身（全部推到 11），橙刻痕是这一条能偷回来的位置。极值不负责落地，负责告诉你方向。</p>
+    </div>
+    <span class="count mono">13 idea</span>
+  </div>
+
+  <div class="master drycard paper">
+    <div class="tag mono">extreme value · 视效这一维的荒谬极值</div>
+    <div class="track" aria-hidden="true"><span class="knob"></span></div>
+    <div class="nums mono"><b>0</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>10</b><b>11</b></div>
+  </div>
+
+  <div class="faders">
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>整站背景是一块持续流动的 shader 海洋，卡片是浮在水面的纸</div>
+        <div class="steal"><em class="mono">可偷的减法</em>只让「空态与 404」这两块面有活着的底，有内容的卡静默</div>
+      </div>
+      <div class="slide" style="--p:100;--s:18" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>每张卡都有自己心跳，频率=它背后数据的更新频率（探针 30s 一跳、入库 3s 一跳）</div>
+        <div class="steal"><em class="mono">偷下来</em>就是「呼吸节奏携带信息」而不是装饰</div>
+      </div>
+      <div class="slide" style="--p:100;--s:82" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>鼠标经过时全站纸纹被推开一道涟漪（Fluid / LiquidMetal）</div>
+        <div class="steal"><em class="mono">降级</em>代价高，但可降级成只在概览的空态那一条带上做一次</div>
+      </div>
+      <div class="slide" style="--p:100;--s:12" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>所有数字变化都走一次全息拆解-重组（Heatmap + HalftoneDots）</div>
+        <div class="steal"><em class="mono">偷成最小的</em>KPI 数字换值时做一次 halftone 溶解再聚拢</div>
+      </div>
+      <div class="slide" style="--p:100;--s:28" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>主题切换不是换色，是一段 1.2s 的日蚀（GodRays 从边缘吃掉亮色）</div>
+        <div class="steal"><em class="mono">可降级</em>成 400ms 的径向擦除，成本一个 shader</div>
+      </div>
+      <div class="slide" style="--p:100;--s:52" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>入库这一步可视化成一颗种子长成卡片（Metaballs 合并），完成后卡从光团里凝结出来</div>
+        <div class="steal"><em class="mono">留在 11</em>这一条没有递减，它只是把「写入」这件事说得有物理感</div>
+      </div>
+      <div class="slide" style="--p:100;--s:100" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>侧栏每条导航的图标在 hover 时各自播放 200ms 的专属微动效</div>
+        <div class="steal"><em class="mono">偷成</em>：只有当前页那一项有常驻极慢动效，其余静止（一处动、全场静）</div>
+      </div>
+      <div class="slide" style="--p:100;--s:70" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>滚动时全站有一层跟随视差的纸纹颗粒（DotGrid 密度随 scrollY 变化）</div>
+        <div class="steal"><em class="mono">偷成</em>：只在 hero 与空态做一次极轻视差</div>
+      </div>
+      <div class="slide" style="--p:100;--s:14" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>每个 shader 都能被用户调（30 个效果 × 8 参数）</div>
+        <div class="steal"><em class="mono">偷成</em>：头像只暴露 3 个维度但正交组合（效果 × 色族 × 速度），组合数已经够多</div>
+      </div>
+      <div class="slide" style="--p:100;--s:60" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>光标本身是一枚透镜（LensDistortion），底下内容被放大折射</div>
+        <div class="steal"><em class="mono">偷成</em>：只在画廊页玩，不进主流程</div>
+      </div>
+      <div class="slide" style="--p:100;--s:8" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>WebGL 预算从 2 提到「按屏幕面积配额」</div>
+        <div class="steal"><em class="mono">原则</em>大面给一个全屏 shader，小面一律 CSS，配额本身是设计约束的来源</div>
+      </div>
+      <div class="slide" style="--p:100;--s:90" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+    <div class="fader drycard">
+      <div>
+        <div class="ext"><s class="mono">极值</s>把「减动效」做成审美而不是无障碍默认：静默档 = 全站零动画、零 shader，只剩纸纹与 hairline</div>
+        <div class="steal"><em class="mono">升格</em>作为第三档主题</div>
+      </div>
+      <div class="slide" style="--p:100;--s:96" aria-hidden="true"><span class="k"></span><span class="s"></span></div>
+    </div>
+  </div>
+
+  <div class="pull drycard paper breath">
+    <span class="lab mono">core stealable principle</span>
+    <p>Dial-to-11 的核心可偷原则：<b>动要携带信息</b>（节奏=更新频率）、<b>一处动则全场静</b>、<b>静默档当一档审美</b>而非降级。</p>
+  </div>
+</section>
+
+<section id="s4" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">04</span>
+    <div>
+      <h2>把它当材质来问<em>Sensory Exploration · 手感 / 声音 / 温度 / 湿度 / 重量 / 味道</em></h2>
+      <p class="gloss">每张卡下面那块是这条感觉的实物演示：hover 会压下去、会显影、会抬起落下；声音是一次短闪，常亮只属于正在进行的事。</p>
+    </div>
+    <span class="count mono">8 idea · 6 senses</span>
+  </div>
+
+  <div class="senses">
+    <article class="sense drycard pressing" style="--acc:var(--moss)">
+      <div class="swatch paper"><div class="mini"></div></div>
+      <div class="sense-lab mono">touch · 触感</div>
+      <h4>卡片是「纸」不是「玻璃」</h4>
+      <p>按下不做 scale 收缩（那是玻璃），而是纸被压下去一点（阴影变浅 + 1px 下沉），与既有 paper 语义一致</p>
+    </article>
+
+    <article class="sense drycard moving" style="--acc:var(--moss)">
+      <div class="swatch paper"><span class="chip1"></span><span class="chip2"></span></div>
+      <div class="sense-lab mono">touch · 触感</div>
+      <h4>Widget 换位是「把卡片挪到桌上另一处」</h4>
+      <p>抬起时阴影扩大、落下时回弹，落点明确；这正好是修掉现有布局挤压 bug 的动画语言（不动 grid 的 transform，只动阴影与透明度）</p>
+    </article>
+
+    <article class="sense drycard grained" style="--acc:var(--slate)">
+      <div class="swatch"><span class="gmin mono">128</span></div>
+      <div class="sense-lab mono">texture · 质感</div>
+      <h4>hover 一个数字时能感到「颗粒」</h4>
+      <p>给 KPI 数字一条极淡的 grainGradient 底，只在 hover 时显影</p>
+    </article>
+
+    <article class="sense drycard" style="--acc:var(--citrus)">
+      <div class="swatch anim2"><span class="flashbar anim"></span><span class="ongoing anim"></span></div>
+      <div class="sense-lab mono">sound · 声音</div>
+      <h4>声音的视觉等价</h4>
+      <p>状态变化用「一声」= 一次 120ms 的短闪（不是持续发光），持续发光只留给正在进行的事</p>
+    </article>
+
+    <article class="sense drycard" style="--acc:var(--citrus)">
+      <div class="swatch"><span class="tempwrap"><span></span><span></span></span></div>
+      <div class="sense-lab mono">temperature · 温度</div>
+      <h4>用色温表达结果而不是只用红绿</h4>
+      <p>入库成功给一次暖色（warning 色相偏橙的合法用法），失败给一次冷掉</p>
+    </article>
+
+    <article class="sense drycard" style="--acc:var(--plum)">
+      <div class="swatch"><span class="heavewrap"><i class="light anim"></i><i class="heavy anim"></i></span></div>
+      <div class="sense-lab mono">weight · 重量</div>
+      <h4>span=2 的宽卡比 span=1 的重</h4>
+      <p>入场晚 60ms、退出早 60ms，让面板有排字的节奏而不是齐刷刷一起</p>
+    </article>
+
+    <article class="sense drycard" style="--acc:var(--slate)">
+      <div class="swatch"><span class="wetwrap"><span class="wet"></span><span class="dry"></span></span></div>
+      <div class="sense-lab mono">humidity · 湿度</div>
+      <h4>光晕在暗档更「湿润」，亮档更「干」</h4>
+      <p>光晕（pulse）在暗档更「湿润」（blur 更大、透明度更低），亮档更「干」（收紧）——同一语义两档不同参数</p>
+    </article>
+
+    <article class="sense drycard" style="--acc:var(--citrus)">
+      <div class="swatch"><span class="tastewrap">
+        <span data-n="ink" style="background:#2b2f36"></span>
+        <span data-n="citrus" style="background:#d98b2a"></span>
+        <span data-n="moss" style="background:#6d8a5c"></span>
+        <span data-n="slate" style="background:#5d7690"></span>
+        <span data-n="plum" style="background:#8a6390"></span>
+      </span></div>
+      <div class="sense-lab mono">taste · 味道</div>
+      <h4>整站是「纸墨 + 一点柑橘强调色」</h4>
+      <p>头像组合器里的色族命名走味觉（ink / citrus / moss / slate / plum），比 hex 好记</p>
+    </article>
+  </div>
+</section>
+
+<section id="s5" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">05</span>
+    <div>
+      <h2>最烂方案<em>Worst Possible Idea · 先造最烂的方案，再翻成该做对的事</em></h2>
+      <p class="gloss">左边是故意做烂的样子（噪、要人反复确认、霸屏），右边是翻正之后本轮该写的规则。每一条都在说同一件事：别跟用户要确认，给他撤销。</p>
+    </div>
+    <span class="count mono">7 idea · 7 翻正</span>
+  </div>
+
+  <div class="worst">
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>每次改动都要用户确认三次</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>不可撤销的动作（恢复默认布局）才要两步确认，可撤销的动作（移动、换宽）一步都不问——所以本轮该给 move/resize 加「撤销」而不是加确认</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>编辑态一开，整页变成不可点</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>编辑态是一个真的模式切换，卡片可动、数据仍可看，只有 hover 才浮出把手（模式可见但不霸屏）</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>把所有自定义存在后端</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>本机存 + 一个「复制配置 JSON」按钮，导出即分享，符合 P1 无账号红线</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>侧栏自定义只允许改顺序</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>顺序 / 显隐 / 分组名 / 图标 四项都改，且给一个「恢复默认」；灰掉而不删，随时点亮回来</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>shader 头像一开始就加载 30 个 WebGL context</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>预览区永远只 1 个 context，侧栏那颗是「烘焙后的静态快照」——组合完导出一次 canvas.toDataURL，主流程零 WebGL 成本</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>错误全靠 toast</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>错误发生在哪块面就在哪块面显示（卡片内联），toast 只留给跨页结果</div>
+    </div>
+    <div class="wrow drycard">
+      <div class="bad"><b class="mono">worst</b>让用户自己找 bug 是怎么发生的</div>
+      <div class="turn" aria-hidden="true"><i></i><span class="mono">翻</span></div>
+      <div class="good"><b class="mono">turn it right</b>布局异常时提供一个「重排」按钮（一次 grid 强制回流），把自救成本还给用户</div>
+    </div>
+  </div>
+</section>
+
+<section id="s6" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">06</span>
+    <div>
+      <h2>我们可以怎样<em>How Might We · 人机交互维收敛成机会句再出招</em></h2>
+      <p class="gloss">八句机会句，每句下面接一个能直接写成组件的答案。模式感来自背景而不是弹层，因果要在落定前被看见。</p>
+    </div>
+    <span class="count mono">8 idea · 8 机会句</span>
+  </div>
+
+  <div class="hmw">
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 01</span>让人一眼看出面板处于「可编辑」？</div>
+      <div class="a">顶栏那把「自定义面板」按下后，整块 grid 进入虚线网格底（CSS repeating-linear-gradient 的编辑栅格线），离开即消失——模式感来自背景而不是弹层</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 02</span>让「移动」在语义上不必左右？</div>
+      <div class="a">给每卡一个序号芯片（1/2/3…），点芯片输入目标位次；比连续点左移快，且键盘可用</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 03</span>让 resize 的意图被看见？</div>
+      <div class="a">点击「加宽」时先做一次 300ms 的预览描边（邻居让位的虚线轮廓），再落定；让因果可见</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 04</span>让侧栏自定义零学习成本？</div>
+      <div class="a">复用概览的心智：一个「自定义」开关，条目右侧浮出「隐藏」与「上/下」，与 Widget 同一套图标与文案</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 05</span>让人知道刚发生的事而不是去猜？</div>
+      <div class="a">所有状态跃迁（processing→ready）在卡片左上做一次 120ms 的边缘闪光 + 一条「刚刚：X 就绪」的瞬时行，2s 后自清</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 06</span>让入库这一步「有下一步」？</div>
+      <div class="a">成功后给三个动作：立刻问它（跳 /ask 带上下文）、看它分块（跳资源详情）、继续入库（焦点回输入框）——把一次写入变成一个循环的入口</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 07</span>减少表单的认知负担？</div>
+      <div class="a">标题字段默认折叠成「+ 指定标题」，因为 90% 情况自动取标题是对的；把可选意图从视野里拿掉</div>
+    </article>
+    <article class="hmwcard drycard">
+      <div class="q"><span class="mono">HMW 08</span>让视效不吵？</div>
+      <div class="a">一个全局「动效强度」三档推子（静默/克制/尽情），写进 localStorage，默认克制；减动效系统偏好强制落到静默档</div>
+    </article>
+  </div>
+</section>
+
+<section id="s7" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">07</span>
+    <div>
+      <h2>收敛：六个亲和簇<em>Affinity Clustering</em></h2>
+      <p class="gloss">七十四想法的碎片先归成六簇，再问哪几条线是跨簇连上的——真正的答案几乎都藏在连接里，不在簇内。</p>
+    </div>
+    <span class="count mono">1 insight · 6 clusters</span>
+  </div>
+
+  <div class="map paper">
+    <span class="thread" style="--rot:-152.5deg;--len:336px" aria-hidden="true"></span>
+    <span class="thread" style="--rot:-90deg;--len:204px" aria-hidden="true"></span>
+    <span class="thread" style="--rot:-27.5deg;--len:336px" aria-hidden="true"></span>
+    <span class="thread" style="--rot:152.5deg;--len:336px" aria-hidden="true"></span>
+    <span class="thread" style="--rot:90deg;--len:204px" aria-hidden="true"></span>
+    <span class="thread" style="--rot:27.5deg;--len:336px" aria-hidden="true"></span>
+
+    <div class="hub"><b>本轮改造</b><i class="mono">six affinity clusters</i></div>
+
+    <article class="cluster" style="--x:14;--y:20;--acc:var(--citrus)">
+      <div class="cl"><u>A</u><h5>布局的可逆与让位</h5></div>
+      <div class="mem"><span>编辑栅格线</span><span>撤销</span><span>序号芯片</span><span>预览描边</span><span>重排自救</span><span>加回空位</span></div>
+    </article>
+    <article class="cluster" style="--x:50;--y:10;--acc:var(--moss)">
+      <div class="cl"><u>B</u><h5>侧栏从静态导航变成仪表盘</h5></div>
+      <div class="mem"><span>电梯面板</span><span>状态点</span><span>复用概览的自定义动词</span></div>
+    </article>
+    <article class="cluster" style="--x:86;--y:20;--acc:var(--slate)">
+      <div class="cl"><u>C</u><h5>头像即配方</h5></div>
+      <div class="mem"><span>3 维正交组合</span><span>预览单 context</span><span>侧栏烘焙快照</span></div>
+    </article>
+    <article class="cluster" style="--x:14;--y:78;--acc:var(--plum)">
+      <div class="cl"><u>D</u><h5>介绍换成人话动效</h5></div>
+      <div class="mem"><span>展签模式</span><span>管线进度带</span><span>成功后三动作</span></div>
+    </article>
+    <article class="cluster" style="--x:50;--y:88;--acc:var(--citrus)">
+      <div class="cl"><u>E</u><h5>视效要有配额与档位</h5></div>
+      <div class="mem"><span>调音台三档推子</span><span>一处动全场静</span><span>动携带信息</span></div>
+    </article>
+    <article class="cluster" style="--x:86;--y:78;--acc:var(--moss)">
+      <div class="cl"><u>F</u><h5>材质语言</h5></div>
+      <div class="mem"><span>纸不是玻璃：压下沉不上浮 scale</span><span>短闪 vs 常亮的分工</span></div>
+    </article>
+  </div>
+
+  <div class="conn">
+    <div class="connrow drycard">
+      <div class="who">
+        <b class="mono">连接 一 · insight</b>
+        <p>SCAMPER 的 Eliminate × Sensory 的纸触感</p>
+      </div>
+      <div class="what">
+        <h4>非显而易见的连接：修 bug 的方案和美术口径的答案是同一个</h4>
+        <p>SCAMPER 的 Eliminate（去掉 exit 动画里的 scale）与 Sensory 的纸触感（按下是下沉不是缩放）其实是同一条——本轮 Widget 的布局挤压 bug 的根因，很可能就是 scale 与 layout 投影在同一元素上打架。</p>
+      </div>
+    </div>
+    <div class="connrow drycard">
+      <div class="who">
+        <b class="mono">连接 二 · insight</b>
+        <p>Cross-Pollination 的调音台 × 簇 E</p>
+      </div>
+      <div class="what">
+        <h4>加更多视效与不吵，不再互相否决</h4>
+        <p>连接二：Cross-Pollination 的调音台总推子（视效三档）是 E 簇与减动效的合并点——它让「加更多视效」和「不吵」不再互相否决，而是变成用户的一个选择。</p>
+      </div>
+    </div>
+    <div class="connrow drycard">
+      <div class="who">
+        <b class="mono">连接 三 · insight</b>
+        <p>簇 D 的展签模式 × 入库页介绍卡</p>
+      </div>
+      <div class="what">
+        <h4>不是删信息，是把信息挂到触发点上</h4>
+        <p>连接三：D 簇的展签模式与入库页那块介绍卡是同一件事的正反面：不是删信息，是把信息从布局里拿出来挂到触发点上；这样「不需要介绍」和「warning 必须让人看懂」两条能同时成立。</p>
+      </div>
+    </div>
+    <div class="connrow drycard breath">
+      <div class="who">
+        <b class="mono">连接 四 · insight</b>
+        <p>簇 C 的单 context 策略 × 配置导出</p>
+      </div>
+      <div class="what">
+        <h4>唯一不让头像组合器进 WebGL 预算危机的做法</h4>
+        <p>连接四：C 簇的「预览只 1 个 context、侧栏那颗用烘焙快照」是唯一能让头像组合器不进 WebGL 预算危机的做法，也顺带给了「配置导出 JSON」一个天然产物（toDataURL 的缩略图）。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s8" data-reveal>
+  <div class="sec-head">
+    <span class="sec-num">08</span>
+    <div>
+      <h2>四象限<em>MoSCoW · 本轮是要落建的，不是只看可能性</em></h2>
+      <p class="gloss">Must 那格在呼吸，因为它是本轮唯一被允许发光的一块面；Won't 那格划掉，是为了守住 P1 的半径。</p>
+    </div>
+    <span class="count mono">4 decision</span>
+  </div>
+
+  <div class="moscow">
+    <div class="quad breathing" id="qMust" style="position:relative;--acc:var(--citrus)">
+      <div class="ql"><h3>Must</h3><span class="qn mono">本轮必做</span></div>
+      <p class="note">直接对应 Lynx 的 8 条</p>
+      <ul>
+        <li><b>修 Widget 布局挤压</b>（拔除 layout+scale 同元素，改 opacity-only + 重排自救）</li>
+        <li><b>头像小组件</b>（Effect×ColorFamily×Speed 三维正交 + 预览单 context + 烘焙快照 + 存本机 + 导出 JSON）</li>
+        <li><b>侧栏自定义</b>（显隐/排序/恢复默认，复用概览的自定义心智）</li>
+        <li><b>入库面板重做</b>（删介绍、删标题字段的默认占位、管线步骤带、成功后三动作、更紧凑的布局）</li>
+        <li><b>视效三档推子</b>（静默/克制/尽情，写 localStorage，prefers-reduced-motion 强制静默）</li>
+      </ul>
+    </div>
+
+    <div class="quad" id="qShould" style="--acc:var(--moss)">
+      <div class="ql"><h3>Should</h3><span class="qn mono">该做，可排后</span></div>
+      <p class="note">有则更顺，没有不阻塞</p>
+      <ul>
+        <li>编辑栅格线 + 卡片让位的预览描边</li>
+        <li>「刚刚变了」的 120ms 边缘闪光</li>
+        <li>move/resize 的一次撤销</li>
+        <li>展签模式（管线说明挂到触发点）</li>
+      </ul>
+    </div>
+
+    <div class="quad" id="qCould" style="--acc:var(--slate)">
+      <div class="ql"><h3>Could</h3><span class="qn mono">有余味再做</span></div>
+      <p class="note">好看，但不在本轮关键路径</p>
+      <ul>
+        <li>侧栏每条导航的状态点</li>
+        <li>KPI 数字 halftone 溶解</li>
+        <li>翻牌式最近入库</li>
+      </ul>
+    </div>
+
+    <div class="quad" id="qWont" style="--acc:var(--plum)">
+      <div class="ql"><h3>Won't</h3><span class="qn mono">本轮明确不做</span></div>
+      <p class="note">写下来是为了下一次有人「顺手加回来」时能拦住</p>
+      <ul>
+        <li>拖拽 DnD 依赖</li>
+        <li>命令面板 mod+K 二态</li>
+        <li>全屏 shader 海洋与透镜光标</li>
+        <li>任何把配置存到后端的方案（P1 无账号红线）</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <div class="colo">
+      <div><b>7</b><span>techniques</span></div>
+      <div><b>74</b><span>ideas</span></div>
+      <div><b>5</b><span>insights</span></div>
+      <div><b>4</b><span>decisions</span></div>
+      <div><b>11</b><span>on the dial</span></div>
+    </div>
+    <p class="colophon mono">
+      source · _Agents/brainstorming/brainstorm-web-ux-innovations-2026-10-15/.memlog.md — 全部内容派生自该文件，无外部资源、无网络请求。
+    </p>
+  </footer>
+</section>
+
+</div>
+
+</div>
+
+<script>
+(function () {
+  var els = Array.prototype.slice.call(document.querySelectorAll("[data-reveal]"));
+  if (!("IntersectionObserver" in window)) {
+    els.forEach(function (el) { el.classList.add("in"); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.06, rootMargin: "0px 0px -6% 0px" });
+  els.forEach(function (el) { io.observe(el); });
+})();
+</script>
+</body>
+</html>

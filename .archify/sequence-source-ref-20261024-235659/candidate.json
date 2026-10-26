@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 2.4 点引用 → 原文抽屉",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/sequence-source-ref-20261024-235659/source-ref.html"
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Reader",
+      "sublabel": "click citation"
+    },
+    {
+      "id": "thread",
+      "type": "frontend",
+      "label": "ChatThread",
+      "sublabel": "命中快照"
+    },
+    {
+      "id": "drawer",
+      "type": "frontend",
+      "label": "Drawer",
+      "sublabel": "原文 / 来源"
+    },
+    {
+      "id": "detail",
+      "type": "frontend",
+      "label": "ResourceDetail",
+      "sublabel": "content + offsets"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "GET /resources/:id",
+      "sublabel": "按需详情"
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "messages",
+      "sublabel": "快照真源"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 250,
+      "label": "打开快照"
+    },
+    {
+      "from": 255,
+      "to": 390,
+      "label": "补来源"
+    }
+  ],
+  "messages": [
+    {
+      "id": "click",
+      "from": "user",
+      "to": "thread",
+      "y": 160,
+      "label": "click [n]",
+      "variant": "emphasis"
+    },
+    {
+      "id": "snapshot",
+      "from": "thread",
+      "to": "store",
+      "y": 190,
+      "label": "读 message parts",
+      "variant": "dashed"
+    },
+    {
+      "id": "snapshot-back",
+      "from": "store",
+      "to": "thread",
+      "y": 220,
+      "label": "snapshot",
+      "variant": "return"
+    },
+    {
+      "id": "open",
+      "from": "thread",
+      "to": "drawer",
+      "y": 260,
+      "label": "open(hit)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "render",
+      "from": "drawer",
+      "to": "detail",
+      "y": 280,
+      "label": "content + offsets",
+      "variant": "default"
+    },
+    {
+      "id": "fetch",
+      "from": "drawer",
+      "to": "api",
+      "y": 310,
+      "label": "取来源详情",
+      "variant": "default"
+    },
+    {
+      "id": "found",
+      "from": "api",
+      "to": "drawer",
+      "y": 340,
+      "label": "200 source",
+      "variant": "return"
+    },
+    {
+      "id": "missing",
+      "from": "api",
+      "to": "drawer",
+      "y": 370,
+      "label": "404 已删",
+      "variant": "security"
+    },
+    {
+      "id": "label",
+      "from": "drawer",
+      "to": "user",
+      "y": 400,
+      "label": "来源标识 / 已删除",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "快照",
+      "items": [
+        "原文片段在 message parts",
+        "不依赖已删 chunk 行",
+        "来源删除仍可读"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "404",
+      "items": [
+        "详情端点只补来源标识",
+        "失败不把整页打崩",
+        "抽屉显示「来源已删除」"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "增强项",
+      "items": [
+        "字符级高亮不强制",
+        "粘贴内容用 uuid urn 标识",
+        "无文件名 / URL 也能回链"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 2.3 tool part → [n] → 面板",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/sequence-citations-20261024-235659/citations.html"
+  },
+  "participants": [
+    {
+      "id": "stream",
+      "type": "messagebus",
+      "label": "UI stream",
+      "sublabel": "parts"
+    },
+    {
+      "id": "assistant",
+      "type": "backend",
+      "label": "assistant msg",
+      "sublabel": "tool-retrieve"
+    },
+    {
+      "id": "refs",
+      "type": "frontend",
+      "label": "referencesOf",
+      "sublabel": "api/chat.ts"
+    },
+    {
+      "id": "thread",
+      "type": "frontend",
+      "label": "ChatThread",
+      "sublabel": "[n] 渲染"
+    },
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "CitationPanel",
+      "sublabel": "命中列表"
+    },
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Reader",
+      "sublabel": "click"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 260,
+      "label": "读 tool part"
+    },
+    {
+      "from": 265,
+      "to": 380,
+      "label": "编号与渲染"
+    }
+  ],
+  "messages": [
+    {
+      "id": "part",
+      "from": "stream",
+      "to": "assistant",
+      "y": 160,
+      "label": "tool-retrieve part",
+      "variant": "emphasis"
+    },
+    {
+      "id": "parts",
+      "from": "assistant",
+      "to": "refs",
+      "y": 190,
+      "label": "parts",
+      "variant": "default"
+    },
+    {
+      "id": "refs-out",
+      "from": "refs",
+      "to": "thread",
+      "y": 220,
+      "label": "hits + allHits",
+      "variant": "emphasis"
+    },
+    {
+      "id": "panel-out",
+      "from": "thread",
+      "to": "panel",
+      "y": 250,
+      "label": "cited hits",
+      "variant": "default"
+    },
+    {
+      "id": "click",
+      "from": "user",
+      "to": "thread",
+      "y": 280,
+      "label": "click [n]",
+      "variant": "default"
+    },
+    {
+      "id": "reveal",
+      "from": "thread",
+      "to": "panel",
+      "y": 310,
+      "label": "revealCitation",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "[n] 规则",
+      "items": [
+        "按命中顺序编号",
+        "数字名次只认最后一批",
+        "8 位 chunkId 走 allHits"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "越界",
+      "items": [
+        "渲染为纯文本",
+        "不抛错",
+        "不请求不存在的 chunk"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "来源删除",
+      "items": [
+        "快照仍在 message parts",
+        "抽屉标注「来源已删除」",
+        "410 条款已作废"
+      ]
+    }
+  ]
+}

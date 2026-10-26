@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d654b4a7-8c2b-471a-aa3c-d10763a08fc4",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.html",
+  "specification": {
+    "sha256": "c140d9da967333f8153aa6b1dfb3e4755cdc4f934c6ca4c5b1c5088e6825e982",
+    "bytes": 3141
+  },
+  "artifact": {
+    "sha256": "3a8b683d34cec22fb4b9390fee8434eb8169cfec703af10c2e2f83dca70dfeca",
+    "bytes": 814488
+  }
+}

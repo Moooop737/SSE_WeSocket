@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wiki ↔ 代码 · 项目实图</title>
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #101114; --line: #23262c; --text: #e6e8ec; --muted: #8b919c;
+    --doc: #7ba7f7; --code: #f0a35e; --match: #9ef0a8; --bad: #f2777a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 ui-sans-serif, -apple-system, "PingFang SC", sans-serif;
+    display: grid; grid-template-rows: 52px 1fr; overflow: hidden;
+  }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 0 16px; border-bottom: 1px solid var(--line); background: rgba(16,17,20,.94); }
+  .brand { font-weight: 600; white-space: nowrap; }
+  .brand span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
+  input[type="checkbox"] { accent-color: #9ca3af; margin: 0; }
+  button, .search input { border: 1px solid var(--line); background: #15171b; color: var(--text); padding: 6px 10px; border-radius: 7px; font: inherit; }
+  button { cursor: pointer; }
+  button:hover { border-color: #3a3f47; }
+  .search input { width: 180px; outline: none; }
+  .search input:focus { border-color: #4b5563; }
+  .group-label { color: var(--muted); font-size: 11px; border-left: 1px solid var(--line); padding-left: 8px; }
+  main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  .hint { position: absolute; left: 14px; bottom: 12px; color: #6f7580; font-size: 11.5px; pointer-events: none; user-select: none; }
+  .legend { position: absolute; left: 14px; top: 12px; display: flex; gap: 12px; color: var(--muted); font-size: 11.5px; pointer-events: none; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); padding: 14px; overflow: auto; }
+  h2 { font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .node-title { font-size: 15px; font-weight: 600; word-break: break-word; line-height: 1.35; }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 10px; }
+  .badge { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.summary { color: #9db9f5; border-color: #2c4a7a; }
+  .badge.entity { color: #c7a9ff; border-color: #4a3570; }
+  .badge.concept { color: #f2b678; border-color: #7a4a1d; }
+  .badge.ok { color: var(--match); border-color: #326b3a; }
+  .badge.bad { color: var(--bad); border-color: #6e2a2c; }
+  .sub { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #aeb4bd; word-break: break-all; }
+  .summary { color: #c3c7ce; font-size: 12px; margin-top: 8px; line-height: 1.65; }
+  .detail-sub { margin: 15px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  .list { display: grid; gap: 2px; }
+  .item {
+    display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
+    border: 0; background: transparent; color: #c9cdd4; font: inherit; cursor: pointer;
+    padding: 4px 6px; border-radius: 5px; font-size: 12px;
+  }
+  .item:hover { background: #181a1f; color: var(--text); }
+  .item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .st { margin-left: auto; font-size: 10px; color: var(--muted); flex: none; }
+  .item .st.ok { color: var(--match); }
+  .item .st.bad { color: var(--bad); }
+  .empty { color: var(--muted); font-size: 12px; }
+  .tip { color: var(--muted); font-size: 11.5px; line-height: 1.6; margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+  .stats b { font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Wiki ↔ 代码 <span>项目实图 · 上方 Wiki 页面，下方真实目录图</span></div>
+  <div class="controls">
+    <div class="search"><input id="search" placeholder="搜索页面 / 符号…" autocomplete="off" spellcheck="false"></div>
+    <span class="group-label">Wiki</span>
+    <label><input type="checkbox" data-wiki-type="summary" checked>summary</label>
+    <label><input type="checkbox" data-wiki-type="entity" checked>entity</label>
+    <label><input type="checkbox" data-wiki-type="concept" checked>concept</label>
+    <span class="group-label">边</span>
+    <label><input type="checkbox" data-edge="runtime" checked>import</label>
+    <label><input type="checkbox" data-edge="type">仅类型</label>
+    <label><input type="checkbox" id="allMatches">显示全部匹配</label>
+    <button id="viewWiki">Wiki</button>
+    <button id="viewCode">代码</button>
+    <button id="viewAll">全图</button>
+    <button id="reset">重置</button>
+  </div>
+</header>
+<main>
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="legend">
+      <span><i style="background:#7ba7f7"></i>summary</span>
+      <span><i style="background:#b58cff"></i>entity</span>
+      <span><i style="background:#f0a35e"></i>concept</span>
+      <span><i style="background:#9ef0a8"></i>匹配</span>
+      <span><i style="border:1px dashed #8b919c;background:transparent"></i>外部 / 未解析</span>
+    </div>
+    <div class="hint">滚轮缩放 · 拖拽平移 · 点 Wiki 页面看匹配 · 点代码节点看反向</div>
+  </div>
+  <aside>
+    <h2>详情</h2>
+    <div id="detail"><div class="empty">点击左侧 Wiki 页面或右侧代码节点。</div></div>
+  </aside>
+</main>
+<script>
+const DATA = {"generatedAt":"2026-10-23T07:13:31.483Z","wiki":[{"id":"summary/chat-request","title":"聊天请求链路","type":"summary","summary":"从 POST /chat 进入，ChatRoute 装配 ChatService，模型通过 retrieve 工具检索知识库并流式返回。","links":["entity/chatservice","entity/retriever-factory","concept/rrf","concept/retrieve-tool","summary/observability"],"refs":[{"surface":"ChatRoute","status":"resolved","codeId":"server/routes","evidence":"app/server/src/routes/chat.ts → server/routes"},{"surface":"ChatService","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/chat/chat.ts → server/agent"},{"surface":"buildAgentTools","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/tool/registry.ts → server/agent"},{"surface":"buildRetrieveTool","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/tool/tools/retrieve.ts → server/agent"},{"surface":"RetrieverFactory","status":"resolved","codeId":"server/retrieve","evidence":"app/server/src/retrieve/retrievers.ts → server/retrieve"},{"surface":"Langfuse","status":"external","codeId":null,"evidence":"外部依赖，代码图里没有"}],"x":-520,"y":-706,"w":240,"h":112},{"id":"summary/retrieval","title":"检索与融合","type":"summary","summary":"BM25 与向量两路召回，经 RRF 融合后交给模型；RetrieverFactory 负责组装。","links":["entity/retriever-factory","concept/rrf","summary/chat-request"],"refs":[{"surface":"RetrieverFactory","status":"resolved","codeId":"server/retrieve","evidence":"app/server/src/retrieve/retrievers.ts → server/retrieve"},{"surface":"ParadeDbBm25Search","status":"resolved","codeId":"server/retrieve/search","evidence":"app/server/src/retrieve/search/paradedb-bm25.ts → server/retrieve/search"},{"surface":"ParadeDbVectorSearch","status":"resolved","codeId":"server/retrieve/search","evidence":"app/server/src/retrieve/search/paradedb-vector.ts → server/retrieve/search"},{"surface":"RrfFuser","status":"resolved","codeId":"server/retrieve/fusion","evidence":"app/server/src/retrieve/fusion/rrf.ts → server/retrieve/fusion"}],"x":-520,"y":-568,"w":240,"h":112},{"id":"summary/ingest","title":"入库流水线","type":"summary","summary":"URL 或文本进入 IngestFactory，经过 fetch、parse、chunk、embed、write 五个阶段。","links":["entity/ingest-factory","summary/chat-request"],"refs":[{"surface":"IngestFactory","status":"resolved","codeId":"server/ingest","evidence":"app/server/src/ingest/ingest.ts → server/ingest"},{"surface":"HttpFetcher","status":"resolved","codeId":"server/ingest/fetch","evidence":"app/server/src/ingest/fetch/http-fetcher.ts → server/ingest/fetch"},{"surface":"HtmlParser","status":"resolved","codeId":"server/ingest/parse","evidence":"app/server/src/ingest/parse/html-parser.ts → server/ingest/parse"},{"surface":"LegacyChunker","status":"resolved","codeId":"server/ingest/chunk","evidence":"app/server/src/ingest/chunk/legacy.ts → server/ingest/chunk"}],"x":-520,"y":-430,"w":240,"h":112},{"id":"summary/observability","title":"观测与 Trace","type":"summary","summary":"endpoint 中间件、stage runner 和 Langfuse span processor 记录每次请求。","links":["entity/chatspanprocessor","entity/langfuse","summary/chat-request"],"refs":[{"surface":"createEndpointTrace","status":"resolved","codeId":"server/trace/systemtrace","evidence":"app/server/src/trace/systemtrace/endpoint.ts → server/trace/systemtrace"},{"surface":"runStage","status":"resolved","codeId":"server/trace/systemtrace","evidence":"app/server/src/trace/systemtrace/stage.ts → server/trace/systemtrace"},{"surface":"ChatSpanProcessor","status":"resolved","codeId":"server/trace/llmtrace","evidence":"app/server/src/trace/llmtrace/langfuse.ts → server/trace/llmtrace"},{"surface":"Langfuse","status":"external","codeId":null,"evidence":"外部依赖，代码图里没有"}],"x":-520,"y":-292,"w":240,"h":112},{"id":"summary/multiturn","title":"多轮会话","type":"summary","summary":"服务端按 session 读库历史，只回灌 text parts，最近 6 轮交给模型。","links":["entity/chatservice","summary/chat-request"],"refs":[{"surface":"SessionsRoute","status":"resolved","codeId":"server/routes","evidence":"app/server/src/routes/sessions.ts → server/routes"},{"surface":"PostgresRepo","status":"resolved","codeId":"server/adapter","evidence":"app/server/src/adapter/contract.ts → server/adapter"},{"surface":"ChatService","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/chat/chat.ts → server/agent"}],"x":-520,"y":-154,"w":240,"h":112},{"id":"entity/chatservice","title":"ChatService","type":"entity","summary":"聊天编排类：装配模型、工具与会话历史。","links":["summary/chat-request","concept/retrieve-tool","concept/streaming"],"refs":[{"surface":"ChatService","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/chat/chat.ts → server/agent"}],"x":-220,"y":-706,"w":240,"h":112},{"id":"entity/retriever-factory","title":"RetrieverFactory","type":"entity","summary":"混合检索器工厂：装配 BM25、向量与 RRF。","links":["summary/retrieval","concept/rrf"],"refs":[{"surface":"RetrieverFactory","status":"resolved","codeId":"server/retrieve","evidence":"app/server/src/retrieve/retrievers.ts → server/retrieve"}],"x":-220,"y":-568,"w":240,"h":112},{"id":"entity/ingest-factory","title":"IngestFactory","type":"entity","summary":"入库流水线工厂：按 Recipe 组装 stages。","links":["summary/ingest"],"refs":[{"surface":"IngestFactory","status":"resolved","codeId":"server/ingest","evidence":"app/server/src/ingest/ingest.ts → server/ingest"}],"x":-220,"y":-430,"w":240,"h":112},{"id":"entity/chatspanprocessor","title":"ChatSpanProcessor","type":"entity","summary":"把 chat 根 span 的 session 与 trace 信息写入 Langfuse。","links":["summary/observability","entity/langfuse"],"refs":[{"surface":"ChatSpanProcessor","status":"resolved","codeId":"server/trace/llmtrace","evidence":"app/server/src/trace/llmtrace/langfuse.ts → server/trace/llmtrace"}],"x":-220,"y":-292,"w":240,"h":112},{"id":"entity/langfuse","title":"Langfuse","type":"entity","summary":"外部观测平台，保存 chat trace 与 session。","links":["summary/observability"],"refs":[{"surface":"Langfuse","status":"external","codeId":null,"evidence":"外部依赖，代码图里没有"}],"x":-220,"y":-154,"w":240,"h":112},{"id":"concept/rrf","title":"RRF 融合","type":"concept","summary":"按名次融合 BM25 与向量两路结果，不做分数归一化。","links":["summary/retrieval","entity/retriever-factory"],"refs":[{"surface":"RrfFuser","status":"resolved","codeId":"server/retrieve/fusion","evidence":"app/server/src/retrieve/fusion/rrf.ts → server/retrieve/fusion"}],"x":80,"y":-568,"w":240,"h":112},{"id":"concept/retrieve-tool","title":"检索工具化","type":"concept","summary":"把 retrieve 包成工具交给模型调用，最多 4 次有界重查。","links":["summary/chat-request","entity/chatservice","entity/retriever-factory"],"refs":[{"surface":"buildRetrieveTool","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/tool/tools/retrieve.ts → server/agent"},{"surface":"buildAgentTools","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/tool/registry.ts → server/agent"}],"x":80,"y":-430,"w":240,"h":112},{"id":"concept/streaming","title":"流式输出","type":"concept","summary":"streamText 转 UI message stream，经 Hono 直通 SSE。","links":["summary/chat-request","entity/chatservice"],"refs":[{"surface":"ChatService","status":"resolved","codeId":"server/agent","evidence":"app/server/src/agent/chat/chat.ts → server/agent"},{"surface":"ChatRoute","status":"resolved","codeId":"server/routes","evidence":"app/server/src/routes/chat.ts → server/routes"}],"x":80,"y":-292,"w":240,"h":112}],"wikiEdges":[{"source":"summary/chat-request","target":"entity/chatservice"},{"source":"summary/chat-request","target":"entity/retriever-factory"},{"source":"summary/chat-request","target":"concept/rrf"},{"source":"summary/chat-request","target":"concept/retrieve-tool"},{"source":"summary/chat-request","target":"summary/observability"},{"source":"summary/retrieval","target":"entity/retriever-factory"},{"source":"summary/retrieval","target":"concept/rrf"},{"source":"summary/retrieval","target":"summary/chat-request"},{"source":"summary/ingest","target":"entity/ingest-factory"},{"source":"summary/ingest","target":"summary/chat-request"},{"source":"summary/observability","target":"entity/chatspanprocessor"},{"source":"summary/observability","target":"entity/langfuse"},{"source":"summary/observability","target":"summary/chat-request"},{"source":"summary/multiturn","target":"entity/chatservice"},{"source":"summary/multiturn","target":"summary/chat-request"},{"source":"entity/chatservice","target":"summary/chat-request"},{"source":"entity/chatservice","target":"concept/retrieve-tool"},{"source":"entity/chatservice","target":"concept/streaming"},{"source":"entity/retriever-factory","target":"summary/retrieval"},{"source":"entity/retriever-factory","target":"concept/rrf"},{"source":"entity/ingest-factory","target":"summary/ingest"},{"source":"entity/chatspanprocessor","target":"summary/observability"},{"source":"entity/chatspanprocessor","target":"entity/langfuse"},{"source":"entity/langfuse","target":"summary/observability"},{"source":"concept/rrf","target":"summary/retrieval"},{"source":"concept/rrf","target":"entity/retriever-factory"},{"source":"concept/retrieve-tool","target":"summary/chat-request"},{"source":"concept/retrieve-tool","target":"entity/chatservice"},{"source":"concept/retrieve-tool","target":"entity/retriever-factory"},{"source":"concept/streaming","target":"summary/chat-request"},{"source":"concept/streaming","target":"entity/chatservice"}],"code":[{"id":"server/adapter","name":"adapter","label":"adapter","kind":"dir","group":"server/adapter","files":1,"lines":308,"degree":44,"x":334,"y":571,"r":13},{"id":"server/adapter/connection","name":"adapter/connection","label":"adapter/connection","kind":"dir","group":"server/adapter/connection","files":3,"lines":124,"degree":5,"x":160,"y":582,"r":15.928203230275509},{"id":"server/adapter/model","name":"adapter/model","label":"adapter/model","kind":"dir","group":"server/adapter/model","files":2,"lines":96,"degree":6,"x":224,"y":480,"r":14.65685424949238},{"id":"server/adapter/provider","name":"adapter/provider","label":"adapter/provider","kind":"dir","group":"server/adapter/provider","files":1,"lines":52,"degree":4,"x":425,"y":460,"r":13},{"id":"server/adapter/repo","name":"adapter/repo","label":"adapter/repo","kind":"dir","group":"server/adapter/repo","files":10,"lines":982,"degree":14,"x":486,"y":549,"r":21.64911064067352},{"id":"server/agent","name":"agent","label":"agent","kind":"dir","group":"server/agent","files":4,"lines":268,"degree":9,"x":160,"y":690,"r":17},{"id":"server/core","name":"core","label":"core","kind":"dir","group":"server/core","files":2,"lines":194,"degree":20,"x":395,"y":659,"r":14.65685424949238},{"id":"server/ingest","name":"ingest","label":"ingest","kind":"dir","group":"server/ingest","files":4,"lines":397,"degree":18,"x":483,"y":709,"r":17},{"id":"server/ingest/chunk","name":"ingest/chunk","label":"ingest/chunk","kind":"dir","group":"server/ingest/chunk","files":3,"lines":373,"degree":2,"x":641,"y":596,"r":15.928203230275509},{"id":"server/ingest/fetch","name":"ingest/fetch","label":"ingest/fetch","kind":"dir","group":"server/ingest/fetch","files":2,"lines":59,"degree":4,"x":660,"y":722,"r":14.65685424949238},{"id":"server/ingest/parse","name":"ingest/parse","label":"ingest/parse","kind":"dir","group":"server/ingest/parse","files":2,"lines":75,"degree":4,"x":295,"y":745,"r":14.65685424949238},{"id":"server/retrieve","name":"retrieve","label":"retrieve","kind":"dir","group":"server/retrieve","files":3,"lines":276,"degree":17,"x":407,"y":761,"r":15.928203230275509},{"id":"server/retrieve/fusion","name":"retrieve/fusion","label":"retrieve/fusion","kind":"dir","group":"server/retrieve/fusion","files":1,"lines":46,"degree":2,"x":564,"y":817,"r":13},{"id":"server/retrieve/search","name":"retrieve/search","label":"retrieve/search","kind":"dir","group":"server/retrieve/search","files":2,"lines":61,"degree":6,"x":538,"y":632,"r":14.65685424949238},{"id":"server/routes","name":"routes","label":"routes","kind":"dir","group":"server/routes","files":9,"lines":1452,"degree":32,"x":327,"y":829,"r":21},{"id":"server/trace/llmtrace","name":"trace/llmtrace","label":"trace/llmtrace","kind":"dir","group":"server/trace/llmtrace","files":3,"lines":354,"degree":7,"x":191,"y":810,"r":15.928203230275509},{"id":"server/trace/systemtrace","name":"trace/systemtrace","label":"trace/systemtrace","kind":"dir","group":"server/trace/systemtrace","files":4,"lines":427,"degree":28,"x":274,"y":663,"r":17},{"id":"web/api","name":"api","label":"api","kind":"dir","group":"web/api","files":3,"lines":1308,"degree":33,"x":1093,"y":584,"r":15.928203230275509},{"id":"web/components","name":"components","label":"components","kind":"dir","group":"web/components","files":55,"lines":8344,"degree":203,"x":1223,"y":577,"r":23},{"id":"web/core","name":"core","label":"core","kind":"dir","group":"web/core","files":3,"lines":371,"degree":16,"x":1373,"y":645,"r":15.928203230275509},{"id":"web/hooks","name":"hooks","label":"hooks","kind":"dir","group":"web/hooks","files":6,"lines":817,"degree":16,"x":1052,"y":706,"r":18.79795897113271},{"id":"web/lib","name":"lib","label":"lib","kind":"dir","group":"web/lib","files":11,"lines":1004,"degree":50,"x":1172,"y":755,"r":22.2664991614216},{"id":"web/routes","name":"routes","label":"routes","kind":"dir","group":"web/routes","files":13,"lines":4741,"degree":180,"x":1264,"y":712,"r":23}],"codeEdges":[{"source":"server/adapter/connection","target":"server/core","kind":"runtime","count":1},{"source":"server/adapter/connection","target":"server/trace/systemtrace","kind":"runtime","count":1},{"source":"server/adapter","target":"server/adapter/connection","kind":"runtime","count":3},{"source":"server/adapter","target":"server/adapter/model","kind":"runtime","count":2},{"source":"server/adapter","target":"server/adapter/provider","kind":"runtime","count":1},{"source":"server/adapter","target":"server/adapter/repo","kind":"runtime","count":10},{"source":"server/adapter","target":"server/core","kind":"runtime","count":1},{"source":"server/adapter","target":"server/retrieve","kind":"runtime","count":3},{"source":"server/adapter","target":"server/trace/systemtrace","kind":"runtime","count":1},{"source":"server/adapter/model","target":"server/adapter","kind":"runtime","count":2},{"source":"server/adapter/model","target":"server/adapter/provider","kind":"runtime","count":1},{"source":"server/adapter/model","target":"server/trace/systemtrace","kind":"runtime","count":1},{"source":"server/adapter/provider","target":"server/adapter","kind":"runtime","count":1},{"source":"server/adapter/provider","target":"server/core","kind":"runtime","count":1},{"source":"server/adapter/repo","target":"server/trace/systemtrace","kind":"runtime","count":2},{"source":"server/adapter/repo","target":"server/adapter","kind":"type","count":2},{"source":"server/agent","target":"server/adapter","kind":"runtime","count":1},{"source":"server/agent","target":"server/trace/llmtrace","kind":"runtime","count":2},{"source":"server/agent","target":"server/trace/systemtrace","kind":"runtime","count":2},{"source":"server/agent","target":"server/retrieve","kind":"runtime","count":3},{"source":"server/core","target":"server/adapter","kind":"runtime","count":2},{"source":"server/core","target":"server/trace/systemtrace","kind":"runtime","count":3},{"source":"server/core","target":"server/routes","kind":"runtime","count":9},{"source":"server/core","target":"server/trace/llmtrace","kind":"runtime","count":1},{"source":"server/ingest/chunk","target":"server/ingest","kind":"type","count":1},{"source":"server/ingest","target":"server/adapter","kind":"runtime","count":2},{"source":"server/ingest","target":"server/trace/systemtrace","kind":"runtime","count":3},{"source":"server/ingest/fetch","target":"server/ingest","kind":"type","count":2},{"source":"server/ingest/parse","target":"server/ingest","kind":"type","count":2},{"source":"server/ingest","target":"server/ingest/chunk","kind":"runtime","count":1},{"source":"server/ingest","target":"server/ingest/fetch","kind":"runtime","count":2},{"source":"server/ingest","target":"server/ingest/parse","kind":"runtime","count":2},{"source":"server/retrieve","target":"server/adapter","kind":"type","count":1},{"source":"server/retrieve","target":"server/core","kind":"type","count":1},{"source":"server/retrieve","target":"server/trace/systemtrace","kind":"runtime","count":2},{"source":"server/retrieve/fusion","target":"server/retrieve","kind":"type","count":1},{"source":"server/retrieve","target":"server/retrieve/fusion","kind":"runtime","count":1},{"source":"server/retrieve","target":"server/retrieve/search","kind":"runtime","count":2},{"source":"server/retrieve/search","target":"server/adapter","kind":"type","count":2},{"source":"server/retrieve/search","target":"server/retrieve","kind":"type","count":2},{"source":"server/routes","target":"server/adapter","kind":"runtime","count":8},{"source":"server/routes","target":"server/agent","kind":"runtime","count":1},{"source":"server/routes","target":"server/trace/systemtrace","kind":"runtime","count":8},{"source":"server/routes","target":"server/core","kind":"type","count":1},{"source":"server/routes","target":"server/trace/llmtrace","kind":"runtime","count":1},{"source":"server/routes","target":"server/ingest","kind":"runtime","count":3},{"source":"server/routes","target":"server/retrieve","kind":"runtime","count":1},{"source":"server/trace/llmtrace","target":"server/trace/systemtrace","kind":"runtime","count":3},{"source":"server/trace/systemtrace","target":"server/adapter","kind":"type","count":2},{"source":"web/components","target":"web/api","kind":"runtime","count":17},{"source":"web/components","target":"web/lib","kind":"runtime","count":34},{"source":"web/components","target":"web/hooks","kind":"runtime","count":8},{"source":"web/hooks","target":"web/lib","kind":"runtime","count":1},{"source":"web/hooks","target":"web/api","kind":"runtime","count":3},{"source":"web/lib","target":"web/api","kind":"runtime","count":3},{"source":"web/core","target":"web/lib","kind":"runtime","count":2},{"source":"web/core","target":"web/components","kind":"runtime","count":1},{"source":"web/routes","target":"web/api","kind":"runtime","count":10},{"source":"web/routes","target":"web/components","kind":"runtime","count":143},{"source":"web/routes","target":"web/hooks","kind":"runtime","count":4},{"source":"web/routes","target":"web/lib","kind":"runtime","count":10},{"source":"web/core","target":"web/routes","kind":"runtime","count":13}],"groups":[{"id":"server/adapter","label":"adapter","color":"#d97706","files":1},{"id":"server/adapter/connection","label":"adapter/connection","color":"#f59e0b","files":3},{"id":"server/adapter/model","label":"adapter/model","color":"#fbbf24","files":2},{"id":"server/adapter/provider","label":"adapter/provider","color":"#f97316","files":1},{"id":"server/adapter/repo","label":"adapter/repo","color":"#ea580c","files":10},{"id":"server/agent","label":"agent","color":"#a855f7","files":4},{"id":"server/core","label":"core","color":"#94a3b8","files":2},{"id":"server/ingest","label":"ingest","color":"#22c55e","files":4},{"id":"server/ingest/chunk","label":"ingest/chunk","color":"#15803d","files":3},{"id":"server/ingest/fetch","label":"ingest/fetch","color":"#4ade80","files":2},{"id":"server/ingest/parse","label":"ingest/parse","color":"#16a34a","files":2},{"id":"server/retrieve","label":"retrieve","color":"#3b82f6","files":3},{"id":"server/retrieve/fusion","label":"retrieve/fusion","color":"#2563eb","files":1},{"id":"server/retrieve/search","label":"retrieve/search","color":"#60a5fa","files":2},{"id":"server/routes","label":"routes","color":"#ef4444","files":9},{"id":"server/trace/llmtrace","label":"trace/llmtrace","color":"#64748b","files":3},{"id":"server/trace/systemtrace","label":"trace/systemtrace","color":"#475569","files":4},{"id":"web/api","label":"api","color":"#0ea5e9","files":3},{"id":"web/components","label":"components","color":"#14b8a6","files":55},{"id":"web/core","label":"core","color":"#94a3b8","files":3},{"id":"web/hooks","label":"hooks","color":"#eab308","files":6},{"id":"web/lib","label":"lib","color":"#8b5cf6","files":11},{"id":"web/routes","label":"routes","color":"#f43f5e","files":13}],"filesByGroup":{"server/trace/systemtrace":[{"file":"app/server/src/trace/systemtrace/log.ts","lines":50,"generated":false},{"file":"app/server/src/trace/systemtrace/stage.ts","lines":99,"generated":false},{"file":"app/server/src/trace/systemtrace/stage-sink.ts","lines":34,"generated":false},{"file":"app/server/src/trace/systemtrace/endpoint.ts","lines":244,"generated":false}],"server/adapter/connection":[{"file":"app/server/src/adapter/connection/pool.ts","lines":33,"generated":false},{"file":"app/server/src/adapter/connection/ollama.ts","lines":69,"generated":false},{"file":"app/server/src/adapter/connection/db.ts","lines":22,"generated":false}],"server/adapter/repo":[{"file":"app/server/src/adapter/repo/orm/schema.ts","lines":90,"generated":false},{"file":"app/server/src/adapter/repo/observability.ts","lines":120,"generated":false},{"file":"app/server/src/adapter/repo/orm/client.ts","lines":18,"generated":false},{"file":"app/server/src/adapter/repo/resource.ts","lines":205,"generated":false},{"file":"app/server/src/adapter/repo/chunk.ts","lines":146,"generated":false},{"file":"app/server/src/adapter/repo/search-vector.ts","lines":59,"generated":false},{"file":"app/server/src/adapter/repo/search-lexical.ts","lines":44,"generated":false},{"file":"app/server/src/adapter/repo/trace.ts","lines":188,"generated":false},{"file":"app/server/src/adapter/repo/session.ts","lines":44,"generated":false},{"file":"app/server/src/adapter/repo/message.ts","lines":68,"generated":false}],"server/adapter/provider":[{"file":"app/server/src/adapter/provider/registry.ts","lines":52,"generated":false}],"server/adapter/model":[{"file":"app/server/src/adapter/model/registry.ts","lines":66,"generated":false},{"file":"app/server/src/adapter/model/embed-chunks.ts","lines":30,"generated":false}],"server/retrieve":[{"file":"app/server/src/retrieve/contracts.ts","lines":73,"generated":false},{"file":"app/server/src/retrieve/recipes.ts","lines":49,"generated":false},{"file":"app/server/src/retrieve/retrievers.ts","lines":154,"generated":false}],"server/retrieve/search":[{"file":"app/server/src/retrieve/search/paradedb-vector.ts","lines":35,"generated":false},{"file":"app/server/src/retrieve/search/paradedb-bm25.ts","lines":26,"generated":false}],"server/retrieve/fusion":[{"file":"app/server/src/retrieve/fusion/rrf.ts","lines":46,"generated":false}],"server/adapter":[{"file":"app/server/src/adapter/contract.ts","lines":308,"generated":false}],"server/core":[{"file":"app/server/src/config.ts","lines":122,"generated":false},{"file":"app/server/src/index.ts","lines":72,"generated":false}],"server/trace/llmtrace":[{"file":"app/server/src/trace/llmtrace/bridge.ts","lines":33,"generated":false},{"file":"app/server/src/trace/llmtrace/read.ts","lines":201,"generated":false},{"file":"app/server/src/trace/llmtrace/langfuse.ts","lines":120,"generated":false}],"server/agent":[{"file":"app/server/src/agent/tool/contracts.ts","lines":41,"generated":false},{"file":"app/server/src/agent/tool/tools/retrieve.ts","lines":63,"generated":false},{"file":"app/server/src/agent/tool/registry.ts","lines":16,"generated":false},{"file":"app/server/src/agent/chat/chat.ts","lines":148,"generated":false}],"server/routes":[{"file":"app/server/src/routes/health.ts","lines":101,"generated":false},{"file":"app/server/src/routes/resources.ts","lines":195,"generated":false},{"file":"app/server/src/routes/retrieve.ts","lines":83,"generated":false},{"file":"app/server/src/routes/chat.ts","lines":68,"generated":false},{"file":"app/server/src/routes/sessions.ts","lines":54,"generated":false},{"file":"app/server/src/routes/observability.ts","lines":147,"generated":false},{"file":"app/server/src/routes/traces.ts","lines":46,"generated":false},{"file":"app/server/src/routes/crud.ts","lines":172,"generated":false},{"file":"app/server/src/routes/doc.ts","lines":586,"generated":false}],"server/ingest":[{"file":"app/server/src/ingest/contracts.ts","lines":89,"generated":false},{"file":"app/server/src/ingest/inflight.ts","lines":34,"generated":false},{"file":"app/server/src/ingest/recipes.ts","lines":39,"generated":false},{"file":"app/server/src/ingest/ingest.ts","lines":235,"generated":false}],"server/ingest/fetch":[{"file":"app/server/src/ingest/fetch/http-fetcher.ts","lines":40,"generated":false},{"file":"app/server/src/ingest/fetch/passthrough.ts","lines":19,"generated":false}],"server/ingest/parse":[{"file":"app/server/src/ingest/parse/html-parser.ts","lines":43,"generated":false},{"file":"app/server/src/ingest/parse/text-parser.ts","lines":32,"generated":false}],"server/ingest/chunk":[{"file":"app/server/src/ingest/chunk/config.ts","lines":34,"generated":false},{"file":"app/server/src/ingest/chunk/protected.ts","lines":49,"generated":false},{"file":"app/server/src/ingest/chunk/legacy.ts","lines":290,"generated":false}],"web/api":[{"file":"app/web/src/api/client.ts","lines":679,"generated":false},{"file":"app/web/src/api/chat.ts","lines":166,"generated":false},{"file":"app/web/src/api/sessions.ts","lines":463,"generated":false}],"web/lib":[{"file":"app/web/src/lib/motion.ts","lines":163,"generated":false},{"file":"app/web/src/lib/theme.ts","lines":143,"generated":false},{"file":"app/web/src/lib/clipboard.ts","lines":20,"generated":false},{"file":"app/web/src/lib/date.ts","lines":20,"generated":false},{"file":"app/web/src/lib/days.ts","lines":28,"generated":false},{"file":"app/web/src/lib/overlay.ts","lines":25,"generated":false},{"file":"app/web/src/lib/composition.ts","lines":25,"generated":false},{"file":"app/web/src/lib/traces.ts","lines":82,"generated":false},{"file":"app/web/src/lib/stage-timeline.ts","lines":85,"generated":false},{"file":"app/web/src/lib/prefs.ts","lines":297,"generated":false},{"file":"app/web/src/lib/langfuse.ts","lines":116,"generated":false}],"web/components":[{"file":"app/web/src/components/icon/icon.tsx","lines":213,"generated":false},{"file":"app/web/src/components/alert/alert.tsx","lines":185,"generated":false},{"file":"app/web/src/components/shader-backdrop/shader-backdrop.tsx","lines":364,"generated":false},{"file":"app/web/src/components/avatar/avatar.tsx","lines":78,"generated":false},{"file":"app/web/src/components/field/field.tsx","lines":96,"generated":false},{"file":"app/web/src/components/avatar-composer/avatar-composer.tsx","lines":130,"generated":false},{"file":"app/web/src/components/badge/badge.tsx","lines":48,"generated":false},{"file":"app/web/src/components/banner/banner.tsx","lines":56,"generated":false},{"file":"app/web/src/components/chart/chart-types.ts","lines":114,"generated":false},{"file":"app/web/src/components/chart/chart-data.ts","lines":122,"generated":false},{"file":"app/web/src/components/chart/chart-view.tsx","lines":263,"generated":false},{"file":"app/web/src/components/button/button.tsx","lines":133,"generated":false},{"file":"app/web/src/components/probe-chip/probe-chip.tsx","lines":59,"generated":false},{"file":"app/web/src/components/skeleton/skeleton.tsx","lines":23,"generated":false},{"file":"app/web/src/components/status-bar/status-bar.tsx","lines":78,"generated":false},{"file":"app/web/src/components/tag/tag.tsx","lines":16,"generated":false},{"file":"app/web/src/components/chart/chart-config.ts","lines":41,"generated":false},{"file":"app/web/src/components/widget/catalog.ts","lines":404,"generated":false},{"file":"app/web/src/components/status-breakdown/status-breakdown.tsx","lines":63,"generated":false},{"file":"app/web/src/components/widget/use-widget-data.ts","lines":49,"generated":false},{"file":"app/web/src/components/base/base-component.tsx","lines":287,"generated":false},{"file":"app/web/src/components/card/card.tsx","lines":49,"generated":false},{"file":"app/web/src/components/chat-thread/chat-thread.tsx","lines":243,"generated":false},{"file":"app/web/src/components/chip/chip.tsx","lines":25,"generated":false},{"file":"app/web/src/components/citation-panel/citation-panel.tsx","lines":77,"generated":false},{"file":"app/web/src/components/datav/datav.tsx","lines":103,"generated":false},{"file":"app/web/src/components/drawer/drawer.tsx","lines":249,"generated":false},{"file":"app/web/src/components/empty-state/empty-state.tsx","lines":39,"generated":false},{"file":"app/web/src/components/find-field/find-field.tsx","lines":68,"generated":false},{"file":"app/web/src/components/health-pill/health-pill.tsx","lines":27,"generated":false},{"file":"app/web/src/components/spinner/spinner.tsx","lines":21,"generated":false},{"file":"app/web/src/components/ingest-panel/ingest-panel.tsx","lines":511,"generated":false},{"file":"app/web/src/components/kbd/kbd.tsx","lines":33,"generated":false},{"file":"app/web/src/components/menu/menu.tsx","lines":321,"generated":false},{"file":"app/web/src/components/nav-item/nav-item.tsx","lines":121,"generated":false},{"file":"app/web/src/components/page-header/page-header.tsx","lines":35,"generated":false},{"file":"app/web/src/components/resource-detail/resource-detail.tsx","lines":100,"generated":false},{"file":"app/web/src/components/resource-list/resource-list.tsx","lines":320,"generated":false},{"file":"app/web/src/components/stage-panel/stage-waterfall.tsx","lines":66,"generated":false},{"file":"app/web/src/components/stage-panel/stage-panel.tsx","lines":147,"generated":false},{"file":"app/web/src/components/run-observability/run-observability.tsx","lines":468,"generated":false},{"file":"app/web/src/components/run-watch/run-watch.tsx","lines":171,"generated":false},{"file":"app/web/src/components/select/select.tsx","lines":177,"generated":false},{"file":"app/web/src/components/widget/controls.tsx","lines":112,"generated":false},{"file":"app/web/src/components/session-list/session-list.tsx","lines":505,"generated":false},{"file":"app/web/src/components/settings/panel-boundary.tsx","lines":40,"generated":false},{"file":"app/web/src/components/settings/prefs-transfer.tsx","lines":318,"generated":false},{"file":"app/web/src/components/settings/settings-options.ts","lines":17,"generated":false},{"file":"app/web/src/components/settings/settings-panel.tsx","lines":74,"generated":false},{"file":"app/web/src/components/settings/settings.tsx","lines":42,"generated":false},{"file":"app/web/src/components/theme-toggle/theme-toggle.tsx","lines":30,"generated":false},{"file":"app/web/src/components/sidebar/sidebar.tsx","lines":410,"generated":false},{"file":"app/web/src/components/stat-card/stat-card.tsx","lines":87,"generated":false},{"file":"app/web/src/components/widget/store.ts","lines":419,"generated":false},{"file":"app/web/src/components/widget/widget.tsx","lines":97,"generated":false}],"web/hooks":[{"file":"app/web/src/hooks/use-avatar.ts","lines":184,"generated":false},{"file":"app/web/src/hooks/use-count-up.ts","lines":44,"generated":false},{"file":"app/web/src/hooks/use-resources.ts","lines":64,"generated":false},{"file":"app/web/src/hooks/use-health.ts","lines":94,"generated":false},{"file":"app/web/src/hooks/use-nav.ts","lines":330,"generated":false},{"file":"app/web/src/hooks/use-resource-browser.ts","lines":101,"generated":false}],"web/routes":[{"file":"app/web/src/routes/__root.tsx","lines":123,"generated":false},{"file":"app/web/src/routes/index.tsx","lines":229,"generated":false},{"file":"app/web/src/routes/ask.tsx","lines":650,"generated":false},{"file":"app/web/src/routes/chats.tsx","lines":768,"generated":false},{"file":"app/web/src/routes/components.tsx","lines":738,"generated":false},{"file":"app/web/src/routes/health.tsx","lines":116,"generated":false},{"file":"app/web/src/routes/ingest.tsx","lines":130,"generated":false},{"file":"app/web/src/routes/ingest-runs.tsx","lines":11,"generated":false},{"file":"app/web/src/routes/recall.tsx","lines":252,"generated":false},{"file":"app/web/src/routes/resources.tsx","lines":406,"generated":false},{"file":"app/web/src/routes/retrieve-runs.tsx","lines":11,"generated":false},{"file":"app/web/src/routes/studio.tsx","lines":569,"generated":false},{"file":"app/web/src/routes/traces.tsx","lines":738,"generated":false}],"web/core":[{"file":"app/web/src/routeTree.gen.ts","lines":295,"generated":true},{"file":"app/web/src/router.tsx","lines":45,"generated":false},{"file":"app/web/src/main.tsx","lines":31,"generated":false}]},"bounds":{"minX":-660,"maxX":1560,"minY":-760,"maxY":1010},"stats":{"wikiPages":13,"wikiLinks":31,"codeNodes":23,"codeEdges":62,"resolved":28,"external":3,"unresolved":0}}
+const wiki = DATA.wiki
+const code = DATA.code
+const wikiById = new Map(wiki.map((p) => [p.id, p]))
+const codeById = new Map(code.map((n) => [n.id, n]))
+const pageByCode = new Map()
+for (const p of wiki) {
+  for (const r of p.refs) {
+    if (!r.codeId) continue
+    if (!pageByCode.has(r.codeId)) pageByCode.set(r.codeId, [])
+    const list = pageByCode.get(r.codeId)
+    if (!list.includes(p)) list.push(p)
+  }
+}
+
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const detail = document.getElementById('detail')
+const searchInput = document.getElementById('search')
+
+const TYPE_COLOR = { summary: '#7ba7f7', entity: '#b58cff', concept: '#f0a35e' }
+const GROUP_COLOR = Object.fromEntries((DATA.groups || []).map((g) => [g.id, g.color]))
+const EDGE_COLOR = { runtime: 'rgba(123,167,247,.34)', type: 'rgba(139,145,156,.24)' }
+
+const state = {
+  selected: null,
+  activeRef: null,
+  search: '',
+  showTypes: new Set(['summary', 'entity', 'concept']),
+  edgeKinds: new Set(['runtime']),
+  allMatches: false,
+}
+let cam = { scale: 0.4, tx: 0, ty: 0 }
+let W = 0, H = 0, dpr = 1
+let panning = null, moved = false
+let hovered = null
+
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1)
+  const rect = canvas.getBoundingClientRect()
+  W = rect.width; H = rect.height
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr)
+  if (!cam.initialized) { cam.initialized = true; fitNodes(visibleWiki(), 0.1) }
+  draw()
+}
+
+function visibleWiki() { return wiki.filter((p) => state.showTypes.has(p.type)) }
+function visibleCode() { return code }
+function wikiVisible(id) { const p = wikiById.get(id); return p && state.showTypes.has(p.type) }
+
+function nodeBox(n) {
+  if (n.w) return { x: n.x - n.w / 2, y: n.y - n.h / 2, w: n.w, h: n.h }
+  const s = n.r * (n.kind === 'class' ? 1.5 : 1)
+  return { x: n.x - s, y: n.y - s, w: s * 2, h: s * 2 }
+}
+function allNodes() { return [...visibleWiki(), ...visibleCode()] }
+function bboxOf(nodes) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of nodes) {
+    const b = nodeBox(n)
+    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y)
+    maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h)
+  }
+  return { minX, minY, maxX, maxY }
+}
+function fitNodes(nodes, padRatio = 0.08) {
+  if (!nodes.length) return
+  const b = bboxOf(nodes)
+  const padX = Math.min(100, Math.max(50, (b.maxX - b.minX) * padRatio))
+  const padY = Math.min(90, Math.max(50, (b.maxY - b.minY) * padRatio))
+  const s = Math.min((W - padX * 2) / (b.maxX - b.minX), (H - padY * 2) / (b.maxY - b.minY))
+  cam.scale = Math.max(0.08, Math.min(2.4, s))
+  cam.tx = W / 2 - ((b.minX + b.maxX) / 2) * cam.scale
+  cam.ty = H / 2 - ((b.minY + b.maxY) / 2) * cam.scale
+  draw()
+}
+function fitAll() { fitNodes(allNodes(), 0.06) }
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  const bg = ctx.createLinearGradient(0, 0, 0, H)
+  bg.addColorStop(0, '#0b0c0f'); bg.addColorStop(1, '#08090b')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+  ctx.save(); ctx.translate(cam.tx, cam.ty); ctx.scale(cam.scale, cam.scale)
+
+  drawWikiEdges()
+  drawCodeEdges()
+  drawMatches()
+  drawWikiNodes()
+  drawCodeNodes()
+  drawLabels()
+  ctx.restore()
+}
+
+function drawZoneLabels() {
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.font = `600 ${13 / cam.scale}px ui-sans-serif, sans-serif`
+  ctx.fillStyle = 'rgba(123,167,247,.42)'
+  ctx.fillText('Wiki 页面层 · 自己生成', -1720, -690)
+  ctx.fillStyle = 'rgba(158,240,168,.32)'
+  ctx.textAlign = 'center'
+  ctx.fillText('跨层匹配 · 点击才计算', -420, -690)
+  ctx.fillStyle = 'rgba(240,163,94,.45)'
+  ctx.textAlign = 'left'
+  ctx.fillText('代码符号层 · 真实 AST', 160, -690)
+}
+
+function drawWikiEdges() {
+  if (state.selected) return
+  for (const e of DATA.wikiEdges) {
+    const a = wikiById.get(e.source); const b = wikiById.get(e.target)
+    if (!a || !b || !wikiVisible(a.id) || !wikiVisible(b.id)) continue
+    if (state.selected?.kind === 'wiki') {
+      const engaged = e.source === state.selected.id || e.target === state.selected.id
+      ctx.globalAlpha = engaged ? 0.8 : 0.12
+    } else {
+      ctx.globalAlpha = 0.22
+    }
+    line(a, b, TYPE_COLOR[a.type] || '#8b919c', false)
+  }
+  ctx.globalAlpha = 1
+}
+
+function drawCodeEdges() {
+  for (const e of DATA.codeEdges) {
+    if (!state.edgeKinds.has(e.kind)) continue
+    const a = codeById.get(e.source); const b = codeById.get(e.target)
+    if (!a || !b) continue
+    const engaged = state.selected?.kind === 'code' && (e.source === state.selected.id || e.target === state.selected.id)
+    ctx.globalAlpha = state.selected ? (engaged ? 0.85 : 0.08) : 0.55
+    line(a, b, EDGE_COLOR[e.kind], e.kind === 'type')
+  }
+  ctx.globalAlpha = 1
+}
+
+function matchPairs() {
+  const pairs = []
+  if (state.selected?.kind === 'wiki') {
+    const p = wikiById.get(state.selected.id)
+    if (!state.activeRef && !state.allMatches) return []
+    for (const r of p.refs) {
+      if (state.activeRef && r.surface !== state.activeRef) continue
+      if (r.codeId && codeById.has(r.codeId)) pairs.push({ page: p, ref: r, code: codeById.get(r.codeId) })
+    }
+  } else if (state.selected?.kind === 'code') {
+    const pages = pageByCode.get(state.selected.id) ?? []
+    for (const p of pages) {
+      const r = p.refs.find((x) => x.codeId === state.selected.id)
+      pairs.push({ page: p, ref: r, code: codeById.get(state.selected.id) })
+    }
+  } else if (state.allMatches) {
+    for (const p of wiki) for (const r of p.refs) {
+      if (r.codeId && codeById.has(r.codeId)) pairs.push({ page: p, ref: r, code: codeById.get(r.codeId) })
+    }
+  }
+  return pairs
+}
+
+function drawMatches() {
+  const pairs = matchPairs()
+  for (const { page, ref, code: cn } of pairs) {
+    const from = { x: page.x, y: page.y + page.h / 2 }
+    const to = { x: cn.x, y: cn.y - cn.r }
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const cx = from.x + dx * 0.5
+    const cy = from.y + dy * 0.5
+    ctx.save()
+    ctx.strokeStyle = 'rgba(158,240,168,.85)'
+    ctx.lineWidth = 1.8 / cam.scale
+    ctx.setLineDash([6 / cam.scale, 5 / cam.scale])
+    ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(cx, cy, to.x, to.y); ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle = 'rgba(158,240,168,.85)'
+    ctx.font = '10px ui-monospace, Menlo, monospace'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    const label = ref.surface
+    const mx = (from.x + to.x) / 2
+    const my = (from.y + to.y) / 2
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = '#0b0c0f'
+    ctx.fillRect(mx - tw / 2 - 4, my - 7, tw + 8, 14)
+    if (state.activeRef) {
+      ctx.fillStyle = 'rgba(158,240,168,.9)'
+      ctx.fillText(label, mx, my)
+    }
+    ctx.restore()
+  }
+}
+
+function line(a, b, color, dashed) {
+  const ab = nodeBox(a); const bb = nodeBox(b)
+  const x1 = ab.x + ab.w / 2
+  const y1 = ab.y + ab.h / 2
+  const x2 = bb.x + bb.w / 2
+  const y2 = bb.y + bb.h / 2
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.1 / cam.scale
+  if (dashed) ctx.setLineDash([4 / cam.scale, 4 / cam.scale])
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+  ctx.setLineDash([])
+}
+
+function isEngaged(id) {
+  if (!state.selected) return true
+  if (state.selected.kind === 'wiki') {
+    if (state.selected.id === id) return true
+    const p = wikiById.get(state.selected.id)
+    if (p && p.links.includes(id)) return true
+    return false
+  }
+  if (state.selected.id === id) return true
+  return pageByCode.get(state.selected.id)?.some((p) => p.id === id) ?? false
+}
+
+function drawWikiNodes() {
+  for (const p of visibleWiki()) {
+    const engaged = isEngaged(p.id)
+    if (state.selected?.kind === 'wiki' && p.id !== state.selected.id) continue
+    if (state.selected?.kind === 'code' && !(pageByCode.get(state.selected.id) ?? []).some((x) => x.id === p.id)) continue
+    const isSel = state.selected?.kind === 'wiki' && state.selected.id === p.id
+    const searchHit = state.search && (p.title + ' ' + p.summary).toLowerCase().includes(state.search.toLowerCase())
+    const isExternal = p.type === 'entity' && p.id === 'entity/langfuse'
+    ctx.globalAlpha = engaged ? 1 : 0.18
+    roundRect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h, 10)
+    ctx.fillStyle = isSel ? '#161d27' : '#13161b'
+    ctx.fill()
+    ctx.lineWidth = (isSel ? 2.2 : 1.2) / cam.scale
+    ctx.strokeStyle = isSel ? '#ffffff' : searchHit ? '#fde68a' : isExternal ? '#8b919c' : TYPE_COLOR[p.type]
+    if (isExternal) ctx.setLineDash([4 / cam.scale, 3 / cam.scale])
+    ctx.stroke(); ctx.setLineDash([])
+    ctx.globalAlpha = 1
+  }
+}
+
+function drawCodeNodes() {
+  const pairs = matchPairs()
+  const matched = new Set(pairs.map((m) => m.code.id))
+  for (const n of visibleCode()) {
+    if (state.selected && !matched.has(n.id) && !(state.selected.kind === 'code' && state.selected.id === n.id)) continue
+    const pages = pageByCode.get(n.id) ?? []
+    const engaged = isEngaged(n.id) || pages.some((p) => isEngaged(p.id)) && state.selected?.kind === 'code'
+    const isSel = state.selected?.kind === 'code' && state.selected.id === n.id
+    const isMatched = matched.has(n.id)
+    const searchHit = state.search && (n.name + ' ' + (n.file || '')).toLowerCase().includes(state.search.toLowerCase())
+    ctx.globalAlpha = state.selected ? (isSel || isMatched ? 1 : 0.14) : 1
+    if (n.kind === 'class' || n.kind === 'dir') {
+      const w = n.kind === 'dir' ? n.r * 2.4 : n.r * 2.2, h = n.kind === 'dir' ? n.r * 1.8 : n.r * 1.7
+      roundRect(n.x - w / 2, n.y - h / 2, w, h, 7)
+      ctx.fillStyle = isMatched ? '#12231f' : isSel ? '#1a2330' : '#15171b'
+      ctx.fill()
+      ctx.lineWidth = (isSel || isMatched ? 2.2 : 1.2) / cam.scale
+      ctx.strokeStyle = isMatched ? '#9ef0a8' : isSel ? '#ffffff' : searchHit ? '#fde68a' : (GROUP_COLOR[n.group] || '#8b919c')
+      ctx.stroke()
+    } else {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2)
+      ctx.fillStyle = isMatched ? '#12231f' : isSel ? '#1a2330' : '#15171b'
+      ctx.fill()
+      ctx.lineWidth = (isSel || isMatched ? 2.2 : 1.2) / cam.scale
+      ctx.strokeStyle = isMatched ? '#9ef0a8' : isSel ? '#ffffff' : searchHit ? '#fde68a' : (GROUP_COLOR[n.group] || '#8b919c')
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+  }
+}
+
+function drawLabels() {
+  for (const p of visibleWiki()) {
+    const engaged = isEngaged(p.id)
+    if (!engaged) continue
+    if (state.selected?.kind === 'wiki' && p.id !== state.selected.id) continue
+    if (state.selected?.kind === 'code' && !(pageByCode.get(state.selected.id) ?? []).some((x) => x.id === p.id)) continue
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+    ctx.font = '600 16px ui-sans-serif, sans-serif'
+    ctx.fillStyle = '#e6e8ec'
+    ctx.fillText(p.title, p.x - p.w / 2 + 14, p.y - p.h / 2 + 26)
+    ctx.font = '10px ui-sans-serif, sans-serif'
+    ctx.fillStyle = 'rgba(139,145,156,.95)'
+    wrapText(p.summary, p.x - p.w / 2 + 14, p.y - p.h / 2 + 46, p.w - 28, 14, 2)
+  }
+  const pairs = matchPairs()
+  const matched = new Set(pairs.map((m) => m.code.id))
+  const list = visibleCode()
+    .filter((n) => !state.selected || matched.has(n.id) || state.selected.id === n.id)
+    .map((n) => ({ n, rank: (matched.has(n.id) ? 2 : 0) + (state.selected?.id === n.id ? 3 : 0) }))
+    .sort((a, b) => b.rank - a.rank)
+  const boxes = []
+  for (const { n } of list) {
+    const worldY = n.y + ((n.kind === 'class' || n.kind === 'dir') ? n.r * 0.95 : n.r) + 9 / cam.scale
+    const sx = n.x * cam.scale + cam.tx
+    const sy = worldY * cam.scale + cam.ty
+    ctx.font = '11px ui-sans-serif, sans-serif'
+    const tw = ctx.measureText(n.name).width * cam.scale
+    const th = 11 * cam.scale
+    const box = { x: sx - tw / 2 - 2, y: sy - th / 2 - 1, w: tw + 4, h: th + 2 }
+    if (boxes.some((b) => !(box.x + box.w < b.x || box.x > b.x + b.w || box.y + box.h < b.y || box.y > b.y + b.h))) continue
+    boxes.push(box)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#dfe3e8'
+    ctx.fillText(n.name, n.x, worldY)
+  }
+}
+
+function wrapText(text, x, y, maxWidth, lineHeight, maxLines) {
+  const chars = String(text).split('')
+  let line = ''
+  let lines = 0
+  for (const ch of chars) {
+    const test = line + ch
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y + lines * lineHeight)
+      line = ch
+      lines += 1
+      if (lines >= maxLines) return
+    } else {
+      line = test
+    }
+  }
+  if (line && lines < maxLines) ctx.fillText(line, x, y + lines * lineHeight)
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function toWorld(px, py) { return { x: (px - cam.tx) / cam.scale, y: (py - cam.ty) / cam.scale } }
+
+function nodeAt(px, py) {
+  const p = toWorld(px, py)
+  for (const n of visibleCode()) {
+    if (Math.hypot(p.x - n.x, p.y - n.y) < n.r + 4) return { kind: 'code', node: n }
+  }
+  for (const pg of visibleWiki()) {
+    if (p.x > pg.x - pg.w / 2 && p.x < pg.x + pg.w / 2 && p.y > pg.y - pg.h / 2 && p.y < pg.y + pg.h / 2) return { kind: 'wiki', node: pg }
+  }
+  return null
+}
+
+function selectWiki(page) {
+  state.selected = { kind: 'wiki', id: page.id }
+  state.activeRef = null
+  renderDetail()
+  cam.scale = Math.max(cam.scale, 0.85)
+  cam.tx = W / 2 - page.x * cam.scale
+  cam.ty = H / 2 - page.y * cam.scale
+  draw()
+}
+
+function selectCode(node) {
+  state.selected = { kind: 'code', id: node.id }
+  state.activeRef = null
+  renderDetail()
+  const pages = pageByCode.get(node.id) ?? []
+  fitNodes([node, ...pages], 0.3)
+}
+
+function renderDetail() {
+  if (!state.selected) {
+    detail.innerHTML = statsHtml()
+    return
+  }
+  if (state.selected.kind === 'wiki') {
+    const p = wikiById.get(state.selected.id)
+    const refs = p.refs.map((r) => {
+      const st = r.status === 'resolved' ? 'ok' : r.status === 'external' ? '' : 'bad'
+      const label = r.status === 'resolved' ? 'resolved' : r.status === 'external' ? 'external' : r.status === 'ambiguous' ? 'ambiguous' : 'unresolved'
+      return `<button class="item" data-ref="${escapeHtml(r.surface)}"><span class="dot" style="background:${r.status === 'resolved' ? '#9ef0a8' : r.status === 'external' ? '#8b919c' : '#f2777a'}"></span><span class="nm">${escapeHtml(r.surface)}</span><span class="st ${st}">${label}</span></button>`
+    }).join('')
+    const links = p.links.map((id) => {
+      const t = wikiById.get(id)
+      return t ? `<button class="item" data-wiki="${escapeHtml(id)}"><span class="dot" style="background:${TYPE_COLOR[t.type]}"></span><span class="nm">${escapeHtml(t.title)}</span></button>` : ''
+    }).join('')
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(p.title)}</div>
+      <div class="badges"><span class="badge ${p.type}">${p.type}</span><span class="badge">${p.refs.length} 个代码引用</span></div>
+      <div class="summary">${escapeHtml(p.summary)}</div>
+      <div class="detail-sub">代码引用</div><div class="list">${refs}</div>
+      <div class="detail-sub">链接页面</div><div class="list">${links}</div>
+      <div class="tip">点击引用只高亮这一条；external / unresolved 不画虚线。</div>`
+  } else {
+    const n = codeById.get(state.selected.id)
+    const pages = pageByCode.get(n.id) ?? []
+    const links = pages.map((p) => `<button class="item" data-wiki="${escapeHtml(p.id)}"><span class="dot" style="background:${TYPE_COLOR[p.type]}"></span><span class="nm">${escapeHtml(p.title)}</span></button>`).join('')
+    const files = (DATA.filesByGroup?.[n.id] ?? []).slice().sort((a, b) => b.lines - a.lines)
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(n.name)}</div>
+      <div class="badges"><span class="badge">目录</span><span class="badge">${n.files} 文件</span><span class="badge">${n.lines} 行</span></div>
+      <div class="sub">${escapeHtml(n.id)}</div>
+      <div class="detail-sub">被哪些 Wiki 页面引用 · ${pages.length}</div>
+      <div class="list">${links || '<div class="empty">没有页面引用它。</div>'}</div>
+      <div class="detail-sub">目录内文件 · ${files.length}</div>
+      <div class="list">${files.slice(0, 40).map((f) => `<div class="item" style="cursor:default"><span class="nm">${escapeHtml(f.file.split('/').pop())}</span><span class="st">${f.lines} 行</span></div>`).join('')}</div>
+      <div class="tip">反向查询同样只看引用的双向关系，不存关联表。</div>`
+  }
+}
+
+function statsHtml() {
+  const s = DATA.stats
+  return `<div class="node-title">项目实图</div>
+    <div class="summary">左侧是 Wiki 页面（示例内容取自本仓库设计），下方是真实目录依赖图；中间只画 resolved 的引用，external / unresolved 保持断开。</div>
+    <div class="detail-sub">规模</div>
+    <div class="stats">
+      <span>Wiki 页面</span><b>${s.wikiPages}</b>
+      <span>Wiki 链接</span><b>${s.wikiLinks}</b>
+      <span>代码目录</span><b>${s.codeNodes}</b>
+      <span>代码边</span><b>${s.codeEdges}</b>
+      <span>resolved</span><b>${s.resolved}</b>
+      <span>external</span><b>${s.external}</b>
+      <span>unresolved / ambiguous</span><b>${s.unresolved}</b>
+    </div>
+    <div class="tip">点击页面看它引用了哪些代码；点目录节点看哪些页面解释它。</div>`
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+canvas.addEventListener('click', (e) => {
+  if (moved) return
+  const rect = canvas.getBoundingClientRect()
+  const hit = nodeAt(e.clientX - rect.left, e.clientY - rect.top)
+  if (!hit) {
+    state.selected = null; state.activeRef = null; renderDetail(); draw(); return
+  }
+  if (hit.kind === 'wiki') selectWiki(hit.node)
+  else selectCode(hit.node)
+})
+canvas.addEventListener('pointerdown', (e) => {
+  moved = false
+  const rect = canvas.getBoundingClientRect()
+  panning = { x: e.clientX - rect.left, y: e.clientY - rect.top, tx: cam.tx, ty: cam.ty }
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging')
+})
+canvas.addEventListener('pointermove', (e) => {
+  if (!panning) return
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left, y = e.clientY - rect.top
+  if (Math.abs(x - panning.x) + Math.abs(y - panning.y) > 3) moved = true
+  cam.tx = panning.tx + (x - panning.x); cam.ty = panning.ty + (y - panning.y)
+  draw()
+})
+canvas.addEventListener('pointerup', () => { panning = null; canvas.classList.remove('dragging') })
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left, py = e.clientY - rect.top
+  const p = toWorld(px, py)
+  cam.scale = Math.max(0.06, Math.min(3, cam.scale * Math.exp(-e.deltaY * 0.0014)))
+  cam.tx = px - p.x * cam.scale; cam.ty = py - p.y * cam.scale
+  draw()
+}, { passive: false })
+
+detail.addEventListener('click', (e) => {
+  const refBtn = e.target.closest('button[data-ref]')
+  if (refBtn) {
+    state.activeRef = state.activeRef === refBtn.dataset.ref ? null : refBtn.dataset.ref
+    const p = wikiById.get(state.selected.id)
+    const ref = p.refs.find((r) => r.surface === state.activeRef)
+    const codeNode = ref?.codeId ? codeById.get(ref.codeId) : null
+    if (codeNode) fitNodes([p, codeNode], 0.1)
+    else { cam.scale = Math.max(cam.scale, 0.85); cam.tx = W / 2 - p.x * cam.scale; cam.ty = H / 2 - p.y * cam.scale; draw() }
+    return
+  }
+  const wikiBtn = e.target.closest('button[data-wiki]')
+  if (wikiBtn) { selectWiki(wikiById.get(wikiBtn.dataset.wiki)); return }
+  const codeBtn = e.target.closest('button[data-code]')
+  if (codeBtn) { selectCode(codeById.get(codeBtn.dataset.code)) }
+})
+
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value.trim()
+  draw()
+})
+for (const cb of document.querySelectorAll('input[data-wiki-type]')) {
+  cb.addEventListener('change', () => {
+    if (cb.checked) state.showTypes.add(cb.dataset.wikiType)
+    else state.showTypes.delete(cb.dataset.wikiType)
+    draw()
+  })
+}
+for (const cb of document.querySelectorAll('input[data-edge]')) {
+  cb.addEventListener('change', () => {
+    if (cb.checked) state.edgeKinds.add(cb.dataset.edge)
+    else state.edgeKinds.delete(cb.dataset.edge)
+    draw()
+  })
+}
+document.getElementById('allMatches').addEventListener('change', (e) => {
+  state.allMatches = e.target.checked
+  draw()
+})
+document.getElementById('viewWiki').addEventListener('click', () => fitNodes(visibleWiki(), 0.08))
+document.getElementById('viewCode').addEventListener('click', () => fitNodes(visibleCode(), 0.08))
+document.getElementById('viewAll').addEventListener('click', () => fitAll())
+document.getElementById('reset').addEventListener('click', () => {
+  state.selected = null; state.activeRef = null; state.search = ''
+  searchInput.value = ''
+  state.showTypes = new Set(['summary', 'entity', 'concept'])
+  state.edgeKinds = new Set(['runtime'])
+  state.allMatches = false
+  document.getElementById('allMatches').checked = false
+  for (const cb of document.querySelectorAll('input[data-wiki-type]')) cb.checked = true
+  for (const cb of document.querySelectorAll('input[data-edge]')) cb.checked = cb.dataset.edge === 'runtime'
+  renderDetail(); fitNodes(visibleWiki(), 0.1)
+})
+
+window.addEventListener('resize', resize)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas)
+
+renderDetail()
+resize()
+fitNodes(visibleWiki(), 0.1)
+</script>
+</body>
+</html>

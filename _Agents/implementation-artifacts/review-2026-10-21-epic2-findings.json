@@ -1,0 +1,377 @@
+[
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/agent/chat/chat.ts:37",
+    "trigger_condition": "stopWhen 写的是 stepCountIs(5)：一趟问答最多 5 步、4 次工具往返，与 Story 2.6 AC『整趟只有一次工具往返，stepCountIs(2) 既是下限也是上限』正面冲突（deferred-work.md 也把『抬高步数即变 Agent loop』列为这条边界）。",
+    "guard_snippet": "改回 stepCountIs(2)，并在 chat-tool-flow 里加断言：一次回答的 SSE 帧里 tool-input-available 至多 1 个。",
+    "potential_consequence": "模型可以边查边答、反复检索，等于把 P3 的 Agent loop 提前并入了 P1；验收按 AC 逐条比对时这一条直接不过，且 2.6 的范围变更承诺不再成立。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/config.ts:45",
+    "trigger_condition": "`embeddingDimensions in [2048, 1024, 512]` 判的是数组下标而不是值：512/1024/2048 三种正确配置全部落进 warn 分支，只有 0/1/2 才静默。",
+    "guard_snippet": "改为 `[2048, 1024, 512].includes(embeddingDimensions)`，并补一条用例断言 EMBEDDING_DIMENSIONS=1024 不打印 W_EMBEDDING_DIM。",
+    "potential_consequence": "每次启动都会喊『无对应 HNSW 索引，检索将退化顺序扫描』，正确配置与真实异常再也分不开，这条告警会被当成常态噪声而被忽略。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/ingest/ingest.ts:122",
+    "trigger_condition": "入库把 `dimension: v.length` 直接写库，从不与 `embedding.dimensions` 比对；adapter/model/registry.ts 文件头已实测记录原生 /api/embed 会丢掉 dimensions 恒回 4096，此时按 1024 配置也能把 4096 维向量写进去（库里 CHECK 只校验 dimension=vector_dims(embedding)，拦不住）。",
+    "guard_snippet": "写库前断言 `vectors.every(v => v.length === embedding.dimensions)`，不等则走 fail() 把该资源标 failed（如 embedding_dimension_mismatch），不落 chunk/向量。",
+    "potential_consequence": "库被写进异维向量且资源显示 ready；此后每次 /retrieve 返回 409、每次 /chat 把『库中存在 4096 维向量…』原样念给用户 —— 问答全站不可用，只能人工清库恢复。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/adapter/repo/search-vector.ts:38",
+    "trigger_condition": "向量候选只按 `WHERE e.dimension = ${Dim}` 过滤，`embeddings.model` 列写了却从不参与判定：换成一个同为 1024 维的 embedding 模型后，旧模型生成的向量仍被当成同源命中。",
+    "guard_snippet": "SQL 加 `AND e.model = $3`（值取 EmbeddingHandle.modelId）；或检索前比对库中 model 集合，不一致就报明确错误要求重嵌。",
+    "potential_consequence": "换模型后两套几何空间的向量混在一起参与排序，相关性静默变差，没有错误码也没有日志，只能看到回答质量下滑而查不出原因。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/routes/chat/chat.ts:30",
+    "trigger_condition": "POST /chat 只收 {query}，没有 sessionId，也从没调用 repo.createMessage：sessions/messages 两张表在整个产品路径上没有任何写入者（grep 只有 contract/repo 与 /sessions 路由在读）。",
+    "guard_snippet": "body 增加 sessionId（或由 /chat 建会话并在响应头/首帧回传 id），在 streamText 的 onFinish 里把 user 与 assistant 的 UIMessage 落库；缺 sessionId 时明确 400 或落成匿名会话。",
+    "potential_consequence": "GET /sessions/{id}/messages 永远返回空数组，AC 2.5 的『重启后会话历史仍可用』不可能成立；前端列表与 DB 成两套真源，接线时才暴露契约要重做。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/agent/chat/chat.ts:34",
+    "trigger_condition": "ask(prompt) 用的是 `prompt` 而不是 `messages`，一轮历史都不带，也没有 AC 要求的查询改写；指代型追问（『第二个结论展开讲讲』）被当成孤立问句直接去检索。",
+    "guard_snippet": "改为传 messages（截断近 N 轮），检索前做一次单次轻量改写调用、失败回落原问句；用例断言第二轮请求体里带上第一轮消息与改写后的 query。",
+    "potential_consequence": "多轮在界面上成立、在后端不成立：追问命中率极低或答非所问，AC 2.5『基于上一轮继续追问』不可验收。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/agent/chat/chat.ts:15",
+    "trigger_condition": "『没命中就说知识库没有答案』只是模型的一句话，空库 / 全无 ready / 有库但没查到被合并成同一个说法；Repo.countResourcesByStatus 有实现却没有任何调用点。",
+    "guard_snippet": "流开始前调 countResourcesByStatus()：0 行直接回『尚未添加任何资源』、无 ready 回『暂无可用资源（X 条失败/处理中）』（都是 200 答案体），只在存在 ready 时才进模型。",
+    "potential_consequence": "AC 2.1 要求区分的三种提示无法区分，空库用户会被引导去改问法而不是去入库 —— 正好推去做错的那一步。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/agent/tool/tools/retrieve.ts:24",
+    "trigger_condition": "topK 的 schema 是 `.gt(3).lt(20)`（合法区间 4..19）且无默认值，describe 里也没写范围：模型给 3、给 20 或干脆不传，都是校验失败而不是回落到默认条数。",
+    "guard_snippet": "改成 `.int().min(1).max(20).default(6)`，或在 describe 中写明 4..19，并让越界值 clamp 到默认值。",
+    "potential_consequence": "合规问法也会被 zod 拒掉，前端把它渲染成『检索失败 · Too big: expected number to be <20』这类英文原文；配上 5 步上限，模型还有余量反复重试白烧调用。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/routes/sessions/sessions.ts:40",
+    "trigger_condition": "`await c.req.json().catch(() => ({}))` 把解析失败吞成空对象：POST /sessions 收到坏 JSON 会 201 建出一条空标题会话，而不是文档承诺的 400。",
+    "guard_snippet": "改成 `.catch(() => null)` 并显式 `return c.json({code:'E_BAD_JSON'}, 400)`，与 routes/resources 的 E_BAD_JSON 口径一致。",
+    "potential_consequence": "OpenAPI 的 400 打不到；客户端带病重试会往库里塞一串空会话，GET /sessions 列表被垃圾行淹没。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/index.ts:31",
+    "trigger_condition": "open-api.yml 的 readFile/parse 写在 try 之外、且早于所有路由挂载：文件缺失（tsconfig 是 noEmit，将来出 dist 不会带 .yml）或 YAML 写错，启动直接变成未处理的 Promise 拒绝。",
+    "guard_snippet": "把读文档包进 try，失败时打一条 E_OPENAPI 并跳过 /doc 挂载；或在 serve 前单独给出结构化错误并 exit(1)。",
+    "potential_consequence": "一份纯文档的语法错误会让 /health、/resources、/chat 全部起不来，日志里没有本项目任何 error code，排障会先去怀疑 DI/DB。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/agent/tool/tools/resource.ts:3",
+    "trigger_condition": "新增的 resource.ts 引用未定义标识符 `RescourceToolInput`（拼写错）且函数体为空；实测 `npx tsc --noEmit` 正好因此红两条。contracts.ts:43-50 的 ResourceToolInput.chunckId / ResourceToolOutput.resourceId: number 也是没人使用的错类型。同批还新增了 0 字节的 src/trace/systemtrace/log.ts。",
+    "guard_snippet": "本轮删掉该文件与那两个死类型（P3 再做），顺带撤掉 trace/ 空文件；若一定要留，至少修成能编译的空实现并写清未接线。",
+    "potential_consequence": "交付面里躺着编译不过的 P3 半成品，一等补上 typecheck 就红；同时越过 AGENTS §五『resource 工具与 trace/ 空盒不进这一刀』的范围红线。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/routes/ask.tsx:198",
+    "trigger_condition": "submit() 先 setDraft('') 再 await ask()，而 ask() 在 stop 800ms 停不干净时直接 return（这一问没发出去）——草稿此时已经清空。",
+    "guard_snippet": "把清空草稿挪到 sendMessage 真正发出之后；或在 stuck 分支里 setDraft(Question) 把内容还给输入框。",
+    "potential_consequence": "提示『上一轮没能停下来 · 这一问没有发出』时用户敲的那段话已经丢了，只能重打；越长越具体的问句越容易触发这条路径。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/routes/ask.tsx:151",
+    "trigger_condition": "doneNote 的判据只有 error 与 sessionId，不看这一条是否被打断：手动『停止生成』后 generating→false 且没有 error，立刻播报『回答已完成』。",
+    "guard_snippet": "effect 里读 incomplete.has(lastAssistantId)（或加 stoppedRef），被打断的那一轮不播完成、改播『已停止』。",
+    "potential_consequence": "读屏用户听到『回答已完成』，而屏幕上同一张卡写着『这一条回答未完整』——两条矛盾的播报正落在最容易被当结论用的半截答案上。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/routes/ask.tsx:408",
+    "trigger_condition": "右栏空态只看最新一条消息：追问刚提交、assistant 消息还没到（submitted 期间 messages.at(-1) 是 user），refs 为 null，面板回落成『还没有引用记录。问一句…』。",
+    "guard_snippet": "把 `generating && messages.at(-1)?.role === 'user'` 也归入『正在检索这一问…』（或沿用上一条 assistant 的 refs），不要落进『还没问』那一支。",
+    "potential_consequence": "屏幕上还挂着上一轮可点的引用、左边写着『正在生成回答…』，右边却宣称还没问过 —— 正是文件头自己列的四态里被漏掉的那一格。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/components/chat-thread/chat-thread.tsx:172",
+    "trigger_condition": "citedHits 对已经是 plain() 结果的 Text 再 plain 一次，withCitations 又用 `Cited.indexOf(hit)+1` 当标号：两次变换只要不一致，标号就会算出 0。",
+    "guard_snippet": "只在一处 plain（直接把 Answer 里的 Text 传进来，去掉 citedHits 内的二次 plain），并在 label 计算处 `index === -1 ? 原样文字 : String(index+1)`。",
+    "potential_consequence": "正文出现『[0]』按钮或按钮编号与右栏行号对不上；现在靠 plain 恰好幂等才不发作，下次给 plain 再加一条规则就会静默错位。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/api/sessions.ts:65",
+    "trigger_condition": "本地会话 id 是 `local-s-${counter}`，同时被当作 Chat id 与列表主键；后端 /sessions/{id} 的 id 是 UUID，路由用 uuidOk 直接挡成 400 E_BAD_ID。",
+    "guard_snippet": "本地会话 id 先由 POST /sessions 返回的 session_id 决定（或给本地 id 加 `local:` 前缀并在接线层显式映射），别让两种 id 混用同一个字段。",
+    "potential_consequence": "Story 2.5 前端一接就把 local-s-1 拼进 URL 拿到 400，表面上像后端 bug，实际是两套 id 从头就没有共同来源。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/web/src/api/chat.test.ts:125",
+    "trigger_condition": "前端注释与用例把多步当成既定事实（chat.ts:76『多步（stopWhen 2）里模型可能调两次』、用例『多步里调了两次工具 → 取最后那一次』），而 AC 2.6 只允许一次工具往返，服务端现在又是 5 步。",
+    "guard_snippet": "按 AC 把用例与注释改成『恰好一次工具往返』，并加一条断言：一次回答里 tool-retrieve part 至多一个；同时把服务端步数改回 2。",
+    "potential_consequence": "测试在替越界行为背书：后来者读到这两处会以为多步是设计意图，把 5 步当合法上限，红线就此消失。"
+  },
+  {
+    "lens": "adversarial",
+    "location": "app/server/src/routes/chat/chat.ts:41",
+    "trigger_condition": "流内错误一律被 onError 压成字符串『问答失败』，而 try/catch 只包住同步装配，文档承诺的 500 E_CHAT 实际打不到；前端 chatErrorText 的『code · message』解析对 /chat 只能命中 400。",
+    "guard_snippet": "onError 返回带稳定 code 的结构（如 JSON `{\"code\":\"E_CHAT\",\"message\":\"问答失败\"}`），或把 code 写进 error.message；同时删掉文档里不可能的 500 或补一条真能触发的路径。",
+    "potential_consequence": "用户与日志两头都拿不到错误码：前端 Banner 只有一句话、后端只有一行 E_CHAT_STREAM；OpenAPI 与实现各说一套，排障只能翻服务端控制台。"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/config.ts:45",
+    "trigger_condition": "任意启动，含默认 EMBEDDING_DIMENSIONS=1024",
+    "guard_snippet": "if (![2048, 1024, 512].includes(embeddingDimensions)) { ... }，并按迁移实际只保留 1024",
+    "potential_consequence": "每次启动都误报 W_EMBEDDING_DIM，真维度漂移被噪音淹没"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/index.ts:31",
+    "trigger_condition": "open-api.yml 缺失或 YAML 写坏时启动",
+    "guard_snippet": "把 readFile/parse 移进 try，或 IIFE 末尾 .catch(err => { console.error(JSON.stringify({code:'E_ASSEMBLY',message:String(err)})); process.exit(1) })",
+    "potential_consequence": "未处理 rejection：无结构化日志、不打印监听行，进程直接崩"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/routes/sessions/sessions.ts:40",
+    "trigger_condition": "POST /sessions 发送非法 JSON（如 `{bad`）",
+    "guard_snippet": "const raw = await c.req.text(); let body; try { body = JSON.parse(raw) } catch { return c.json({ code: 'E_BAD_BODY', message: '请求体不是合法 JSON' }, 400) }",
+    "potential_consequence": "非法请求仍 201 建出一条空标题会话，与 OpenAPI 声明的 400 相反"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/agent/chat/chat.ts:37",
+    "trigger_condition": "模型在同一轮里第二次调用 retrieve（首查为空后换词再查）",
+    "guard_snippet": "stopWhen: stepCountIs(2)",
+    "potential_consequence": "突破 Story 2.6「整趟只有一次工具往返」上限，最多 5 步且前端只认最后一次"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/pipeline/embed/qwenembed.ts:15（EMBED_TIMEOUT_MS 已删；现路径 app/server/src/retrieve/retrievers.ts:66-70）",
+    "trigger_condition": "Ollama 建连后不返回（模型加载中），或客户端中断检索",
+    "guard_snippet": "embedMany({ ..., abortSignal: AbortSignal.any([AbortSignal.timeout(30_000), ...(Signal ? [Signal] : [])]) })",
+    "potential_consequence": "/retrieve 与 /chat 工具步无上限挂起，30s 上限随类删除后无人接管",
+    "kind": "deletion",
+    "confidence": "high"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/retrieve/retrievers.ts:57-64",
+    "trigger_condition": "把 EMBEDDING_MODEL 换成另一个同维 1024 模型后入库一篇",
+    "guard_snippet": "SELECT DISTINCT dimension, model；model 与 Deps.embedding.modelId 不一致时同样抛 E_DIMENSION_MISMATCH",
+    "potential_consequence": "两套不可比向量静默混排，检索质量劣化且无任何报错"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/ingest/ingest.ts:115",
+    "trigger_condition": "嵌入服务返回的向量长度 ≠ EMBEDDING_DIMENSIONS（如兼容层失效回 4096）",
+    "guard_snippet": "if (vectors.some((v) => v.length !== embedding.dimensions)) return await fail('embedding_error')",
+    "potential_consequence": "异维行入库后每次查询都判混维，全部提问永久 409/工具报错"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/agent/tool/tools/resource.ts:3",
+    "trigger_condition": "运行 npx tsc --noEmit 或任何 IDE 类型检查",
+    "guard_snippet": "删除该半成品文件；或补 import 两个类型并返回 tool({ inputSchema, execute })",
+    "potential_consequence": "TS2304×2，整个 server 类型检查失败（文件也未被 registry 引用）"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/routes/health/health.ts:24（原 app.get('/health') 改为 '/'）",
+    "trigger_condition": "运行 npx vitest run test/health-chain.test.ts（helper 仍 .request('/health')）",
+    "guard_snippet": "测试 helper 改成 .request('/')，或在 createHealthRoute 内保留 app.get('/health')",
+    "potential_consequence": "四条 health-chain 用例全 404，res.json() 解析空体抛错",
+    "kind": "deletion",
+    "confidence": "high"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/server/src/agent/tool/tools/retrieve.ts:20",
+    "trigger_condition": "模型调用 retrieve 时省略 topK，或给 topK=3",
+    "guard_snippet": "topK: z.number().int().min(1).max(20).default(6)",
+    "potential_consequence": "工具输入校验失败不检索；两步上限下这一轮直接无依据作答"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/web/src/routes/ask.tsx:180-189",
+    "trigger_condition": "流未停在 800ms 超时后自行结束，用户随后正常再问",
+    "guard_snippet": "在 renameSession/sendMessage 之前无条件 setStuckBy(prev => ({ ...prev, [SessionAtAsk]: false }))",
+    "potential_consequence": "横幅永久显示「上一轮没能停下来 · 这一问没有发出」且无关闭按钮"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/web/src/api/chat.ts:87-94",
+    "trigger_condition": "工具 output 的 hits 有一条缺 chunkId（字段改名/旧载荷），正文含 [hex] 标号",
+    "guard_snippet": "const hits = Out.hits.filter((h): h is RetrievedHit => !!h && typeof h.chunkId === 'string')；过滤掉不等于原值则 state:'failed'",
+    "potential_consequence": "ChatThread.hitIndex 的 H.chunkId.toLowerCase() 抛错，整页落入错误边界"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/web/src/api/chat.ts:79",
+    "trigger_condition": "一轮内两次 retrieve，答案引用第一次调用里的 chunk",
+    "guard_snippet": "遍历全部 tool-retrieve part 合并 hits 供引用解析（面板仍可只显示最后一组），而非 reverse().find 只取最后一条",
+    "potential_consequence": "该引用退化成纯文本，右栏还误报「回答没有引用其中任何一块」"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/web/src/components/find-field/find-field.tsx:50-52",
+    "trigger_condition": "在 /resources 的搜索框输入后点「清空过滤」（该页未传 InputRef）",
+    "guard_snippet": "组件内自持 const innerRef = useRef<HTMLInputElement>(null)，(InputRef ?? innerRef).current?.focus()，input 同时挂两个 ref",
+    "potential_consequence": "按钮随输入变空而卸载，焦点掉回 <body>，与文件头承诺相反"
+  },
+  {
+    "lens": "edge-case-hunter",
+    "location": "app/web/src/api/sessions.ts:172-174",
+    "trigger_condition": "首问第 24 个 UTF-16 单元落在 emoji 中间（如 😀 被截断）",
+    "guard_snippet": "return [...Question.trim()].slice(0, MAX_TITLE).join('') || '未命名会话'",
+    "potential_consequence": "会话标题尾部留下半个代理对，界面显示为乱码方块"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/agent/chat/chat.ts:37",
+    "trigger_condition": "`stopWhen: stepCountIs(5)` 把「整趟只有一次工具往返」的 AC 上限从 2 放宽到 5，而全仓没有一条断言读 stopWhen、也没有一条数工具往返次数。",
+    "guard_snippet": "把上限提成导出常量 `STOP_WHEN = stepCountIs(2)` 并加确定性单测：`expect(await STOP_WHEN({ steps: [] })).toBe(false)`、`expect(await STOP_WHEN({ steps: [1, 2] })).toBe(true)`（ai@7 的 isStepCount 是 `steps.length === n`，node_modules/ai/dist/index.js:4809）；再在 chat-tool-flow 里断言 `frames.filter(p => p.type === 'tool-input-available').length === 1`。",
+    "potential_consequence": "模型可在一次提问里连调 2~5 次检索（延迟与 token 成本翻倍）；而前端 referencesOf 取的是最后一条 tool part，正文里引用更早一次命中的 `[id]` 会整段退化成纯文本、右栏只剩最后一批 —— 这个回归没有任何用例会红。",
+    "gap_shape": "regression-gap",
+    "consumer": "app/web/src/api/chat.ts:79 的 referencesOf（[n] 按钮与右栏）与每个 /chat 请求的模型往返预算。",
+    "evidence": "`grep -rn stepCountIs app/server/src app/server/test` 只命中 src/agent/chat/chat.ts:37；test/chat-tool-flow.test.ts:93 仅断言 `toolInputs.some(part => part.toolName === 'retrieve')`，不数条数；我实跑 `npx vitest run test/chat-tool-flow.test.ts` 通过（真模型恰好调 1 次），证明现有用例挡不住 5 步；唯一写着 2 的地方是 gitignore 的 test/legacy/probe-chat-tool.ts:6 注释。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/routes/chat/chat.ts:31",
+    "trigger_condition": "/chat 的路由级行为（400 E_BAD_BODY、400 E_EMPTY_QUERY、500 E_CHAT、200 时 content-type 为 text/event-stream）没有任何用例；唯一一条 /chat 用例走的是合法提问的 happy path。",
+    "guard_snippet": "用 `container.resolve(ChatRoute).build()` 起 app 补四例：body 缺失或 query 非字符串 → 400 E_BAD_BODY；`{query:'   '}` → 400 E_EMPTY_QUERY；注入会抛的 ChatService → 500 E_CHAT；正常提问断言 `res.headers.get('content-type')` 含 text/event-stream。",
+    "potential_consequence": "前端 chatErrorText 按 {code,message} 拼文案、按 statusCode 区分代理错误；状态码或 body 形状一漂，界面只剩一句「问答失败」，而 25 条后端用例仍可全绿。",
+    "gap_shape": "regression-gap",
+    "consumer": "app/web/src/routes/ask.tsx:120 的 notice 与 app/web/src/api/chat.ts:105 的 chatErrorText。",
+    "evidence": "`npx vitest list` 列出 25 条用例，其中打 /chat 的只有 test/chat-tool-flow.test.ts:73-99（只断言 200 + 有 tool-output + text 非空）；`grep E_BAD_BODY app/server/test` 只命中 retrieve-chain 与 di-retriever 的 /retrieve 用例。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/agent/tool/tools/retrieve.ts:29",
+    "trigger_condition": "AC 2.6 的 D6 分支（检索判 E_DIMENSION_MISMATCH 时 /chat 仍 200、错误以结构化 {error:{code,message}} 出现在 tool-retrieve output 里）没有一条用例真正执行 `buildRetrieveTool(...).execute`，web 侧的 error 形状是手搓 fixture。",
+    "guard_snippet": "单测直接调工具：`const Out = await buildRetrieveTool({ search: async () => { throw new RetrieverError('E_DIMENSION_MISMATCH','库中存在 768 维向量…') } }).execute({ prompt: 'x', topK: 4 })`，断言返回 `{ hits: [], vectorCount: 0, lexicalCount: 0, error: { code: 'E_DIMENSION_MISMATCH', message: /768 维/ } }` 且不抛；另补一条非 RetrieverError 照旧抛。",
+    "potential_consequence": "catch 若被删或改成 rethrow，SDK 的 errorMode:json 会把 Error.message 丢成 {code,name}（contracts.ts:4-6 已写明这条路），模型拿不到中文原因、前端走 output-error 只显示 errorText；用户看到一句无解释的失败，而两端用例都绿。",
+    "gap_shape": "regression-gap",
+    "consumer": "模型（读 tool output）与 app/web/src/api/chat.ts:84 的 output-error 分支 → ask.tsx:113 的「检索失败」Banner。",
+    "evidence": "test/chat-tool-flow.test.ts:95 只断言 `output.error === null`（正常路）；test/retrieve-chain.test.ts:83-130 只覆盖 /retrieve 的 409，不经过工具；app/web/src/api/chat.test.ts:103 的 `{code:'E_RETRIEVE',message:'嵌入服务不可用'}` 是手写 fixture，不是后端产物。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/retrieve/retrievers.ts:80",
+    "trigger_condition": "「未命中 → 200 + 空 hits + 两条 count 为 0」这条 AC 没有任何用例：retrieve-chain ④ 自己注明真库上造不出 0 命中，于是 fuse 与路由的空结果分支无人守。",
+    "guard_snippet": "确定性两例：`new RrfFuser(deps).fuse({ vector: [], lexical: [] })` 断言 `{ hits: [], vectorCount: 0, lexicalCount: 0 }`；把 RetrieveRoute 的 200 映射抽成纯函数，喂空 RetrievalResult 断言 hits 是 []（不是 undefined）、两个 count 是 0。",
+    "potential_consequence": "fuse 或路由在空结果上少给一个字段（例如直接 return null / 只回 hits），前端 `Array.isArray(body.hits) ? body.hits : []` 会吃成「没有命中」而看不出契约坏了；AC 要求的 200 空响应也无从验收。",
+    "gap_shape": "regression-gap",
+    "consumer": "app/web/src/api/client.ts:173 的 retrieve() 与 app/web/src/routes/recall.tsx:86 的空态。",
+    "evidence": "test/retrieve-chain.test.ts:133-134 注释原文：「0 命中也 200」这条 AC 在真库上构造不出来：实测乱码问句仍有向量过阈（minSimilarity=0.42 挡不住）；该用例 ④ 只跑两个有命中的问句；`grep RrfFuser app/server/test` 零命中。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/routes/sessions/sessions.ts:31",
+    "trigger_condition": "/sessions 的 GET /、POST /、PATCH /:id、GET /:id/messages 四个端点零用例；唯一的会话验证在 repo 层，且列表顺序只用 `.some()` 断言。",
+    "guard_snippet": "用 SessionsRoute.build() 起 app 覆盖：POST 无 body → 201；PATCH 非 UUID → 400 E_BAD_ID、空 title → 400 E_BAD_TITLE、未知 UUID → 404 E_SESSION_NOT_FOUND；GET / 先建两条再断言 `sessions.slice(0,2).map(s => s.session_id)` 为 [新, 旧]（钉住 read-content.ts:196 的 ORDER BY created_at DESC）。",
+    "potential_consequence": "listSessions 的排序被删、PATCH 的 404 漂成 200、POST 的 201 变成 200，Build 3 的会话列表一上来就拿到错顺序或假成功，没有任何红灯；openapi 里声明的 sessions 契约也没有可执行对照。",
+    "gap_shape": "regression-gap",
+    "consumer": "Build 3 前端会话列表（epics.md:321-322）与 app/server/src/routes/doc/open-api.yml 的 sessions 段。",
+    "evidence": "`grep -rn SessionsRoute app/server/src app/server/test` 只命中 src/index.ts:17,38 与自身定义；`npx vitest list` 的 25 条里没有 sessions 路由用例；test/session-repo.test.ts:44 是 `expect(sessions.some(...)).toBe(true)`，顺序未被断言。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/routes/health/health.ts:24",
+    "trigger_condition": "路由从 `app.get('/health')` 改成 `app.get('/')`（真正的挂载点是 index.ts:34 的 /health），既有用例仍 request('/health') ⇒ 我在 HEAD 上实测 3/4 全红；新挂载路径没有任何绿灯。",
+    "guard_snippet": "把用例改为 `createHealthRoute(Probes).request('/')`，并补一条挂载级用例：按 index.ts 的 `app.route('/health', createHealthRoute(...))` 组装后 request('/health') 断言 200/503 且 JSON 可解析。",
+    "potential_consequence": "服务端测试套从此是红的（实测 Tests 3 failed | 22 passed），等于关掉回归闸门；如果 /health 挂载被写错，前端会永久显示「连不上」，而唯一相关用例本身就在红着、没人再看。",
+    "gap_shape": "broken-verification-gap",
+    "consumer": "app/web/src/hooks/use-health.ts:42（fetch /api/health）→ ask.tsx 页头状态点；以及任何用 npm test 把关的人。",
+    "evidence": "实跑 `cd app/server && npx vitest run`：`Tests 3 failed | 22 passed (25)`；test/health-chain.test.ts:32 是 `.request('/health')`，health.ts:24 只注册 '/'，响应体不是 JSON，报 `Unexpected non-whitespace character after JSON at position 4`；_Agents/implementation-artifacts/sprint-status.yaml:70 仍写「active tests 25/25」。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/config.ts:45",
+    "trigger_condition": "`!(embeddingDimensions in [2048, 1024, 512])` 用数组的 `in`（查的是下标 0/1/2），1024 永远判不在集合里，于是每次启动都打 W_EMBEDDING_DIM；没有用例观察这条警告。",
+    "guard_snippet": "改成 `[2048, 1024, 512].includes(embeddingDimensions)`，并加表驱动用例：EMBEDDING_DIMENSIONS=1024/2048 时 `vi.spyOn(console,'warn')` 零调用，=1536 时恰好一次。",
+    "potential_consequence": "每条启动日志都在喊「EMBEDDING_DIMENSIONS=1024 无对应 HNSW 索引，检索将退化顺序扫描」，把正常配置报成配置错误；真出现 1536 时这条警告已被噪音淹没。",
+    "gap_shape": "regression-gap",
+    "consumer": "启动日志的读者（判断索引是否生效、是否要吃 seq scan）与依赖这条警告的排障动作。",
+    "evidence": "实跑 `npx vitest run test/chat-tool-flow.test.ts` 的 stderr 第一行就是 `{\"code\":\"W_EMBEDDING_DIM\",\"message\":\"EMBEDDING_DIMENSIONS=1024 无对应 HNSW 索引，检索将退化顺序扫描\"}`；旧代码是 `embeddingDimensions !== 1024`（本次 diff 删掉的旧第 76 行）；`grep W_EMBEDDING_DIM app/server/test` 零命中。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/index.ts:31",
+    "trigger_condition": "组装根没有被任何用例引入：AppConfig 的 process.exit(1)、EmbeddingHandle/ChatHandle 的 E_EMBEDDING_MODEL/E_CHAT_MODEL、五条 app.route 的挂载路径、E_ASSEMBLY 兜底都只在真启动时执行；openapi 的 readFile/parse 还写在 try 之外。",
+    "guard_snippet": "子进程用例（config.ts:4 自己写明只能这么测）：`spawn('npx', ['tsx','src/index.ts'], env 去掉 CHAT_MODEL)` 断言退出码 1 且输出含 E_CONFIG_MISSING；CHAT_MODEL 设为不在册名字断言 E_CHAT_MODEL；把 openapi 读取挪进 try 后用坏 yaml 子进程断言 E_ASSEMBLY；再补一条组装级 /chat、/sessions、/health 挂载冒烟。",
+    "potential_consequence": "env 名一改、某条 app.route 被删或路径写错，都只在真启动/浏览器里以裸栈或静默空 registry 出现；vite 代理只会给你 404，而所有单测仍绿。",
+    "gap_shape": "environment-only",
+    "consumer": "每次部署/启动（src/index.ts 是唯一组装点）与 app/web/vite.config.ts:49-54 的 /api 代理（依赖后端真实挂载路径）。",
+    "evidence": "`grep -rn src/index app/server/test` 零命中；`grep -rn \"E_CONFIG_MISSING|E_CHAT_MODEL|E_EMBEDDING_MODEL|E_ASSEMBLY\" app/server/test` 零命中；app/server/package.json scripts 只有 test/test:ui/dev/start，无启动冒烟；index.ts:31 的 `parse(await readFile(...))` 在 33 行 try 之前。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/web/src/api/chat.test.ts:20",
+    "trigger_condition": "前端所有流用例都是手搓的（EMPTY_STREAM 只有 start/finish；tool part 由 `assistant({type:'tool-retrieve', state:'output-available', output:{...}})` 直接造），没有一条把后端真实 SSE 帧喂进 Chat/DefaultChatTransport 再断言 parts。",
+    "guard_snippet": "把 test/chat-tool-flow.test.ts 实跑抓到的帧（tool-input-available / tool-output-available / text-delta）存成 fixture，`vi.stubGlobal('fetch', async () => new Response(fixture, { headers: { 'content-type': 'text/event-stream' } }))`，`await chat.sendMessage({text:'…'})` 后断言 `referencesOf(chat.messages.at(-1))` 为 `{state:'ready'}` 且 `hits[0].chunkId` 等于帧里的 id。",
+    "potential_consequence": "前端 ai@7.0.142 + @ai-sdk/react@4.0.146 与后端 ai@7.0.141 分属不同包；SDK 若把 tool chunk 拼成别的 state 名或 transport 丢掉 tool part，面板会永远显示「还没有引用记录」—— 正是 2026-10-20 已发生过一次的形状（chat.ts:20-24 注释记着工具名 retrive→retrieve 前端没跟上），而两端用例全绿。",
+    "gap_shape": "regression-gap",
+    "consumer": "app/web/src/api/chat.ts:77 的 referencesOf → ask.tsx:427 的引用面板与 [n] 按钮。",
+    "evidence": "app/web/src/api/chat.test.ts:20（EMPTY_STREAM）与 84-131（手搓 part）；服务端 test/chat-tool-flow.test.ts:82-98 解析原始 SSE 文本、断言帧层，从不经过前端解析器；实跑 web `npx vitest run` 306/307 通过（唯一红的是不在本 diff 内的 src/components/field/field.test.tsx:116）。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/web/src/routes/ask.tsx:295",
+    "trigger_condition": "/ask 页没有任何行为用例：MessageHits 按消息分桶（128）、右栏只列被引用（111/427）、更早一轮的引用改开抽屉（revealCitation）、半截回答标记（markCut）、stop 800ms 的「停不干净就不发」全在源码里；CitationPanel 也无组件用例。",
+    "guard_snippet": "新增 src/routes/ask.test.tsx（内存 router + Chat 桩）覆盖三条：①两条 assistant 各有命中时，第二条的 [n] 打开的是第二条那批（把 messageHits 的键改错就会红）；②`cited.length===0` 时不渲染 CitationPanel；③点更早一轮的 [n] 打开抽屉且 Subtitle 显示块号/偏移。CitationPanel 补 `scoreLine({...hit, similarity:null, lexicalScore:null}) === 'rrf … · cos — · bm25 —'` 与「ActiveChunkId 按 chunkId 而非下标高亮」的断言。",
+    "potential_consequence": "把 MessageHits 改成只喂最后一轮、把 Hits 换成整份命中、或把抽屉 Subtitle 的偏移拼错，307 条前端用例仍全绿；用户第二问后点第一答的 [2] 会点亮/打开错的块，或点了没反应。",
+    "gap_shape": "regression-gap",
+    "consumer": "/ask 页的引用按钮、右栏与命中抽屉（ask.tsx:295/427/433）。",
+    "evidence": "`grep -rln routes/ask app/web/src` 只有 routeTree.gen.ts 与 repo-guard.test.ts（源码扫描守卫，不是行为用例）；src/components/citation-panel 下无 *.test.tsx；`grep -rn \"CitationPanel|scoreLine|hitAnchorId\" --include=*.test.ts*` 零命中；chat-thread.test.tsx:57 是把 MessageHits 当 prop 直接传进去，绕过页面。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/web/src/routes/ask.tsx:433",
+    "trigger_condition": "AC 2.3 的「来源被删除 → 引用降级为不可点击 + 标注来源已删除」既没实现也没有断言：抽屉直接渲染 tool-retrieve output 里的快照，删资源不影响它。",
+    "guard_snippet": "一条前端用例：以「hits 里有 resourceId、GET /resources 已不含它」为前提，断言该 [n] 渲染成纯文本 +「来源已删除」且点击不打开抽屉；若走后端，则 chunks/引用解析补 410 用例。",
+    "potential_consequence": "用户删掉资源后回看历史回答，引用照旧可点、抽屉照旧显示全文，界面在暗示那块还在库里；降级路径未来补实现时也没有红线可依。",
+    "gap_shape": "other",
+    "consumer": "/ask 历史回答里的 [n] 与命中抽屉（ask.tsx:433-451）。",
+    "evidence": "`grep -rn \"来源已删除|resolveRef|410\" app/web/src app/server/src` 只有注释/文档、无实现；_Agents/implementation-artifacts/deferred-work.md:116 与 epics.md:283 均写明未落；两端测试无一条触及删除后的引用。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/web/src/api/sessions.ts:1",
+    "trigger_condition": "Story 2.5 的「Session/Message 落 ParadeDB，重启后会话历史仍可用」在生产链路两端都没接：/chat 不写 messages（createMessage 零生产调用者），前端仍是 local-s-* 内存 store 并把「本机 · 刷新即丢」写进界面。",
+    "guard_snippet": "一条跨层用例：POST /chat 后 `getMessagesBySession` 返回 user/assistant 两条且 sequence 递增（stub 掉模型流即可）；前端侧断言 addSession 打 `POST /api/sessions`（fetch 打桩看请求）、列表来自 GET /api/sessions。",
+    "potential_consequence": "刷新页面会话全丢，后端 sessions/messages 与三个端点是死代码；同时 app/web/src/api/chat.test.ts:55 把「只发最后一句用户消息」钉成契约，实现多轮那天这条用例会红，看起来像新功能弄坏了旧行为。",
+    "gap_shape": "missing-adoption-gap",
+    "consumer": "/ask 右栏会话列表（ask.tsx:66 的 useSessions）与 epics.md:321 的「重启后会话历史仍可用」。",
+    "evidence": "`grep -rn createMessage app/server/src` 仅 repo 定义与 contract 转调、无业务调用；createSession 只被 routes/sessions 的 POST 调用，/chat 全无 session 概念；app/web/src/api/sessions.ts:1-3 与 session-list.tsx 卡底均写「本机 · 刷新即丢」，src/routes/index.tsx:430 同样写「会话只存本机」；app/web 内无任何 `/api/sessions` 请求；api/chat.test.ts:55 用例名即「多轮上下文要等会话落库」。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/src/agent/tool/tools/resource.ts:3",
+    "trigger_condition": "新提交的 resource.ts 引用两个不存在的类型（RescourceToolInput/ResourceToolOutput），`npx tsc --noEmit` 直接失败；仓库没有任何 typecheck 脚本或 CI，类型正确性没有执行路径。",
+    "guard_snippet": "补 `\"typecheck\": \"tsc --noEmit\"` 并让 `npm test` 先跑它；同时删掉这份没人 import 的半截文件，或补齐类型与返回。",
+    "potential_consequence": "一个编译不过的文件能进 HEAD（git status 干净、git ls-files 有它）；下次有人 import 它时才会在运行时炸或静默 undefined，而这段时间所有测试都是绿的。",
+    "gap_shape": "no-runner",
+    "consumer": "后续 import src/agent/tool/tools/resource.ts 的代码与 IDE 之外的任何构建步骤（registry.ts:13 目前只注册 retrieve）。",
+    "evidence": "`cd app/server && npx tsc --noEmit` → `src/agent/tool/tools/resource.ts(3,38): error TS2304: Cannot find name 'RescourceToolInput'` 与 `(3,58) ... 'ResourceToolOutput'`，退出码 1；`grep -rn buildRescourceTool src test` 只命中定义自己；package.json scripts 无 typecheck；对照 app/web 的 `npx tsc --noEmit` 退出 0。"
+  },
+  {
+    "lens": "verification-gap",
+    "location": "app/server/vitest.config.ts:7",
+    "trigger_condition": "服务端全部断言住在 app/server/test/，而 .gitignore 第 3 行是 `test/` ⇒ `git ls-files app/server/test` 为空；只含版本控制内容的克隆里，setupFiles 指向的 ./test/setup-env.ts 根本不存在。",
+    "guard_snippet": "把 test/（至少 setup-env.ts/load-env.ts 与用例）纳入版本控制；加一条空克隆冒烟：`git archive HEAD | tar -x -C /tmp/x && npm ci && npm test`，要求它因真实断言失败而非因缺文件/0 用例失败。",
+    "potential_consequence": "本次视为「已验证」的 25 条（含 chat-tool-flow、混维 409、session sequence）只在 Lynx 本机存在；换人/换机/CI 一律跑不到，回归保护等于 0，且 npm test 会因 setup 文件缺失直接报错或被误读成「没有测试」。",
+    "gap_shape": "no-runner",
+    "consumer": "任何接手 Epic 2 的开发者/CI，以及 sprint-status.yaml:70「active tests 25/25」这条结论的可信度。",
+    "evidence": "`cat app/server/.gitignore` → 第 3 行 `test/`；`git ls-files app/server/test` 输出为空；`ls app/server/test` 有 10 个文件（含 chat-tool-flow/session-repo/retrieve-chain）；epics.md:224 亦写明 app/server/.gitignore 含 test/ 是既定现状。"
+  }
+]

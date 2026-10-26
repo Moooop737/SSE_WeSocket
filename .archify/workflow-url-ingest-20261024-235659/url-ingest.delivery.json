@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b6cfa80b-a7c1-4b95-b419-19008097740a",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/url-ingest.html",
+  "specification": {
+    "sha256": "224186c1d4d70407238fb89b87fe877a0604717c0cb29e5d39b70f14562f7d1e",
+    "bytes": 4290
+  },
+  "artifact": {
+    "sha256": "75a0128c12e1b23b583adb8850180c91e99b39089aaea494098500ee4cf51d93",
+    "bytes": 829534
+  }
+}

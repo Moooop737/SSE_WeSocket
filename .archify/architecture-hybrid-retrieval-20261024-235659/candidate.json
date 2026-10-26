@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Story 2.1 混合检索的两路与融合",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.html"
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Question",
+      "sublabel": "user query",
+      "pos": [
+        20,
+        300
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /retrieve",
+      "sublabel": "HTTP 薄层",
+      "pos": [
+        200,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "retriever",
+      "type": "backend",
+      "label": "Retriever.search",
+      "sublabel": "两路并行",
+      "pos": [
+        410,
+        300
+      ],
+      "size": [
+        170,
+        74
+      ]
+    },
+    {
+      "id": "embed",
+      "type": "cloud",
+      "label": "Embedder",
+      "sublabel": "query vector",
+      "pos": [
+        410,
+        120
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "vector",
+      "type": "database",
+      "label": "pgvector HNSW",
+      "sublabel": "cosine topK",
+      "pos": [
+        660,
+        190
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "lexical",
+      "type": "database",
+      "label": "ParadeDB BM25",
+      "sublabel": "score > 0",
+      "pos": [
+        660,
+        320
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "rrf",
+      "type": "backend",
+      "label": "RRF fusion",
+      "sublabel": "名次融合",
+      "pos": [
+        870,
+        250
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "out",
+      "type": "backend",
+      "label": "hits + counts",
+      "sublabel": "topK after fuse",
+      "pos": [
+        1060,
+        250
+      ],
+      "size": [
+        150,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Retrieval path",
+      "wraps": [
+        "retriever",
+        "embed",
+        "vector",
+        "lexical",
+        "rrf"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-route",
+      "from": "client",
+      "to": "route",
+      "label": "query",
+      "variant": "default"
+    },
+    {
+      "id": "route-retriever",
+      "from": "route",
+      "to": "retriever",
+      "label": "search",
+      "variant": "emphasis"
+    },
+    {
+      "id": "retriever-embed",
+      "from": "retriever",
+      "to": "embed",
+      "label": "embed",
+      "variant": "default"
+    },
+    {
+      "id": "embed-vector",
+      "from": "embed",
+      "to": "vector",
+      "label": "query vector",
+      "variant": "default"
+    },
+    {
+      "id": "retriever-lexical",
+      "from": "retriever",
+      "to": "lexical",
+      "label": "BM25",
+      "variant": "default"
+    },
+    {
+      "id": "vector-rrf",
+      "from": "vector",
+      "to": "rrf",
+      "label": "ranked",
+      "variant": "emphasis"
+    },
+    {
+      "id": "lexical-rrf",
+      "from": "lexical",
+      "to": "rrf",
+      "label": "ranked",
+      "variant": "emphasis"
+    },
+    {
+      "id": "rrf-out",
+      "from": "rrf",
+      "to": "out",
+      "label": "hits",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两路各自 topK",
+      "items": [
+        "向量走 HNSW 余弦距离",
+        "BM25 走 pg_search",
+        "两路候选条数由 config 控制"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "RRF",
+      "items": [
+        "只按名次融合",
+        "同一 chunk 跨路去重",
+        "归一化暂不做"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "边界",
+      "items": [
+        "维度每请求现查",
+        "阈值区分不了库里有没有答案",
+        "拒答判据交给生成侧"
+      ]
+    }
+  ]
+}

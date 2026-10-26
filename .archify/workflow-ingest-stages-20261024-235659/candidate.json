@@ -1,0 +1,228 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Story 3.4 ingest 五段与 trace",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-ingest-stages-20261024-235659/ingest-stages.html"
+  },
+  "lanes": [
+    {
+      "id": "ingest",
+      "label": "Ingest.run"
+    },
+    {
+      "id": "stages",
+      "label": "五段"
+    },
+    {
+      "id": "trace",
+      "label": "trace"
+    },
+    {
+      "id": "db",
+      "label": "数据库"
+    },
+    {
+      "id": "error",
+      "label": "失败短路",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "run",
+      "lane": "ingest",
+      "col": 0,
+      "type": "backend",
+      "label": "Ingest.run",
+      "sublabel": "接 DB sink",
+      "width": 140
+    },
+    {
+      "id": "fetch",
+      "lane": "stages",
+      "col": 1,
+      "type": "cloud",
+      "label": "fetch",
+      "sublabel": "final_url / status",
+      "width": 140
+    },
+    {
+      "id": "parse",
+      "lane": "stages",
+      "col": 2,
+      "type": "backend",
+      "label": "parse",
+      "sublabel": "正文",
+      "width": 120
+    },
+    {
+      "id": "chunk",
+      "lane": "stages",
+      "col": 3,
+      "type": "backend",
+      "label": "chunk",
+      "sublabel": "偏移",
+      "width": 120
+    },
+    {
+      "id": "embed",
+      "lane": "stages",
+      "col": 4,
+      "type": "backend",
+      "label": "embed",
+      "sublabel": "telemetry off",
+      "width": 140
+    },
+    {
+      "id": "write",
+      "lane": "stages",
+      "col": 5,
+      "type": "database",
+      "label": "write",
+      "sublabel": "chunk + 向量",
+      "width": 140
+    },
+    {
+      "id": "sink",
+      "lane": "trace",
+      "col": 3,
+      "type": "messagebus",
+      "label": "stage sink",
+      "sublabel": "DB trace_stages",
+      "width": 150
+    },
+    {
+      "id": "traces",
+      "lane": "db",
+      "col": 4,
+      "type": "database",
+      "label": "traces",
+      "sublabel": "trace_id + resource_id",
+      "width": 160
+    },
+    {
+      "id": "resource",
+      "lane": "db",
+      "col": 5,
+      "type": "database",
+      "label": "resources",
+      "sublabel": "ready",
+      "width": 140
+    },
+    {
+      "id": "failed",
+      "lane": "error",
+      "col": 4,
+      "type": "security",
+      "label": "error stage",
+      "sublabel": "只写一行",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "run-fetch",
+      "from": "run",
+      "to": "fetch",
+      "label": "start",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fetch-parse",
+      "from": "fetch",
+      "to": "parse",
+      "label": "raw",
+      "variant": "default"
+    },
+    {
+      "id": "parse-chunk",
+      "from": "parse",
+      "to": "chunk",
+      "label": "text",
+      "variant": "default"
+    },
+    {
+      "id": "chunk-embed",
+      "from": "chunk",
+      "to": "embed",
+      "label": "chunks",
+      "variant": "default"
+    },
+    {
+      "id": "embed-write",
+      "from": "embed",
+      "to": "write",
+      "label": "vectors",
+      "variant": "emphasis"
+    },
+    {
+      "id": "write-resource",
+      "from": "write",
+      "to": "resource",
+      "label": "resource_id",
+      "variant": "emphasis"
+    },
+    {
+      "id": "run-sink",
+      "from": "run",
+      "to": "sink",
+      "label": "每段 onStart/onEnd",
+      "variant": "dashed"
+    },
+    {
+      "id": "sink-traces",
+      "from": "sink",
+      "to": "traces",
+      "label": "trace_stages",
+      "variant": "dashed"
+    },
+    {
+      "id": "fetch-failed",
+      "from": "fetch",
+      "to": "failed",
+      "label": "fetch 失败",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "failed-traces",
+      "from": "failed",
+      "to": "traces",
+      "label": "error row",
+      "variant": "security",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "五段",
+      "items": [
+        "fetch / parse / chunk / embed / write",
+        "每段都有输入 / 输出 / 耗时",
+        "失败短路"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "trace",
+      "items": [
+        "Ingest.run 接 DB sink",
+        "resource_id 回填 traces",
+        "chat 的 tool 走 Langfuse"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "失败",
+      "items": [
+        "fetch 失败只写 1 行 error stage",
+        "后续段落不再写",
+        "embed telemetry: false"
+      ]
+    }
+  ]
+}

@@ -22,16 +22,16 @@ Vercel AI SDK 的**服务端是框架无关的**：核心函数 `streamText` / `
 
 ## B. 文档格式 Backlog（终极菜单，按阶段释放）
 
-P1 只实现 **网页 URL 抓取** 与 **Markdown/纯文本**。其余格式的目标阶段见下表（**P1.x = MVP 验收通过后的追加，不属于 P1 完成条件**，与 PRD §6.2 一致）：
+P1 只实现 **网页 URL 抓取** 与 **Markdown/纯文本**。其余格式的目标阶段见下表（**P1.x** 的定义见 PRD §6.2；P1 已收口、P2 只接 `.md/.txt` 与 ZIP 文件管理，下表未排期的格式都不在 P2）：
 
 | 类别 | 格式 | 目标阶段 | 依赖能力 |
 |---|---|---|---|
 | 网页 | 在线 URL 抓取 | **P1** | 抓取 + 正文解析 |
 | 文本 | txt、Markdown | **P1** | 直接读取 |
-| 文档 | PDF | P1.x | PDF 解析库 |
-| 文档 | Word(doc/docx)、PPT、EPUB | P2+ | 各格式解析器 |
-| 表格 | Excel、CSV、JSON | P2+ | 结构化解析 + 分块策略 |
-| 网页 | 本地 HTML / MHTML 归档 | P2+ | 本地文件上传 |
+| 文档 | PDF | 未排期（P1 已收口，P2 不接） | PDF 解析库 |
+| 文档 | Word(doc/docx)、PPT、EPUB | 未排期（P2 不接） | 各格式解析器 |
+| 表格 | Excel、CSV、JSON（导入） | 未排期（P2 不接；回答内表格 **CSV 导出**见 Epic 4.5） | 结构化解析 + 分块策略 |
+| 网页 | 本地 HTML / MHTML 归档 | 未排期（P2 不接） | 本地文件上传 |
 | 思维导图 | XMind | P3+ | 专有格式解析 |
 | 图片 | jpg/png/gif/bmp/tiff/webp | **P5 多模态** | 视觉模型（Vision） |
 | 音频 | mp3/wav/m4a/flac/ogg | **P5 多模态** | 语音识别（ASR） |
@@ -41,8 +41,8 @@ P1 只实现 **网页 URL 抓取** 与 **Markdown/纯文本**。其余格式的�
 | 阶段 | 产品能力增量 | 对应 AI SDK 练习点 |
 |---|---|---|
 | P1 | 喂文档 → 检索问答 + 引用 + 流式 | `streamText`、embed、RAG 编排 |
-| P2 | 多轮会话管理 + 结构化输出 | 会话状态、`generateObject` |
-| P3 | 检索/联网变成"工具"，Agent loop | tool calling、agents |
+| P2 | 结构化输出与渲染 + 文件与存储（2026-10-24 定） | `generateText + Output.object`（`generateObject` 已弃用）、GFM/CSV 客户端渲染、MinIO 文件归档 |
+| P3 | 联网工具 + Agent loop（检索工具化已由 P1 Story 2.6 交付） | tool calling、agents |
 | P3 工程项 | 批量入库 + 后台队列 + 跨进程取消（**Redis 在此进**，作队列存储） | 无 AI SDK 点；练队列/并发/幂等/跨进程取消 |
 | P4 | 回答内渲染图表/卡片组件 | `streamUI`、React Server Components |
 | P5 | MCP 集成 / 多模态输入 / 部署上线 | MCP client、multimodal、生产部署 |

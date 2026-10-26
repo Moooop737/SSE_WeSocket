@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epic 1 · Story 1.4 知识库查看与删除 · 带代码逐行讲解</title>
+<style>
+:root {
+  --bg: #f5f2ec;
+  --panel: #fffdf8;
+  --panel-2: #ece8df;
+  --ink: #1b232b;
+  --ink-2: #46515d;
+  --ink-3: #78838f;
+  --line: #dcd7cc;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --danger: #b91c1c;
+  --code-bg: #0f171e;
+  --code-head: #0a1117;
+  --code-ink: #d8e2eb;
+  --code-line: #1d2a35;
+  --hl: rgba(250, 204, 21, .16);
+  --shadow: 0 14px 40px rgba(27, 35, 43, .08);
+  --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html[data-theme="dark"] {
+  --bg: #0c1116;
+  --panel: #121a21;
+  --panel-2: #18222b;
+  --ink: #e7edf3;
+  --ink-2: #adb9c5;
+  --ink-3: #7d8a97;
+  --line: #263440;
+  --accent: #5eead4;
+  --accent-2: #fbbf24;
+  --danger: #fca5a5;
+  --code-bg: #090e13;
+  --code-head: #060a0e;
+  --code-ink: #d8e2eb;
+  --code-line: #18232d;
+  --hl: rgba(94, 234, 212, .14);
+  --shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: .9em; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: .08em .34em; }
+pre code { background: none; border: 0; padding: 0; }
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); z-index: 80; }
+.layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.toc {
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+  padding: 30px 18px 40px; border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.toc-brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.toc-title { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.toc-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 18px; }
+.toc nav { display: flex; flex-direction: column; gap: 2px; }
+.toc nav a { display: block; padding: 6px 10px; border-radius: 7px; color: var(--ink-2); font-size: 13px; border-left: 2px solid transparent; }
+.toc nav a:hover { background: var(--panel-2); text-decoration: none; color: var(--ink); }
+.toc nav a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); font-weight: 600; }
+.toc-actions { display: flex; gap: 8px; margin-top: 18px; }
+.toc-actions button, .copy-code {
+  font-family: var(--sans); font-size: 12px; color: var(--ink-2); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; cursor: pointer;
+}
+.toc-actions button:hover, .copy-code:hover { border-color: var(--accent); color: var(--accent); }
+.main { min-width: 0; padding: 42px 54px 100px; max-width: 1180px; }
+.hero {
+  position: relative; overflow: hidden; padding: 38px 42px;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 30px 30px; opacity: .28;
+  mask-image: radial-gradient(circle at 80% 10%, #000, transparent 68%);
+}
+.hero > * { position: relative; }
+.hero-kicker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.hero h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.18; margin: 14px 0 12px; letter-spacing: -.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 16px; color: var(--ink-2); max-width: 760px; margin: 0 0 20px; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.chip strong { color: var(--ink); font-weight: 600; }
+.trace-pill { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 8px; padding: 7px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.trace-pill b { color: var(--accent); font-weight: 600; }
+.section { margin-top: 54px; scroll-margin-top: 24px; }
+.section-head { margin-bottom: 18px; }
+.kicker { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 9px; }
+.section h2 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; letter-spacing: -.015em; }
+.section-sub { color: var(--ink-2); margin: 0; max-width: 900px; }
+.callout { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--panel)); color: var(--ink-2); }
+.callout.strong { background: color-mix(in srgb, var(--accent-2) 7%, var(--panel)); border-left-color: var(--accent-2); color: var(--ink); }
+.summary-grid, .choice-grid, .test-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.summary-card, .choice, .test-card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.summary-no, .choice-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.summary-card h3, .choice h3, .test-card h3 { font-size: 16px; margin: 6px 0 6px; }
+.summary-card p, .choice p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layer-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.layer { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.layer-31 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset; }
+.layer-tag { font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: .06em; }
+.layer h3 { margin: 7px 0 6px; font-size: 18px; }
+.layer p { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.layer code { display: inline-block; font-size: 11px; color: var(--ink-2); }
+.map-note, .journey-hint, .table-note, .test-note { color: var(--ink-3); font-size: 13px; margin-top: 12px; }
+.glossary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.gloss { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.gloss dt { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.gloss dd { margin: 0; font-size: 13px; color: var(--ink-2); }
+.journey { display: grid; gap: 8px; margin-top: 18px; }
+.journey-step { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); font-family: var(--sans); transition: border-color .15s, transform .15s; }
+.journey-step:hover { border-color: var(--accent); transform: translateX(2px); }
+.step-no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.step-text { display: flex; flex-direction: column; gap: 1px; }
+.step-text strong { font-size: 14px; }
+.step-text small { color: var(--ink-3); font-size: 12.5px; }
+.step-code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.file-table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.file-table th, .file-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.file-table th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel-2); }
+.file-table tr:last-child td { border-bottom: 0; }
+.file-table code { font-size: 11.5px; }
+.block { margin-top: 34px; scroll-margin-top: 24px; }
+.block-title { font-size: 20px; margin: 0 0 4px; }
+.block-intro { color: var(--ink-2); margin: 0 0 12px; font-size: 14px; }
+.explain { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 16px; align-items: start; }
+.code-card { background: var(--code-bg); border: 1px solid #1f2c37; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(10, 17, 23, .2); position: sticky; top: 14px; }
+.code-head { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: var(--code-head); border-bottom: 1px solid #1d2a35; color: #8fa2b3; font-size: 11.5px; }
+.traffic { display: inline-flex; gap: 4px; margin-right: 2px; }
+.traffic i { width: 8px; height: 8px; border-radius: 50%; background: #33424f; display: block; }
+.traffic i:first-child { background: #7f3c3c; }
+.traffic i:nth-child(2) { background: #7d6a3a; }
+.traffic i:nth-child(3) { background: #3f6a55; }
+.code-path { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code-lang { margin-left: auto; font-family: var(--mono); font-size: 10px; color: #7d8f9f; border: 1px solid #263744; border-radius: 4px; padding: 1px 5px; }
+.copy-code { margin-left: 6px; background: transparent; color: #9fb0c0; border-color: #2a3a47; font-size: 11px; }
+.copy-code:hover { color: #d8e2eb; border-color: #4b6274; }
+.code-scroll { max-height: 70vh; overflow: auto; overscroll-behavior: contain; }
+.code { font-family: var(--mono); font-size: 12.5px; line-height: 1.62; padding: 12px 0 16px; min-width: max-content; }
+.line { display: flex; min-height: 1.62em; }
+.line.hl { background: var(--hl); }
+.line.hl .ln { color: #c9a227; }
+.line.gap { opacity: .45; }
+.ln { flex: 0 0 3.8em; text-align: right; padding-right: 1em; color: #546675; user-select: none; }
+.lc { white-space: pre; padding-right: 20px; color: var(--code-ink); }
+.tok-k { color: #c792ea; }
+.tok-s { color: #ecc48d; }
+.tok-c { color: #6d8292; font-style: italic; }
+.tok-n { color: #f78c6c; }
+.tok-t { color: #82aaff; }
+.notes { display: flex; flex-direction: column; gap: 9px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.note:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); transform: translateY(-1px); }
+.note.active { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent) inset; border-color: var(--accent); }
+.note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note-head { display: flex; align-items: center; gap: 8px; }
+.note-num { font-family: var(--mono); font-size: 10.5px; color: var(--accent); }
+.note-title { font-weight: 700; font-size: 14px; flex: 1; }
+.note-range { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin: 2px 0 7px; }
+.note-body { font-size: 13px; color: var(--ink-2); }
+.note-body p { margin: 0 0 6px; }
+.note-body p:last-child { margin-bottom: 0; }
+.badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; border-radius: 999px; padding: 1px 6px; border: 1px solid var(--line); color: var(--ink-3); background: var(--panel-2); white-space: nowrap; }
+.b-31 { color: #0f766e; border-color: #9fd6cf; background: #e6f6f3; }
+.b-32 { color: #6d4aff; border-color: #c9baff; background: #f0ecff; }
+.b-33 { color: #a35400; border-color: #f0c48a; background: #fff4e3; }
+.b-34 { color: #a1224f; border-color: #f2b6c9; background: #ffedf3; }
+.b-pre, .b-now { color: #5b6570; }
+html[data-theme="dark"] .b-31 { background: #0f2f2b; border-color: #1f6f66; color: #7fe7d9; }
+html[data-theme="dark"] .b-32 { background: #211b3c; border-color: #4b3d89; color: #c4b5ff; }
+html[data-theme="dark"] .b-33 { background: #33230d; border-color: #7a541f; color: #f3c780; }
+html[data-theme="dark"] .b-34 { background: #351521; border-color: #7c3048; color: #f3a8c0; }
+.test-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.test-card { padding: 16px; }
+.test-card h3 { margin-top: 0; }
+.snippet { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid #1f2c37; border-radius: 9px; padding: 12px 14px; overflow: auto; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.pitfall-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.pitfall-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 13.5px; color: var(--ink-2); }
+.pitfall-list strong { color: var(--ink); }
+.next-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.next-box p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 720px; }
+.next-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.next-links a { font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--ink-2); }
+.next-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.to-top { position: fixed; right: 22px; bottom: 22px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+.to-top.show { opacity: 1; pointer-events: auto; }
+.footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
+@media (max-width: 1100px) {
+  .explain { grid-template-columns: 1fr; }
+  .code-card { position: static; }
+  .code-scroll { max-height: 55vh; }
+}
+@media (max-width: 980px) {
+  .layout { display: block; }
+  .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 20px; }
+  .toc nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 28px 20px 80px; }
+  .hero { padding: 26px 22px; }
+  .summary-grid, .layer-map, .glossary { grid-template-columns: 1fr; }
+  .choice-grid, .test-grid { grid-template-columns: 1fr; }
+  .file-table { display: block; overflow: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+.flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.flow-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.flow-card h3 { margin: 0 0 10px; font-size: 16px; }
+.flow-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.flow-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
+.flow-list li:last-child { border-bottom: 0; }
+.flow-list code { font-size: 11.5px; }
+.tree { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.tree li { position: relative; padding-left: 20px; font-size: 12.5px; }
+.tree li::before { content: ""; position: absolute; left: 4px; top: .85em; width: 9px; height: 1px; background: var(--line); }
+.tree li::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tree li:last-child::after { display: none; }
+.tree .root { padding-left: 0; font-weight: 700; }
+.tree .root::before, .tree .root::after { display: none; }
+.b-app { color: #5b6570; }
+@media (max-width: 820px) { .flow-map { grid-template-columns: 1fr; } }
+.lane .journey { margin-top: 0; }
+.lane .journey-step { grid-template-columns: 30px minmax(0, 1fr); }
+.lane .step-code { display: none; }
+.lane .step-text small { font-size: 12px; }
+
+:root { --accent: #9f1239; --accent-2: #881337; }
+html[data-theme="dark"] { --accent: #f9a8d4; }
+.lane .journey { margin-top: 0; }
+</style>
+<link rel="stylesheet" href="assets/walkthrough.css?v=20261026r">
+<script src="assets/walkthrough.js?v=20261026r" defer></script>
+</head>
+<body>
+<header class="docs-topbar">
+  <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
+  <span class="docs-crumb">Story 1.4</span>
+  <span class="docs-topbar-spacer"></span>
+  <a class="docs-back" href="index.html">全部走读</a>
+</header>
+<div class="top-progress" id="progress"></div>
+<div class="layout">
+  <aside class="toc">
+    <p class="toc-brand">Epic 1 · Walkthrough</p>
+    <p class="toc-title">Story 1.4</p>
+    <p class="toc-sub">资源删除 · 取消入库 · 带代码逐行讲解</p>
+    <nav id="toc"><a href="#conclusion-and-boundary" data-toc="conclusion-and-boundary">一句话结论与 story 边界</a><a href="#story-diagram" data-toc="story-diagram">一眼看懂：删除处理中资源</a><a href="#map" data-toc="map">全局地图：四条链路各管一段</a><a href="#glossary" data-toc="glossary">小白词典：这一页会反复出现的词</a><a href="#journey" data-toc="journey">一次「删除处理中资源」的旅行</a><a href="#files" data-toc="files">文件地图：谁负责哪一段</a><a href="#code-and-annotations" data-toc="code-and-annotations">代码与逐行讲解</a><a href="#decisions-and-pitfalls" data-toc="decisions-and-pitfalls">关键取舍与踩过的坑</a><a href="#verification-commands" data-toc="verification-commands">可复制的验证命令</a><a href="#story-continuity" data-toc="story-continuity">与前后 story 的衔接</a></nav>
+    <div class="toc-actions">
+      <button type="button" id="theme-toggle">深色</button>
+      <button type="button" id="expand-all">展开代码</button>
+    </div>
+  </aside>
+  <main class="main">
+<header class="hero">
+  <div class="hero-kicker"><span>Knowledge Copilot</span><span>·</span><span>Epic 1</span><span>·</span><span>Story 1.4</span><span>·</span><span>2026-10-13 收口</span></div>
+  <h1>删除一条资源：<em>取消先按，数据后清</em></h1>
+  <p class="hero-sub">这一格把「删资源」拆成两件事：界面上立刻看不见（软删 <code>deleted_at</code> 留痕），检索里立刻查不到（chunks 物理删，embeddings 经外键级联一起消失）。处理中的资源先用服务端持有的取消信号停掉；如果取消落在写库期间，还要把已经提交的 <code>ready</code> 撤回。</p>
+  <div class="meta-row">
+    <span class="chip"><strong>验收口径</strong> 后端能力 + API</span>
+    <span class="chip"><strong>前端按钮</strong> 本 story 不计入</span>
+    <span class="chip"><strong>实测</strong> 真库 + Ollama + 真 URL</span>
+    <span class="chip"><strong>Review</strong> 三透镜 + 200 轮撞锁否证</span>
+  </div>
+  <div class="trace-pill"><b>DELETE /resources/:id</b> → 204 · <b>POST /resources/:id/abort</b> → 202 · <b>GET /resources/:id</b> → 200/404（2.4 补丁）</div>
+</header>
+
+<section class="section" id="conclusion-and-boundary">
+  <header class="section-head">
+    <span class="kicker">BOUNDARY · 01</span>
+    <h2>一句话结论与 story 边界</h2>
+    <p class="section-sub">先划清哪些是 1.4 的交付，哪些只是后来接上来的补丁；避免把 Epic 2/3 的能力记到这一格头上。</p>
+  </header>
+
+  <div class="callout strong">
+    <strong>一句话：</strong>1.4 交付的是「删除语义 + 取消语义 + 防孤儿数据的写入守卫」。列表与查看只验收后端 API，界面按钮与轮询按 Lynx 定案不在本 story 验收范围内。
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <span class="summary-no">01</span>
+      <h3>软删留痕</h3>
+      <p><code>resources.deleted_at</code> 打时间戳，行还在；历史引用、审计和排障都还能看到「它曾经存在」。同一事务里把 chunks 物理删掉。</p>
+    </div>
+    <div class="summary-card">
+      <span class="summary-no">02</span>
+      <h3>取消归服务端</h3>
+      <p>管线自己 <code>new AbortController()</code>，按 resourceId 登记进进程级 <code>Map</code>。任意请求都能按下，客户端断连反而不再有否决权。</p>
+    </div>
+    <div class="summary-card">
+      <span class="summary-no">03</span>
+      <h3>写入期兜底</h3>
+      <p>pg 写入不吃 signal。取消若落在 INSERT/UPDATE 之间，事务会提交成 ready；写完后必须再查一次 <code>Signal.aborted</code>，把那一笔撤回。</p>
+    </div>
+  </div>
+
+  <table class="file-table">
+    <thead>
+      <tr><th style="width:34%">能力 / 落点</th><th style="width:14%">归属</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>DELETE /resources/:id</code><br><code>POST /resources/:id/abort</code></td>
+        <td><span class="badge b-34">1.4</span></td>
+        <td>软删 + chunks 物理删 + embeddings FK CASCADE；处理中先按取消；abort 只取消不删，成功 202。</td>
+      </tr>
+      <tr>
+        <td><code>src/ingest/inflight.ts</code></td>
+        <td><span class="badge b-34">1.4</span></td>
+        <td>进程级 <code>Map&lt;resourceId, AbortController&gt;</code>；remove 比对 controller，防旧任务的迟到 finally 摘掉新登记（ec36c9e 补丁）。</td>
+      </tr>
+      <tr>
+        <td>写入守卫与取消撤回</td>
+        <td><span class="badge b-34">1.4</span></td>
+        <td>写入事务读行、转 ready 都带 <code>deleted_at IS NULL</code>；写完后发现取消则 <code>fail('入库取消')</code> 收回已提交的数据。</td>
+      </tr>
+      <tr>
+        <td>列表 / 查看</td>
+        <td><span class="badge b-pre">现状</span></td>
+        <td>列表现在由 <code>routes/crud.ts</code> 的 hono-crud 注册（3.1 前置重构），软删过滤靠 <code>softDelete</code> 配置；详情 <code>GET /resources/:id</code> 是 2.4 补丁。</td>
+      </tr>
+      <tr>
+        <td>ingest 五段 stage / telemetry</td>
+        <td><span class="badge b-34">3.4</span></td>
+        <td><code>runStage</code> 与 <code>StageSink</code> 包住 fetch/parse/chunk/embed/write；不是 1.4 的代码，页面里用徽章标出。</td>
+      </tr>
+      <tr>
+        <td>tsyringe 依赖注入</td>
+        <td><span class="badge">DI</span></td>
+        <td>Epic 2 的装配改造：路由/工厂改为 <code>@injectable</code> / <code>@singleton</code>。1.4 时还是构造函数吃一个 deps 对象。</td>
+      </tr>
+      <tr>
+        <td>前端删除/取消按钮、列表轮询</td>
+        <td><span class="badge b-pre">不计入</span></td>
+        <td>story 收口时按 Lynx 定案整体挂起，验收只到 API；<code>frontend-deferred.md</code> 记录 2026-10-14 界面轮后来才把按钮与轮询接上，仍不属于 1.4 的交付证据。</td>
+      </tr>
+      <tr>
+        <td><code>GET /resources/:id/chunks</code> 分页/搜索、<code>GET /stats</code></td>
+        <td><span class="badge b-pre">现状</span></td>
+        <td>2026-10-23 资源详情分页与计数卡的后续 UI 补丁，不在 1.4 范围内；chunks 分页/搜索只在文件地图点名，/stats 在路由块里标出。</td>
+      </tr>
+      <tr>
+        <td>启动清扫 <code>markInterruptedAsFailed</code></td>
+        <td><span class="badge b-pre">前置</span></td>
+        <td>Story 1.1 的 AC（启动时把遗留 processing 转 failed）；1.4 的取消链路依赖它兜住「进程重启后登记为空」这一种情况。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>为什么界面不算：</strong>1.4 的 AC 措辞是「打开知识库区」「点删除」这类界面语义，但当时前端没有列表轮询，processing 行根本不会被看到，<code>/abort</code> 没有可点的时刻。Lynx 拍板：按钮与轮询整体挂起，本 story 用 curl + SQL 验收后端行为。后来界面补上了，那是另一笔账。
+  </div>
+</section>
+<section class="section" id="story-diagram">
+  <header class="section-head">
+    <span class="kicker">DIAGRAM · 04</span>
+    <h2>一眼看懂：删除处理中资源</h2>
+    <p class="section-sub">DELETE 不是一条 SQL：先读状态，再决定是否按取消。</p>
+  </header>
+  <div class="meta-row" style="margin:12px 0 14px"><span class="chip"><strong>3</strong>种状态</span><span class="chip"><strong>2</strong>层删除</span><span class="chip"><strong>1</strong>个取消开关</span></div>
+  <figure style="margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)">
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <iframe src="diagrams/epic1-story4-resource-delete.html?theme=light&amp;v=20261025c&amp;iframe=1" title="Story 1.4 删除、取消与写守卫" loading="lazy" style="display:block;width:100%;min-width:820px;aspect-ratio:1136 / 676;border:0;background:var(--panel)"></iframe>
+  </div>
+</figure>
+  <p class="section-sub" style="margin:8px 0 0"><a href="diagrams/epic1-story4-resource-delete.html" target="_blank" rel="noreferrer">打开完整交互版</a> · 点节点看语义护照；小屏可横向滑动；完整版支持缩放 / 动效 / 路由。</p>
+<script>
+(function () {
+  var Frame = document.querySelector('#story-diagram iframe');
+  if (!Frame) return;
+  function sync() {
+    var Theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    var Src = Frame.getAttribute('src') || '';
+    var Next = /theme=(light|dark)/.test(Src)
+      ? Src.replace(/theme=(light|dark)/, 'theme=' + Theme)
+      : Src + (Src.indexOf('?') === -1 ? '?' : '&') + 'theme=' + Theme;
+    if (Next !== Src) Frame.setAttribute('src', Next);
+  }
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  sync();
+})();
+</script>
+  <div class="callout" style="margin-top:14px"><strong>读图：</strong><ul style="margin:8px 0 0 18px;padding:0"><li>resources 软删留 deleted_at；chunks 物理删；embeddings 随 FK CASCADE 走。</li><li>处理中先 inflight.abort，再软删；按不下去就标 failed(入库中断)。</li><li>写守卫在事务里查 deleted_at，写完再查并撤回 ready。</li></ul></div>
+  <div class="callout" style="margin-top:10px"><strong>图外补充：</strong>图里没画前端删除按钮与列表轮询；它们按 1.4 的挂起项处理。</div>
+</section>
+
+
+<section class="section" id="map">
+  <header class="section-head">
+    <span class="kicker">MAP · 02</span>
+    <h2>全局地图：四条链路各管一段</h2>
+    <p class="section-sub">删除不是一条 SQL，而是「请求 → 取消 → 写入守卫 → 软删事务 → 检索过滤」五段接力。</p>
+  </header>
+
+  <div class="flow-map">
+    <div class="flow-card">
+      <h3>① 删除请求链</h3>
+      <ul class="flow-list">
+        <li><span>形状校验</span><code>uuidOk → 400 E_BAD_ID</code></li>
+        <li><span>读活跃行</span><code>getResource（过滤 deleted_at）</code></li>
+        <li><span>处理中先取消</span><code>inflight.abort(id)</code></li>
+        <li><span>软删事务</span><code>UPDATE resources + DELETE chunks</code></li>
+        <li><span>响应</span><code>204 / 404 / 500</code></li>
+      </ul>
+    </div>
+    <div class="flow-card">
+      <h3>② 取消请求链</h3>
+      <ul class="flow-list">
+        <li><span>校验 + 读行</span><code>404 / 409 E_NOT_PROCESSING</code></li>
+        <li><span>按登记</span><code>inflight.abort(id) → boolean</code></li>
+        <li><span>按不下去</span><code>409 E_NOT_INFLIGHT + 重读状态</code></li>
+        <li><span>按下去</span><code>202（异步生效）</code></li>
+        <li><span>行稍后</span><code>failed / 入库取消</code></li>
+      </ul>
+    </div>
+    <div class="flow-card">
+      <h3>③ 写入守卫链</h3>
+      <ul class="flow-list">
+        <li><span>事务内读资源行</span><code>AND deleted_at IS NULL</code></li>
+        <li><span>写 chunks + embeddings</span><code>同事务</code></li>
+        <li><span>转 ready</span><code>rowCount=0 → E_RESOURCE_GONE</code></li>
+        <li><span>写后复查</span><code>Signal.aborted → 撤回</code></li>
+        <li><span>登记注销</span><code>finally remove(id, ctrl)</code></li>
+      </ul>
+    </div>
+    <div class="flow-card">
+      <h3>④ 防孤儿数据链</h3>
+      <ul class="flow-list">
+        <li><span>chunks.resource_id</span><code>FK → resources ON DELETE CASCADE</code></li>
+        <li><span>embeddings.source_id</span><code>FK → chunks ON DELETE CASCADE</code></li>
+        <li><span>软删事务</span><code>DELETE chunks 带走向量</code></li>
+        <li><span>检索 SQL</span><code>JOIN resources ... deleted_at IS NULL</code></li>
+        <li><span>全库核对</span><code>orphan vectors = 0</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>读图顺序：</strong>先看「删除请求链」建立骨架，再看「写入守卫链」理解竞态；最后两条是保证「检索不再命中」和「无孤儿向量」的底层约束。
+  </div>
+</section>
+
+<section class="section" id="glossary">
+  <header class="section-head">
+    <span class="kicker">GLOSSARY · 03</span>
+    <h2>小白词典：这一页会反复出现的词</h2>
+    <p class="section-sub">不追求教科书定义，只求读代码时不再卡住。</p>
+  </header>
+
+  <dl class="glossary">
+    <div class="gloss"><dt>软删（soft delete）</dt><dd>不删行，只把 <code>deleted_at</code> 写成当前时间。所有正常查询都带 <code>deleted_at IS NULL</code>，行就「看不见但还在」。</dd></div>
+    <div class="gloss"><dt>物理删（hard delete）</dt><dd>真的 <code>DELETE FROM</code>。chunks 用物理删，因为它要立刻从 BM25/HNSW 索引里消失。</dd></div>
+    <div class="gloss"><dt>FK CASCADE</dt><dd>外键上的「父行删了，子行自动跟着删」。<code>embeddings.source_id → chunks.id</code> 就是这条规则，所以删 chunks 不用手写删向量。</dd></div>
+    <div class="gloss"><dt>AbortController</dt><dd>取消开关。调用 <code>ctrl.abort()</code> 后，<code>ctrl.signal.aborted</code> 变 true；fetch/embed 这类长操作收到 signal 会抛中断错。</dd></div>
+    <div class="gloss"><dt>进程级 Map</dt><dd>只活在当前 Node 进程里的表。<code>Map&lt;resourceId, AbortController&gt;</code> 让「按取消」的路由找到「跑任务」的那只开关。</dd></div>
+    <div class="gloss"><dt>事务（transaction）</dt><dd>一组 SQL 要么全成功、要么全回滚。写入 chunks、向量、转 ready 必须同事务，否则会出现「有向量没 chunk」这种半截数据。</dd></div>
+    <div class="gloss"><dt>写守卫</dt><dd>在写库前/写库后再查一次条件（资源是否已删、是否已取消）。它补的是「signal 管不到 pg 调用」这段盲区。</dd></div>
+    <div class="gloss"><dt>202 / 204</dt><dd>202 = 请求已接受、异步生效（abort 按下，行稍后才转 failed）；204 = 成功且没有响应体（软删完成）。</dd></div>
+  </dl>
+</section>
+
+<section class="section" id="journey">
+  <header class="section-head">
+    <span class="kicker">WALK · 04</span>
+    <h2>一次「删除处理中资源」的旅行</h2>
+    <p class="section-sub">点一步跳到对应代码行。顺序是请求视角，不是数据库执行顺序：取消先按下，软删事务可能还要等写入事务结束。</p>
+  </header>
+  <div class="journey">
+    <button type="button" class="journey-step" data-goto="routes-core:64-68"><span class="step-no">01</span><span class="step-text"><strong>先验 id 形状</strong><small>不是 UUID 直接 400，别把垃圾字符串丢给 pg 的 uuid 列</small></span><span class="step-code">routes L64–68</span></button>
+    <button type="button" class="journey-step" data-goto="routes-core:69-76"><span class="step-no">02</span><span class="step-text"><strong>读活跃行，处理中先按取消</strong><small>getResource 已过滤软删；abort 按不下去就自己把状态收口成 failed</small></span><span class="step-code">routes L69–76</span></button>
+    <button type="button" class="journey-step" data-goto="inflight:27-32"><span class="step-no">03</span><span class="step-text"><strong>内存里按下开关</strong><small>abort 只回答「此前有登记、现在按下了」，不碰数据库</small></span><span class="step-code">inflight L27–32</span></button>
+    <button type="button" class="journey-step" data-goto="ingest-write:154"><span class="step-no">04</span><span class="step-text"><strong>管线在异步边界观测取消</strong><small>parse/chunk 是同步的，进写入前最后再看一眼 signal</small></span><span class="step-code">ingest L154</span></button>
+    <button type="button" class="journey-step" data-goto="ingest-write:168-169"><span class="step-no">05</span><span class="step-text"><strong>写完再查一次，撤回 ready</strong><small>写入期间按下的取消，事务已提交成 ready —— 这一笔必须撤回</small></span><span class="step-code">ingest L168–169</span></button>
+    <button type="button" class="journey-step" data-goto="resource-softdelete:114-138"><span class="step-no">06</span><span class="step-text"><strong>软删事务：留痕 + 清 chunks</strong><small>UPDATE resources 打 deleted_at，同一事务 DELETE chunks</small></span><span class="step-code">resource L114–138</span></button>
+    <button type="button" class="journey-step" data-goto="chunk-write-delete:150-153"><span class="step-no">07</span><span class="step-text"><strong>向量随 chunks 级联消失</strong><small>embeddings.source_id 的 FK CASCADE 负责，不手写删向量</small></span><span class="step-code">chunk L150–153</span></button>
+    <button type="button" class="journey-step" data-goto="search-vector:33-43"><span class="step-no">08</span><span class="step-text"><strong>检索 SQL 挡住已删资源</strong><small>向量路和 BM25 路都 JOIN resources 并带 deleted_at IS NULL</small></span><span class="step-code">search L33–43</span></button>
+    <button type="button" class="journey-step" data-goto="resource-softdelete:169-197"><span class="step-no">09</span><span class="step-text"><strong>进程重启后的兜底</strong><small>登记只在内存；启动清扫把遗留 processing 转 failed(入库中断)</small></span><span class="step-code">resource L169–197</span></button>
+  </div>
+  <p class="journey-hint">第 05 步是这一格最容易被「看起来没问题」骗过去的地方：写守卫只判 <code>deleted_at</code>，而 <code>/abort</code> 不删资源，所以只有写后复查能救「只取消不删除」这条路径。</p>
+</section>
+
+<section class="section" id="files">
+  <header class="section-head">
+    <span class="kicker">FILES · 05</span>
+    <h2>文件地图：谁负责哪一段</h2>
+    <p class="section-sub">按读代码顺序排列：先路由，再取消登记，再管线，最后数据层与检索。</p>
+  </header>
+
+  <table class="file-table">
+    <thead><tr><th style="width:36%">文件</th><th style="width:14%">角色</th><th>这一格关心什么</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/routes/resources.ts</code></td><td>HTTP</td><td>DELETE 软删、POST abort、id 校验、错误码映射；本页还标出 <code>/stats</code> 与 DI 外壳的后续补丁。</td></tr>
+      <tr><td><code>src/ingest/inflight.ts</code></td><td>登记处</td><td>进程级 Map；add/remove/abort 三个动作，全部不碰数据库。</td></tr>
+      <tr><td><code>src/ingest/ingest.ts</code></td><td>管线</td><td>建 controller、登记、fail/cancelled/failFrom、写后复查、finally 注销；stage 包裹是 3.4 补丁。</td></tr>
+      <tr><td><code>src/adapter/repo/resource.ts</code></td><td>数据层</td><td>软删事务、带 <code>deleted_at</code> 谓词的状态/标题更新、启动清扫、计数（后续补丁）。</td></tr>
+      <tr><td><code>src/adapter/repo/chunk.ts</code></td><td>数据层</td><td>写 chunks + 向量 + 转 ready 的同事务；写守卫；按资源删 chunks（向量级联）。</td></tr>
+      <tr><td><code>src/adapter/repo/search-vector.ts</code></td><td>检索</td><td>HNSW 向量候选，JOIN resources 时挡住软删行。</td></tr>
+      <tr><td><code>src/adapter/repo/search-lexical.ts</code></td><td>检索</td><td>ParadeDB BM25 候选，同样带软删谓词。</td></tr>
+      <tr><td><code>src/routes/crud.ts</code></td><td>列表/详情</td><td>resources 的 list/read 交给 hono-crud；<code>softDelete</code> 配置让列表默认排除已删行（2.4 与后续重构落点）。</td></tr>
+      <tr><td><code>db/migrations/20261010025742_create_core_tables.sql</code></td><td>Schema</td><td>两条 FK CASCADE 的源头；<code>deleted_at</code> 列也是 1.1 建表时留下的。</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>不在本页展开：</strong><code>GET /:id/chunks</code> 的 <code>page/per_page/search</code> 只在文件地图里点名；<code>GET /stats</code> 在路由块里标为「现状」。二者都是 2026-10-23 的界面补丁。前端 <code>deleteResource</code> / <code>abortIngest</code> / 列表轮询是 2026-10-14 的界面轮，二者都只作为背景出现。
+  </div>
+</section>
+
+<section class="section" id="code-and-annotations"><header class="section-head"><span class="kicker">CODE · 06</span><h2>代码与逐行讲解</h2><p class="section-sub">每块代码都来自当前工作区的真实文件；点击右侧讲解会高亮对应行。徽章表示「这一行不是 1.4 写的」。</p></header><div class="callout"><strong>读法：</strong>先看 note 的标题与行号，再对照左侧代码。标 <span class="badge b-34">3.4</span> 的是 stage/telemetry 补丁，标 <span class="badge">DI</span> 的是 Epic 2 的依赖注入改造，标 <span class="badge b-pre">现状</span> 的是后续重构的当前落点。</div><div class="block" id="block-routes-core"><h3 class="block-title">src/routes/resources.ts（节选：DI + DELETE + abort + stats + 入库调用）</h3><p class="block-intro">路由只做三件事：校验形状、读当前状态、把动作交给 repo 或 inflight。真正的数据一致性在下一层。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/routes/resources.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="routes-core">复制代码</button></div><div class="code-scroll"><div class="code" data-code="routes-core"><div class="line" data-line="17" id="routes-core-L17"><span class="ln">17</span><span class="lc"><span class="tok-k">import</span> <span class="tok-s">'reflect-metadata'</span></span></div><div class="line" data-line="18" id="routes-core-L18"><span class="ln">18</span><span class="lc"><span class="tok-k">import</span> { <span class="tok-t">Hono</span> } <span class="tok-k">from</span> <span class="tok-s">'hono'</span></span></div><div class="line" data-line="19" id="routes-core-L19"><span class="ln">19</span><span class="lc"><span class="tok-k">import</span> { inject, injectable } <span class="tok-k">from</span> <span class="tok-s">'tsyringe'</span></span></div><div class="line" data-line="20" id="routes-core-L20"><span class="ln">20</span><span class="lc"><span class="tok-k">import</span> { <span class="tok-t">IngestError</span>, <span class="tok-t">IngestFactory</span> } <span class="tok-k">from</span> <span class="tok-s">'../ingest/ingest'</span></span></div><div class="line" data-line="21" id="routes-core-L21"><span class="ln">21</span><span class="lc"><span class="tok-k">import</span> { <span class="tok-t">InflightRegistry</span> } <span class="tok-k">from</span> <span class="tok-s">'../ingest/inflight'</span></span></div><div class="line" data-line="22" id="routes-core-L22"><span class="ln">22</span><span class="lc"><span class="tok-k">import</span> { <span class="tok-t">PostgresRepo</span>, <span class="tok-t">EmbeddingHandle</span> } <span class="tok-k">from</span> <span class="tok-s">'../adapter/contract'</span></span></div><div class="line" data-line="23" id="routes-core-L23"><span class="ln">23</span><span class="lc"><span class="tok-k">import</span> { createDbStageSink } <span class="tok-k">from</span> <span class="tok-s">'../trace/systemtrace/stage-sink'</span></span></div><div class="line" data-line="24" id="routes-core-L24"><span class="ln">24</span><span class="lc"><span class="tok-k">import</span> { currentTraceId, logError } <span class="tok-k">from</span> <span class="tok-s">'../trace/systemtrace/log'</span></span></div><div class="line" data-line="25" id="routes-core-L25"><span class="ln">25</span><span class="lc"> </span></div><div class="line" data-line="26" id="routes-core-L26"><span class="ln">26</span><span class="lc"><span class="tok-k">export</span> { <span class="tok-t">ResourcesRoute</span> }</span></div><div class="line" data-line="27" id="routes-core-L27"><span class="ln">27</span><span class="lc"> </span></div><div class="line" data-line="28" id="routes-core-L28"><span class="ln">28</span><span class="lc"><span class="tok-k">import</span> <span class="tok-k">type</span> { <span class="tok-t">Repo</span> } <span class="tok-k">from</span> <span class="tok-s">'../adapter/contract'</span></span></div><div class="line" data-line="29" id="routes-core-L29"><span class="ln">29</span><span class="lc"><span class="tok-k">import</span> <span class="tok-k">type</span> { <span class="tok-t">Recipe</span>, <span class="tok-t">KBData</span> } <span class="tok-k">from</span> <span class="tok-s">'../ingest/contracts'</span></span></div><div class="line" data-line="30" id="routes-core-L30"><span class="ln">30</span><span class="lc"> </span></div><div class="line" data-line="31" id="routes-core-L31"><span class="ln">31</span><span class="lc">@injectable()</span></div><div class="line" data-line="32" id="routes-core-L32"><span class="ln">32</span><span class="lc"><span class="tok-k">class</span> <span class="tok-t">ResourcesRoute</span> {</span></div><div class="line" data-line="33" id="routes-core-L33"><span class="ln">33</span><span class="lc">  <span class="tok-k">private</span> <span class="tok-k">readonly</span> factory: <span class="tok-t">IngestFactory</span></span></div><div class="line" data-line="34" id="routes-core-L34"><span class="ln">34</span><span class="lc">  <span class="tok-k">private</span> <span class="tok-k">readonly</span> inflight: <span class="tok-t">InflightRegistry</span></span></div><div class="line" data-line="35" id="routes-core-L35"><span class="ln">35</span><span class="lc">  <span class="tok-k">private</span> <span class="tok-k">readonly</span> repo: <span class="tok-t">Repo</span></span></div><div class="line" data-line="36" id="routes-core-L36"><span class="ln">36</span><span class="lc">  <span class="tok-k">private</span> <span class="tok-k">readonly</span> embedding: <span class="tok-t">EmbeddingHandle</span></span></div><div class="line" data-line="37" id="routes-core-L37"><span class="ln">37</span><span class="lc"> </span></div><div class="line" data-line="38" id="routes-core-L38"><span class="ln">38</span><span class="lc">  constructor(</span></div><div class="line" data-line="39" id="routes-core-L39"><span class="ln">39</span><span class="lc">    @inject(<span class="tok-t">IngestFactory</span>) <span class="tok-t">Factory</span>: <span class="tok-t">IngestFactory</span>,</span></div><div class="line" data-line="40" id="routes-core-L40"><span class="ln">40</span><span class="lc">    @inject(<span class="tok-t">InflightRegistry</span>) <span class="tok-t">Inflight</span>: <span class="tok-t">InflightRegistry</span>,</span></div><div class="line" data-line="41" id="routes-core-L41"><span class="ln">41</span><span class="lc">    @inject(<span class="tok-t">PostgresRepo</span>) <span class="tok-t">Repo</span>: <span class="tok-t">Repo</span>,</span></div><div class="line" data-line="42" id="routes-core-L42"><span class="ln">42</span><span class="lc">    @inject(<span class="tok-t">EmbeddingHandle</span>) <span class="tok-t">Embedding</span>: <span class="tok-t">EmbeddingHandle</span>,</span></div><div class="line" data-line="43" id="routes-core-L43"><span class="ln">43</span><span class="lc">  ) {</span></div><div class="line" data-line="44" id="routes-core-L44"><span class="ln">44</span><span class="lc">    <span class="tok-k">this</span>.factory = <span class="tok-t">Factory</span></span></div><div class="line" data-line="45" id="routes-core-L45"><span class="ln">45</span><span class="lc">    <span class="tok-k">this</span>.inflight = <span class="tok-t">Inflight</span></span></div><div class="line" data-line="46" id="routes-core-L46"><span class="ln">46</span><span class="lc">    <span class="tok-k">this</span>.repo = <span class="tok-t">Repo</span></span></div><div class="line" data-line="47" id="routes-core-L47"><span class="ln">47</span><span class="lc">    <span class="tok-k">this</span>.embedding = <span class="tok-t">Embedding</span></span></div><div class="line" data-line="48" id="routes-core-L48"><span class="ln">48</span><span class="lc">  }</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="55" id="routes-core-L55"><span class="ln">55</span><span class="lc">    app.<span class="tok-k">get</span>(<span class="tok-s">'/stats'</span>, <span class="tok-k">async</span> (c) =&gt; {</span></div><div class="line" data-line="56" id="routes-core-L56"><span class="ln">56</span><span class="lc">      <span class="tok-k">try</span> {</span></div><div class="line" data-line="57" id="routes-core-L57"><span class="ln">57</span><span class="lc">        <span class="tok-k">return</span> c.json({ counts: <span class="tok-k">await</span> repo.resourceCounts() })</span></div><div class="line" data-line="58" id="routes-core-L58"><span class="ln">58</span><span class="lc">      } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="59" id="routes-core-L59"><span class="ln">59</span><span class="lc">        logError(<span class="tok-s">'E_RESOURCE_STATS'</span>, <span class="tok-t">String</span>(err))</span></div><div class="line" data-line="60" id="routes-core-L60"><span class="ln">60</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_RESOURCE_STATS'</span>, message: <span class="tok-s">'读取资源计数失败'</span> }, <span class="tok-n">500</span>)</span></div><div class="line" data-line="61" id="routes-core-L61"><span class="ln">61</span><span class="lc">      }</span></div><div class="line" data-line="62" id="routes-core-L62"><span class="ln">62</span><span class="lc">    })</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="64" id="routes-core-L64"><span class="ln">64</span><span class="lc">    app.<span class="tok-k">delete</span>(<span class="tok-s">'/:id'</span>, <span class="tok-k">async</span> (c) =&gt; {</span></div><div class="line" data-line="65" id="routes-core-L65"><span class="ln">65</span><span class="lc">      <span class="tok-k">const</span> id = c.req.param(<span class="tok-s">'id'</span>)</span></div><div class="line" data-line="66" id="routes-core-L66"><span class="ln">66</span><span class="lc">      <span class="tok-k">if</span> (!uuidOk(id)) {</span></div><div class="line" data-line="67" id="routes-core-L67"><span class="ln">67</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_BAD_ID'</span>, message: <span class="tok-s">'id 需为 UUID'</span> }, <span class="tok-n">400</span>)</span></div><div class="line" data-line="68" id="routes-core-L68"><span class="ln">68</span><span class="lc">      }</span></div><div class="line" data-line="69" id="routes-core-L69"><span class="ln">69</span><span class="lc">      <span class="tok-k">try</span> {</span></div><div class="line" data-line="70" id="routes-core-L70"><span class="ln">70</span><span class="lc">        <span class="tok-k">const</span> current = <span class="tok-k">await</span> repo.getResource(id)</span></div><div class="line" data-line="71" id="routes-core-L71"><span class="ln">71</span><span class="lc">        <span class="tok-k">if</span> (!current) <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_NOT_FOUND'</span>, message: <span class="tok-s">'资源不存在或已删除'</span> }, <span class="tok-n">404</span>)</span></div><div class="line" data-line="72" id="routes-core-L72"><span class="ln">72</span><span class="lc">        <span class="tok-k">if</span> (current.status === <span class="tok-s">'processing'</span>) {</span></div><div class="line" data-line="73" id="routes-core-L73"><span class="ln">73</span><span class="lc">          <span class="tok-c">// 先掐任务再标删；顺序反了会给已删资源补写一批 chunks。按不下去（重启遗留/异进程）就自己把状态收口，别留一条永远 processing 的行</span></span></div><div class="line" data-line="74" id="routes-core-L74"><span class="ln">74</span><span class="lc">          <span class="tok-k">if</span> (!<span class="tok-k">this</span>.inflight.abort(id)) <span class="tok-k">await</span> repo.updateResourceStatus(id, <span class="tok-s">'failed'</span>, <span class="tok-s">'入库中断'</span>)</span></div><div class="line" data-line="75" id="routes-core-L75"><span class="ln">75</span><span class="lc">        }</span></div><div class="line" data-line="76" id="routes-core-L76"><span class="ln">76</span><span class="lc">        <span class="tok-k">return</span> (<span class="tok-k">await</span> repo.softDeleteResource(id)) ? c.body(<span class="tok-k">null</span>, <span class="tok-n">204</span>) : c.json({ code: <span class="tok-s">'E_NOT_FOUND'</span>, message: <span class="tok-s">'资源不存在或已删除'</span> }, <span class="tok-n">404</span>)</span></div><div class="line" data-line="77" id="routes-core-L77"><span class="ln">77</span><span class="lc">      } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="78" id="routes-core-L78"><span class="ln">78</span><span class="lc">        logError(<span class="tok-s">'E_DELETE'</span>, <span class="tok-t">String</span>(err))</span></div><div class="line" data-line="79" id="routes-core-L79"><span class="ln">79</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_DELETE'</span>, message: <span class="tok-s">'删除失败'</span> }, <span class="tok-n">500</span>)</span></div><div class="line" data-line="80" id="routes-core-L80"><span class="ln">80</span><span class="lc">      }</span></div><div class="line" data-line="81" id="routes-core-L81"><span class="ln">81</span><span class="lc">    })</span></div><div class="line" data-line="82" id="routes-core-L82"><span class="ln">82</span><span class="lc"> </span></div><div class="line" data-line="83" id="routes-core-L83"><span class="ln">83</span><span class="lc">    app.post(<span class="tok-s">'/:id/abort'</span>, <span class="tok-k">async</span> (c) =&gt; {</span></div><div class="line" data-line="84" id="routes-core-L84"><span class="ln">84</span><span class="lc">      <span class="tok-k">const</span> id = c.req.param(<span class="tok-s">'id'</span>)</span></div><div class="line" data-line="85" id="routes-core-L85"><span class="ln">85</span><span class="lc">      <span class="tok-k">if</span> (!uuidOk(id)) {</span></div><div class="line" data-line="86" id="routes-core-L86"><span class="ln">86</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_BAD_ID'</span>, message: <span class="tok-s">'id 需为 UUID'</span> }, <span class="tok-n">400</span>)</span></div><div class="line" data-line="87" id="routes-core-L87"><span class="ln">87</span><span class="lc">      }</span></div><div class="line" data-line="88" id="routes-core-L88"><span class="ln">88</span><span class="lc">      <span class="tok-k">try</span> {</span></div><div class="line" data-line="89" id="routes-core-L89"><span class="ln">89</span><span class="lc">        <span class="tok-k">const</span> current = <span class="tok-k">await</span> repo.getResource(id)</span></div><div class="line" data-line="90" id="routes-core-L90"><span class="ln">90</span><span class="lc">        <span class="tok-k">if</span> (!current) <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_NOT_FOUND'</span>, message: <span class="tok-s">'资源不存在或已删除'</span> }, <span class="tok-n">404</span>)</span></div><div class="line" data-line="91" id="routes-core-L91"><span class="ln">91</span><span class="lc">        <span class="tok-k">if</span> (current.status !== <span class="tok-s">'processing'</span>) {</span></div><div class="line" data-line="92" id="routes-core-L92"><span class="ln">92</span><span class="lc">          <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_NOT_PROCESSING'</span>, message: <span class="tok-s">`资源已是 ${current.status}，没有可取消的任务`</span>, resource_id: id }, <span class="tok-n">409</span>)</span></div><div class="line" data-line="93" id="routes-core-L93"><span class="ln">93</span><span class="lc">        }</span></div><div class="line" data-line="94" id="routes-core-L94"><span class="ln">94</span><span class="lc">        <span class="tok-k">if</span> (!<span class="tok-k">this</span>.inflight.abort(id)) {</span></div><div class="line" data-line="95" id="routes-core-L95"><span class="ln">95</span><span class="lc">          <span class="tok-c">// 读状态与按下之间任务可能自己跑完；重读一次再说清现在到底是什么状态，别猜成因</span></span></div><div class="line" data-line="96" id="routes-core-L96"><span class="ln">96</span><span class="lc">          <span class="tok-k">const</span> now = <span class="tok-k">await</span> repo.getResource(id)</span></div><div class="line" data-line="97" id="routes-core-L97"><span class="ln">97</span><span class="lc">          <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_NOT_INFLIGHT'</span>, message: <span class="tok-s">'该资源不在本进程的入库登记里'</span>, status: now?.status ?? <span class="tok-s">'gone'</span>, resource_id: id }, <span class="tok-n">409</span>)</span></div><div class="line" data-line="98" id="routes-core-L98"><span class="ln">98</span><span class="lc">        }</span></div><div class="line" data-line="99" id="routes-core-L99"><span class="ln">99</span><span class="lc">        <span class="tok-k">return</span> c.json({ message: <span class="tok-s">'取消已按下，任务不会转为已就绪，将在当前长操作结束后转 failed'</span>, resource_id: id }, <span class="tok-n">202</span>)</span></div><div class="line" data-line="100" id="routes-core-L100"><span class="ln">100</span><span class="lc">      } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="101" id="routes-core-L101"><span class="ln">101</span><span class="lc">        logError(<span class="tok-s">'E_ABORT'</span>, <span class="tok-t">String</span>(err))</span></div><div class="line" data-line="102" id="routes-core-L102"><span class="ln">102</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_ABORT'</span>, message: <span class="tok-s">'取消失败'</span> }, <span class="tok-n">500</span>)</span></div><div class="line" data-line="103" id="routes-core-L103"><span class="ln">103</span><span class="lc">      }</span></div><div class="line" data-line="104" id="routes-core-L104"><span class="ln">104</span><span class="lc">    })</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="194" id="routes-core-L194"><span class="ln">194</span><span class="lc">      <span class="tok-k">try</span> {</span></div><div class="line" data-line="195" id="routes-core-L195"><span class="ln">195</span><span class="lc">        <span class="tok-k">const</span> <span class="tok-t">TraceId</span> = currentTraceId()</span></div><div class="line" data-line="196" id="routes-core-L196"><span class="ln">196</span><span class="lc">        <span class="tok-k">const</span> result = <span class="tok-k">await</span> <span class="tok-k">this</span>.factory.assemble(recipe).run(data, <span class="tok-k">undefined</span>, { sink: createDbStageSink(<span class="tok-k">this</span>.repo) })</span></div></div></div></div><aside class="notes" aria-label="routes-core 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="31-48" data-note="routes-core-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">DI 外壳：构造函数注入四个依赖</span><span class="badge b-now">DI</span></div><p class="note-range">L31–48</p><div class="note-body"><p>Epic 2 的 tsyringe 改造把原来的 <code>{ repo, factory, inflight, pipelineConfig }</code> 入参换成了 <code>@inject(...)</code>。1.4 当时是显式 deps 对象；读旧 commit 时别被构造函数形状搞混。</p><p>四个依赖里，<code>InflightRegistry</code> 由容器保证单例；工厂与路由拿到的是同一只登记表，否则 <code>/abort</code> 永远按不到。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="55-62" data-note="routes-core-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">GET /stats：后续 UI 补丁</span><span class="badge b-now">现状</span></div><p class="note-range">L55–62</p><div class="note-body"><p>状态计数卡用的接口，2026-10-23 前后才出现，不是 1.4 的交付。它只读 <code>deleted_at IS NULL</code> 的行，口径与列表一致。</p><p>文件头提醒：本路由必须先于 CRUD 挂载，否则 <code>/resources/stats</code> 会把 <code>stats</code> 当成资源 id。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="64-68" data-note="routes-core-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">先验 UUID 形状</span></div><p class="note-range">L64–68</p><div class="note-body"><p><code>uuidOk</code> 把非法 id 挡在 400 <code>E_BAD_ID</code>，避免把它交给 pg 的 uuid 列、换回一个 500 <code>invalid input syntax for type uuid</code>。</p><p>这个函数由 DELETE、abort、chunks 三个端点共用；release 里的 A11 就是「第三个端点漏了校验」的修正。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="69-76" data-note="routes-core-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">DELETE：读行 → 处理中先按取消 → 软删</span></div><p class="note-range">L69–76</p><div class="note-body"><p><code>getResource</code> 已经过滤 <code>deleted_at</code>，所以读不到就是 404，重复删除不会成功两次。</p><p>处理中先 <code>inflight.abort(id)</code>：先掐任务再标删，顺序反了会给已删资源补写一批 chunks。若按不下去（重启遗留/异进程），就用 <code>updateResourceStatus(id, 'failed', '入库中断')</code> 自己收口，别留一条永远 processing 的行——这是 ec36c9e 的补丁。</p><p>最后 <code>softDeleteResource</code> 返回 boolean：false 表示行不存在或早已软删，回 404；true 回 204，无响应体。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="77-81" data-note="routes-core-4"><div class="note-head"><span class="note-num">05</span><span class="note-title">删除失败只回 500</span></div><p class="note-range">L77–81</p><div class="note-body"><p>这里不把底层错误原样抛给客户端，只记 <code>E_DELETE</code> 日志，回统一文案。review 里提过「DELETE 等写入事务可能撞 5s 超时」——那种情况会走到这里，用户看到「删除失败」，但 abort 其实已经按下、行随后会转 failed。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="83-99" data-note="routes-core-5"><div class="note-head"><span class="note-num">06</span><span class="note-title">POST /:id/abort：只取消，不删除</span></div><p class="note-range">L83–99</p><div class="note-body"><p>三层判定：读不到 → 404；状态不是 processing → 409 <code>E_NOT_PROCESSING</code>；登记里没有 → 重读一次状态，回 409 <code>E_NOT_INFLIGHT</code>，不再猜「服务可能重启过」。</p><p>按下成功回 202，body 明说「不会转为已就绪，将在当前长操作结束后转 failed」。这是一条异步承诺：写入不是可中断的，行不会立刻变。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="routes-core" data-lines="196" data-note="routes-core-6"><div class="note-head"><span class="note-num">07</span><span class="note-title">POST 入库不再把客户端连接当取消源</span></div><p class="note-range">L196</p><div class="note-body"><p>调用是 <code>run(data, undefined, { sink })</code>：第二个参数（CallerSignal）显式传 <code>undefined</code>，不再传 <code>c.req.raw.signal</code>。客户端断连只会让响应写不出去，不会中断入库；node-server 对已关闭连接静默丢弃。</p><p>这是 build2 的行为翻转。旧写法下，curl 2s 掐连会让资源变 <code>failed(入库取消)</code>；改后同样掐连，任务照样跑完 ready。防泄漏改由 inflight.abort、fetch/embed 的 30s 超时、启动清扫三条服务端腿负责。</p></div></article></aside></div></div><div class="block" id="block-inflight"><h3 class="block-title">src/ingest/inflight.ts（全文）</h3><p class="block-intro">一个 33 行的内存登记处。它是「服务端持有取消信号」的全部实现，没有数据库、没有队列。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/ingest/inflight.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="inflight">复制代码</button></div><div class="code-scroll"><div class="code" data-code="inflight"><div class="line" data-line="1" id="inflight-L1"><span class="ln">1</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">*</span></span></div><div class="line" data-line="2" id="inflight-L2"><span class="ln">2</span><span class="lc"><span class="tok-c"> * in-flight 登记处 —— 进程级 Map&lt;resourceId, AbortController&gt;，让「取消入库」这个意图能被任意请求按下。</span></span></div><div class="line" data-line="3" id="inflight-L3"><span class="ln">3</span><span class="lc"><span class="tok-c"> * 持有者是管线：runOne 建行之后的瞬间 add，结束时在 finally 里带 controller 一起 remove。</span></span></div><div class="line" data-line="4" id="inflight-L4"><span class="ln">4</span><span class="lc"><span class="tok-c"> * 登记只在内存：进程重启即空，遗留的 processing 行由 bootstrap 的启动清扫转 failed，本模块不管。</span></span></div><div class="line" data-line="5" id="inflight-L5"><span class="ln">5</span><span class="lc"><span class="tok-c"> * abort 只回答「此前有登记、且现在按下了」，不校验资源状态、不碰数据库——那是调用方的事。</span></span></div><div class="line" data-line="6" id="inflight-L6"><span class="ln">6</span><span class="lc"><span class="tok-c"> * abort 不顺手删登记，交持有方的 finally 清；重复 abort 是 no-op。</span></span></div><div class="line" data-line="7" id="inflight-L7"><span class="ln">7</span><span class="lc"><span class="tok-c"> * remove 必须比对 controller：同一个 id 若被重新入库复用，迟到的 finally 不该把新任务摘掉。</span></span></div><div class="line" data-line="8" id="inflight-L8"><span class="ln">8</span><span class="lc"><span class="tok-c"> */</span></span></div><div class="line" data-line="9" id="inflight-L9"><span class="ln">9</span><span class="lc"> </span></div><div class="line" data-line="10" id="inflight-L10"><span class="ln">10</span><span class="lc"><span class="tok-k">import</span> <span class="tok-s">'reflect-metadata'</span></span></div><div class="line" data-line="11" id="inflight-L11"><span class="ln">11</span><span class="lc"><span class="tok-k">import</span> { singleton } <span class="tok-k">from</span> <span class="tok-s">"tsyringe"</span>;</span></div><div class="line" data-line="12" id="inflight-L12"><span class="ln">12</span><span class="lc"> </span></div><div class="line" data-line="13" id="inflight-L13"><span class="ln">13</span><span class="lc"><span class="tok-k">export</span> { <span class="tok-t">InflightRegistry</span> }</span></div><div class="line" data-line="14" id="inflight-L14"><span class="ln">14</span><span class="lc"> </span></div><div class="line" data-line="15" id="inflight-L15"><span class="ln">15</span><span class="lc">@singleton()</span></div><div class="line" data-line="16" id="inflight-L16"><span class="ln">16</span><span class="lc"><span class="tok-k">class</span> <span class="tok-t">InflightRegistry</span> {</span></div><div class="line" data-line="17" id="inflight-L17"><span class="ln">17</span><span class="lc">  <span class="tok-k">private</span> <span class="tok-k">readonly</span> inflight = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">string</span>, <span class="tok-t">AbortController</span>&gt;()</span></div><div class="line" data-line="18" id="inflight-L18"><span class="ln">18</span><span class="lc"> </span></div><div class="line" data-line="19" id="inflight-L19"><span class="ln">19</span><span class="lc">  add(<span class="tok-t">Id</span>: <span class="tok-k">string</span>, <span class="tok-t">Ctrl</span>: <span class="tok-t">AbortController</span>): <span class="tok-k">void</span> {</span></div><div class="line" data-line="20" id="inflight-L20"><span class="ln">20</span><span class="lc">    <span class="tok-k">this</span>.inflight.<span class="tok-k">set</span>(<span class="tok-t">Id</span>, <span class="tok-t">Ctrl</span>)</span></div><div class="line" data-line="21" id="inflight-L21"><span class="ln">21</span><span class="lc">  }</span></div><div class="line" data-line="22" id="inflight-L22"><span class="ln">22</span><span class="lc"> </span></div><div class="line" data-line="23" id="inflight-L23"><span class="ln">23</span><span class="lc">  remove(<span class="tok-t">Id</span>: <span class="tok-k">string</span>, <span class="tok-t">Ctrl</span>: <span class="tok-t">AbortController</span>): <span class="tok-k">void</span> {</span></div><div class="line" data-line="24" id="inflight-L24"><span class="ln">24</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-k">this</span>.inflight.<span class="tok-k">get</span>(<span class="tok-t">Id</span>) === <span class="tok-t">Ctrl</span>) <span class="tok-k">this</span>.inflight.<span class="tok-k">delete</span>(<span class="tok-t">Id</span>)</span></div><div class="line" data-line="25" id="inflight-L25"><span class="ln">25</span><span class="lc">  }</span></div><div class="line" data-line="26" id="inflight-L26"><span class="ln">26</span><span class="lc"> </span></div><div class="line" data-line="27" id="inflight-L27"><span class="ln">27</span><span class="lc">  abort(<span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-k">boolean</span> {</span></div><div class="line" data-line="28" id="inflight-L28"><span class="ln">28</span><span class="lc">    <span class="tok-k">const</span> ctrl = <span class="tok-k">this</span>.inflight.<span class="tok-k">get</span>(<span class="tok-t">Id</span>)</span></div><div class="line" data-line="29" id="inflight-L29"><span class="ln">29</span><span class="lc">    <span class="tok-k">if</span> (!ctrl) <span class="tok-k">return</span> <span class="tok-k">false</span></span></div><div class="line" data-line="30" id="inflight-L30"><span class="ln">30</span><span class="lc">    ctrl.abort()</span></div><div class="line" data-line="31" id="inflight-L31"><span class="ln">31</span><span class="lc">    <span class="tok-k">return</span> <span class="tok-k">true</span></span></div><div class="line" data-line="32" id="inflight-L32"><span class="ln">32</span><span class="lc">  }</span></div><div class="line" data-line="33" id="inflight-L33"><span class="ln">33</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="inflight 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="inflight" data-lines="1-8" data-note="inflight-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">文件头就是契约</span></div><p class="note-range">L1–8</p><div class="note-body"><p>持有者是管线：建行之后 <code>add</code>，结束时在 <code>finally</code> 里 <code>remove</code>。登记只在内存，进程重启即空，遗留 processing 行交给启动清扫。</p><p><code>abort()</code> 只回答「此前有登记、且现在按下了」，不校验资源状态、不碰数据库——那是调用方的事。这一分工让路由可以在读库之后、软删之前安全地按一下。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="inflight" data-lines="19-25" data-note="inflight-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">add / remove：remove 必须比对 controller</span></div><p class="note-range">L19–25</p><div class="note-body"><p><code>remove(Id, Ctrl)</code> 先比对 <code>this.inflight.get(Id) === Ctrl</code> 再删。若同一个 id 被重新入库复用，旧 run 的迟到 <code>finally</code> 不该把新任务的登记摘掉（review A5，ec36c9e 修复）。</p><p>代价是调用方必须把 controller 一起传进来；只传 id 的旧签名已经不存在。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="inflight" data-lines="27-32" data-note="inflight-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">abort：按下并回答 boolean</span></div><p class="note-range">L27–32</p><div class="note-body"><p>没有登记返回 false；有登记就 <code>ctrl.abort()</code> 并返回 true。注意它<strong>不会</strong>顺手删登记——删登记是持有方的 <code>finally</code> 的职责，重复 abort 是 no-op。</p><p>这也意味着：如果任务已经自然跑完、但 <code>finally</code> 还没执行，abort 会返回 true 却什么也取消不了；路由随后读库会看到 ready，这是 review E2 描述的那个窄窗口。</p></div></article></aside></div></div><div class="block" id="block-ingest-start"><h3 class="block-title">src/ingest/ingest.ts · 起跑段（L53–93）</h3><p class="block-intro">建行、造开关、登记、定义失败出口。取消信号从这一段的第 72 行开始由服务端持有。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/ingest/ingest.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="ingest-start">复制代码</button></div><div class="code-scroll"><div class="code" data-code="ingest-start"><div class="line" data-line="53" id="ingest-start-L53"><span class="ln">53</span><span class="lc">    <span class="tok-k">const</span> runOne = <span class="tok-k">async</span> (<span class="tok-t">Data</span>: <span class="tok-t">KBData</span>, <span class="tok-t">CallerSignal</span>?: <span class="tok-t">AbortSignal</span>, <span class="tok-t">Options</span>?: <span class="tok-t">IngestOptions</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">IngestResult</span>&gt; =&gt; {</span></div><div class="line" data-line="54" id="ingest-start-L54"><span class="ln">54</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">CallerSignal</span>?.aborted) <span class="tok-k">return</span> { resource: <span class="tok-k">null</span>, chunkCount: <span class="tok-n">0</span>, failure: { code: <span class="tok-s">'E_CANCELLED'</span>, reason: <span class="tok-s">'入库取消'</span> } }</span></div><div class="line" data-line="55" id="ingest-start-L55"><span class="ln">55</span><span class="lc">      <span class="tok-k">const</span> <span class="tok-t">Sink</span> = <span class="tok-t">Options</span>?.sink ?? <span class="tok-t">NoopStageSink</span></span></div><div class="line" data-line="56" id="ingest-start-L56"><span class="ln">56</span><span class="lc"> </span></div><div class="line" data-line="57" id="ingest-start-L57"><span class="ln">57</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Data</span>.url) {</span></div><div class="line" data-line="58" id="ingest-start-L58"><span class="ln">58</span><span class="lc">        <span class="tok-k">const</span> dup = <span class="tok-k">await</span> repo.findActiveBySource(<span class="tok-t">Data</span>.url)</span></div><div class="line" data-line="59" id="ingest-start-L59"><span class="ln">59</span><span class="lc">        <span class="tok-k">if</span> (dup) <span class="tok-k">return</span> { resource: <span class="tok-k">null</span>, chunkCount: <span class="tok-n">0</span>, failure: { code: <span class="tok-s">'E_DUPLICATE'</span>, reason: <span class="tok-s">'同 URL 已有 ready/processing 资源'</span> } }</span></div><div class="line" data-line="60" id="ingest-start-L60"><span class="ln">60</span><span class="lc">      }</span></div><div class="line" data-line="61" id="ingest-start-L61"><span class="ln">61</span><span class="lc"> </span></div><div class="line" data-line="62" id="ingest-start-L62"><span class="ln">62</span><span class="lc">      <span class="tok-k">const</span> isUrl = !!<span class="tok-t">Data</span>.url</span></div><div class="line" data-line="63" id="ingest-start-L63"><span class="ln">63</span><span class="lc">      <span class="tok-k">const</span> givenTitle = <span class="tok-t">Data</span>.title?.trim() ?? <span class="tok-s">''</span></span></div><div class="line" data-line="64" id="ingest-start-L64"><span class="ln">64</span><span class="lc">      <span class="tok-k">const</span> resource = <span class="tok-k">await</span> repo.createResource({</span></div><div class="line" data-line="65" id="ingest-start-L65"><span class="ln">65</span><span class="lc">        title: givenTitle || (isUrl ? hostnameOf(<span class="tok-t">Data</span>.url!) : <span class="tok-s">'未命名'</span>),</span></div><div class="line" data-line="66" id="ingest-start-L66"><span class="ln">66</span><span class="lc">        source: isUrl ? <span class="tok-t">Data</span>.url! : <span class="tok-k">null</span>,</span></div><div class="line" data-line="67" id="ingest-start-L67"><span class="ln">67</span><span class="lc">        data_uri: isUrl ? <span class="tok-t">Data</span>.url! : <span class="tok-s">`urn:kc:paste:${globalThis.crypto.randomUUID()}`</span>,</span></div><div class="line" data-line="68" id="ingest-start-L68"><span class="ln">68</span><span class="lc">        content_type: <span class="tok-t">Data</span>.content_type,</span></div><div class="line" data-line="69" id="ingest-start-L69"><span class="ln">69</span><span class="lc">        status: <span class="tok-s">'processing'</span>,</span></div><div class="line" data-line="70" id="ingest-start-L70"><span class="ln">70</span><span class="lc">      })</span></div><div class="line" data-line="71" id="ingest-start-L71"><span class="ln">71</span><span class="lc"> </span></div><div class="line" data-line="72" id="ingest-start-L72"><span class="ln">72</span><span class="lc">      <span class="tok-c">// 取消开关由服务端持有：登记后才能被任意请求按下；调用方自带的信号（batch 整批中止/worker 停机）并进来，任一触发即掐</span></span></div><div class="line" data-line="73" id="ingest-start-L73"><span class="ln">73</span><span class="lc">      <span class="tok-k">const</span> ctrl = <span class="tok-k">new</span> <span class="tok-t">AbortController</span>()</span></div><div class="line" data-line="74" id="ingest-start-L74"><span class="ln">74</span><span class="lc">      <span class="tok-k">const</span> <span class="tok-t">Signal</span> = <span class="tok-t">CallerSignal</span> ? <span class="tok-t">AbortSignal</span>.<span class="tok-k">any</span>([ctrl.signal, <span class="tok-t">CallerSignal</span>]) : ctrl.signal</span></div><div class="line" data-line="75" id="ingest-start-L75"><span class="ln">75</span><span class="lc"> </span></div><div class="line" data-line="76" id="ingest-start-L76"><span class="ln">76</span><span class="lc">      <span class="tok-c">// 一次故障只留一行日志：code 给人分支、reason 进库、cause 只进日志。主动取消不算错误，用 log 级不用 error 级</span></span></div><div class="line" data-line="77" id="ingest-start-L77"><span class="ln">77</span><span class="lc">      <span class="tok-k">const</span> fail = <span class="tok-k">async</span> (<span class="tok-t">Reason</span>: <span class="tok-k">string</span>, <span class="tok-t">Code</span> = <span class="tok-s">'E_INGEST_FAILED'</span>, <span class="tok-t">Cause</span>?: <span class="tok-k">unknown</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">IngestResult</span>&gt; =&gt; {</span></div><div class="line" data-line="78" id="ingest-start-L78"><span class="ln">78</span><span class="lc">        <span class="tok-k">const</span> extra = { resource_id: resource.id, reason: <span class="tok-t">Reason</span>, ...(<span class="tok-t">Cause</span> ? { cause: errMessage(<span class="tok-t">Cause</span>) } : {}) }</span></div><div class="line" data-line="79" id="ingest-start-L79"><span class="ln">79</span><span class="lc">        <span class="tok-k">if</span> (<span class="tok-t">Code</span> === <span class="tok-s">'E_INGEST_FAILED'</span>) logError(<span class="tok-t">Code</span>, <span class="tok-t">Reason</span>, extra)</span></div><div class="line" data-line="80" id="ingest-start-L80"><span class="ln">80</span><span class="lc">        <span class="tok-k">else</span> logInfo(<span class="tok-t">Code</span>, <span class="tok-t">Reason</span>, extra)</span></div><div class="line" data-line="81" id="ingest-start-L81"><span class="ln">81</span><span class="lc">        <span class="tok-k">await</span> repo.deleteChunksByResource(resource.id).<span class="tok-k">catch</span>((err) =&gt; logError(<span class="tok-s">'E_FAIL_CLEAN'</span>, errMessage(err)))</span></div><div class="line" data-line="82" id="ingest-start-L82"><span class="ln">82</span><span class="lc">        <span class="tok-k">await</span> repo.updateResourceStatus(resource.id, <span class="tok-s">'failed'</span>, <span class="tok-t">Reason</span>).<span class="tok-k">catch</span>((err) =&gt; logError(<span class="tok-s">'E_FAIL_MARK'</span>, errMessage(err))) <span class="tok-c">// 不复用 Signal</span></span></div><div class="line" data-line="83" id="ingest-start-L83"><span class="ln">83</span><span class="lc">        <span class="tok-k">return</span> { resource: { ...resource, status: <span class="tok-s">'failed'</span>, error_reason: <span class="tok-t">Reason</span> }, chunkCount: <span class="tok-n">0</span>, failure: { code: <span class="tok-t">Code</span>, reason: <span class="tok-t">Reason</span> } }</span></div><div class="line" data-line="84" id="ingest-start-L84"><span class="ln">84</span><span class="lc">      }</span></div><div class="line" data-line="85" id="ingest-start-L85"><span class="ln">85</span><span class="lc"> </span></div><div class="line" data-line="86" id="ingest-start-L86"><span class="ln">86</span><span class="lc">      <span class="tok-k">const</span> cancelled = () =&gt; fail(<span class="tok-s">'入库取消'</span>, <span class="tok-s">'E_CANCELLED'</span>)</span></div><div class="line" data-line="87" id="ingest-start-L87"><span class="ln">87</span><span class="lc">      <span class="tok-c">// 取消、超时、真错误三件事不能塌成同一个 reason：各 stage 自带 30s 超时，它炸时 Signal 并不会 abort</span></span></div><div class="line" data-line="88" id="ingest-start-L88"><span class="ln">88</span><span class="lc">      <span class="tok-k">const</span> failFrom = (<span class="tok-t">Cause</span>: <span class="tok-k">unknown</span>, <span class="tok-t">Fallback</span>: <span class="tok-k">string</span>) =&gt;</span></div><div class="line" data-line="89" id="ingest-start-L89"><span class="ln">89</span><span class="lc">        <span class="tok-t">Signal</span>.aborted ? cancelled() : isTimeout(<span class="tok-t">Cause</span>) ? fail(<span class="tok-s">'操作超时'</span>, <span class="tok-s">'E_TIMEOUT'</span>, <span class="tok-t">Cause</span>) : fail(<span class="tok-t">Fallback</span>, <span class="tok-s">'E_INGEST_FAILED'</span>, <span class="tok-t">Cause</span>)</span></div><div class="line" data-line="90" id="ingest-start-L90"><span class="ln">90</span><span class="lc"> </span></div><div class="line" data-line="91" id="ingest-start-L91"><span class="ln">91</span><span class="lc">      <span class="tok-k">const</span> ctx: <span class="tok-t">IngestContext</span> = { data: <span class="tok-t">Data</span> }</span></div><div class="line" data-line="92" id="ingest-start-L92"><span class="ln">92</span><span class="lc">      <span class="tok-k">try</span> {</span></div><div class="line" data-line="93" id="ingest-start-L93"><span class="ln">93</span><span class="lc">        inflight.add(resource.id, ctrl)</span></div></div></div></div><aside class="notes" aria-label="ingest-start 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="53-54" data-note="ingest-start-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">入口先判调用方信号</span></div><p class="note-range">L53–54</p><div class="note-body"><p>如果 batch/worker 传进来的信号已经 aborted，直接返回 <code>E_CANCELLED</code>，不建行。这是 review E4 的修正：不要在「进来就已取消」时还建一条 processing 行再立刻标失败。</p><p>注意这里的返回是 <code>resource: null</code>：建行之前没有行可留痕。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="55" data-note="ingest-start-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">StageSink 选择</span><span class="badge b-34">3.4</span></div><p class="note-range">L55</p><div class="note-body"><p>3.4 加的 <code>Options.sink</code>：没有传就用 <code>NoopStageSink</code>。它只影响观测记录，不改变入库结果。1.4 时这一行不存在。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="62-70" data-note="ingest-start-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">先建 processing 行</span></div><p class="note-range">L62–70</p><div class="note-body"><p>URL 用 hostname 占位，粘贴内容用 <code>urn:kc:paste:&lt;uuid&gt;</code> 当 <code>data_uri</code>。行先落库，是为了让前端/轮询有一个可显示的「处理中」对象，也让取消能按 id 定位。</p><p>注意：建行发生在登记之前。如果建行本身失败，没有 id、也没有登记可摘，外层走 <code>notStarted</code>。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="72-74" data-note="ingest-start-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">服务端造开关，调用方信号并进来</span></div><p class="note-range">L72–74</p><div class="note-body"><p><code>ctrl</code> 由管线自己 <code>new</code>，按 <code>resource.id</code> 登记；<code>CallerSignal</code>（batch 整批中止、worker 停机）通过 <code>AbortSignal.any</code> 并进来，任一触发即掐。</p><p>为什么路由不能自己 new 一个 controller 传进来？因为 <code>resource.id</code> 是 <code>createResource</code> 之后才有的；只能靠「登记 + 按 id 找」。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="76-84" data-note="ingest-start-4"><div class="note-head"><span class="note-num">05</span><span class="note-title">fail：先清 chunks，再标 failed</span></div><p class="note-range">L76–84</p><div class="note-body"><p><code>fail</code> 是统一的失败出口：先 <code>deleteChunksByResource</code> 清残余，再 <code>updateResourceStatus(..., 'failed', Reason)</code>。落库改状态<strong>绝不复用 Signal</strong>——一个已 abort 的 signal 会连「失败留痕」一起杀掉。</p><p>ec36c9e 把这里改成一次故障一行结构化日志：<code>code</code> 给人分支、<code>reason</code> 进库、<code>cause</code> 只进日志；主动取消用 log 级而不是 error 级。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="86-89" data-note="ingest-start-5"><div class="note-head"><span class="note-num">06</span><span class="note-title">cancelled / failFrom：三种失败不塌成一种</span></div><p class="note-range">L86–89</p><div class="note-body"><p><code>cancelled()</code> 固定发 <code>E_CANCELLED</code> + 「入库取消」。<code>failFrom</code> 先看 <code>Signal.aborted</code>，再看错误名是不是 <code>TimeoutError</code>，最后才落到通用失败。</p><p>这条分流是 review C3/E3 的修正：各 stage 自带 30s 超时，超时炸时 <code>Signal.aborted</code> 仍是 false；如果不看 <code>err.name</code>，超时、真错误会被一起写成「入库失败」。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-start" data-lines="91-93" data-note="ingest-start-6"><div class="note-head"><span class="note-num">07</span><span class="note-title">ctx 与登记都进 try</span></div><p class="note-range">L91–93</p><div class="note-body"><p><code>inflight.add</code> 放在 <code>try</code> 里面（review A4）：这样从 add 到 <code>finally</code> 之间任何抛错都不会漏掉注销，登记只增不减的问题被堵住。</p><p>代价是：如果 add 自身抛错，<code>finally</code> 仍会执行 remove，但 remove 比对 controller 不匹配，等于 no-op，安全。</p></div></article></aside></div></div><div class="block" id="block-ingest-write"><h3 class="block-title">src/ingest/ingest.ts · 写入与收尾（L154–181）</h3><p class="block-intro">这一格最关键的 16 行：写入不是可中断的，所以写完必须再看一次 signal。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/ingest/ingest.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="ingest-write">复制代码</button></div><div class="code-scroll"><div class="code" data-code="ingest-write"><div class="line" data-line="154" id="ingest-write-L154"><span class="ln">154</span><span class="lc">        <span class="tok-k">if</span> (<span class="tok-t">Signal</span>.aborted) <span class="tok-k">return</span> <span class="tok-k">await</span> cancelled()</span></div><div class="line" data-line="155" id="ingest-write-L155"><span class="ln">155</span><span class="lc"> </span></div><div class="line" data-line="156" id="ingest-write-L156"><span class="ln">156</span><span class="lc">        <span class="tok-k">try</span> {</span></div><div class="line" data-line="157" id="ingest-write-L157"><span class="ln">157</span><span class="lc">          <span class="tok-k">const</span> chunkCount = <span class="tok-k">await</span> runStage(</span></div><div class="line" data-line="158" id="ingest-write-L158"><span class="ln">158</span><span class="lc">            <span class="tok-t">Sink</span>,</span></div><div class="line" data-line="159" id="ingest-write-L159"><span class="ln">159</span><span class="lc">            <span class="tok-s">'write'</span>,</span></div><div class="line" data-line="160" id="ingest-write-L160"><span class="ln">160</span><span class="lc">            { chunk_count: plans.length },</span></div><div class="line" data-line="161" id="ingest-write-L161"><span class="ln">161</span><span class="lc">            () =&gt; repo.writeChunksWithEmbeddings(</span></div><div class="line" data-line="162" id="ingest-write-L162"><span class="ln">162</span><span class="lc">              resource.id,</span></div><div class="line" data-line="163" id="ingest-write-L163"><span class="ln">163</span><span class="lc">              plans.map((p) =&gt; ({ chunk_index: p.chunk_index, content: p.content, start_offset: p.start_offset, end_offset: p.end_offset })),</span></div><div class="line" data-line="164" id="ingest-write-L164"><span class="ln">164</span><span class="lc">              vectors.map((v) =&gt; ({ dimension: v.length, model: embedding.modelId, embedding: v })),</span></div><div class="line" data-line="165" id="ingest-write-L165"><span class="ln">165</span><span class="lc">            ),</span></div><div class="line" data-line="166" id="ingest-write-L166"><span class="ln">166</span><span class="lc">            (<span class="tok-t">Count</span>) =&gt; ({ chunk_count: <span class="tok-t">Count</span> }),</span></div><div class="line" data-line="167" id="ingest-write-L167"><span class="ln">167</span><span class="lc">          )</span></div><div class="line" data-line="168" id="ingest-write-L168"><span class="ln">168</span><span class="lc">          <span class="tok-c">// 写入不是可中断的：取消若落在 INSERT/UPDATE 期间，事务已提交成 ready，这里必须把那一笔撤回来</span></span></div><div class="line" data-line="169" id="ingest-write-L169"><span class="ln">169</span><span class="lc">          <span class="tok-k">if</span> (<span class="tok-t">Signal</span>.aborted) <span class="tok-k">return</span> <span class="tok-k">await</span> cancelled()</span></div><div class="line" data-line="170" id="ingest-write-L170"><span class="ln">170</span><span class="lc"> </span></div><div class="line" data-line="171" id="ingest-write-L171"><span class="ln">171</span><span class="lc">          <span class="tok-k">const</span> warning = thinPage(ctx.fetched?.raw, parsed.text)</span></div><div class="line" data-line="172" id="ingest-write-L172"><span class="ln">172</span><span class="lc">          <span class="tok-k">return</span> { resource: { ...resource, status: <span class="tok-s">'ready'</span>, error_reason: <span class="tok-k">null</span> }, chunkCount, ...(warning ? { warning } : {}) }</span></div><div class="line" data-line="173" id="ingest-write-L173"><span class="ln">173</span><span class="lc">        } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="174" id="ingest-write-L174"><span class="ln">174</span><span class="lc">          <span class="tok-k">if</span> ((err <span class="tok-k">as</span> { code?: <span class="tok-k">string</span> }).code === <span class="tok-s">'E_RESOURCE_GONE'</span>) <span class="tok-k">return</span> <span class="tok-k">await</span> fail(<span class="tok-s">'已删除，写入中止'</span>, <span class="tok-s">'E_RESOURCE_GONE'</span>, err)</span></div><div class="line" data-line="175" id="ingest-write-L175"><span class="ln">175</span><span class="lc">          <span class="tok-k">return</span> <span class="tok-k">await</span> failFrom(err, <span class="tok-s">'embedding_error'</span>)</span></div><div class="line" data-line="176" id="ingest-write-L176"><span class="ln">176</span><span class="lc">        }</span></div><div class="line" data-line="177" id="ingest-write-L177"><span class="ln">177</span><span class="lc">      } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="178" id="ingest-write-L178"><span class="ln">178</span><span class="lc">        <span class="tok-k">return</span> <span class="tok-k">await</span> failFrom(err, <span class="tok-s">'入库失败'</span>)</span></div><div class="line" data-line="179" id="ingest-write-L179"><span class="ln">179</span><span class="lc">      } <span class="tok-k">finally</span> {</span></div><div class="line" data-line="180" id="ingest-write-L180"><span class="ln">180</span><span class="lc">        inflight.remove(resource.id, ctrl)</span></div><div class="line" data-line="181" id="ingest-write-L181"><span class="ln">181</span><span class="lc">      }</span></div></div></div></div><aside class="notes" aria-label="ingest-write 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-write" data-lines="154" data-note="ingest-write-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">进写入前最后一次异步边界检查</span></div><p class="note-range">L154</p><div class="note-body"><p>embed 已经返回，接下来是 pg 写入。在调用 <code>writeChunksWithEmbeddings</code> 之前再判一次 <code>Signal.aborted</code>，能省掉一笔注定要撤回的写入。</p><p>但这只是优化，不是保证：取消完全可能在这行之后、事务提交之前落下。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-write" data-lines="156-167" data-note="ingest-write-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">write 阶段：3.4 的 runStage 包裹</span><span class="badge b-34">3.4</span></div><p class="note-range">L156–167</p><div class="note-body"><p><code>runStage(Sink, 'write', ...)</code> 是 3.4 的 telemetry：记录 chunk_count、耗时、成败。真正的写入仍是 <code>repo.writeChunksWithEmbeddings</code>，同一事务里写 chunks + embeddings + 转 ready。</p><p>读 1.4 的旧 commit 时，这里是一段裸 <code>await repo.writeChunksWithEmbeddings(...)</code>；不要把 stage 包裹算成删除逻辑的一部分。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-write" data-lines="168-169" data-note="ingest-write-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">真实坑 C1：写完再查，撤回 ready</span></div><p class="note-range">L168–169</p><div class="note-body"><p>写入事务提交后，资源已经是 ready + 全量 chunks。如果此时 <code>Signal.aborted</code> 为 true，说明取消落在写入期间——必须走 <code>cancelled()</code>：<code>fail</code> 会先删 chunks，再把行标成 failed(入库取消)。</p><p>review 的复现序列是：<code>processing/chunks=0 → ready/chunks=16 → ready/chunks=0 → failed/chunks=0/入库取消</code>。中间那一帧 <code>ready/chunks=16</code> 就是 C1 本身；修复后终态被拉回 failed。</p><p>没有这两行，<code>/abort</code> 的 202 就在说谎：它承诺「不会转为已就绪」，但只取消不删除时 <code>deleted_at</code> 仍是 NULL，写守卫的谓词形同不存在。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-write" data-lines="171-176" data-note="ingest-write-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">成功后返回 ready；E_RESOURCE_GONE 单独映射</span></div><p class="note-range">L171–176</p><div class="note-body"><p>写入返回后，<code>thinPage</code> 判断是否「可能抓不全」，只带 warning，不改变 ready。返回的 resource 是内存对象，status 改成 ready、error_reason 清空。</p><p>catch 里先认 <code>E_RESOURCE_GONE</code>（写入期间资源被删），映射成「已删除，写入中止」；其他错误再走 <code>failFrom</code>，区分取消/超时/普通失败。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ingest-write" data-lines="177-181" data-note="ingest-write-4"><div class="note-head"><span class="note-num">05</span><span class="note-title">外层 catch 与 finally 注销</span></div><p class="note-range">L177–181</p><div class="note-body"><p>外层 catch 兜住 fetch/parse/chunk 等未预期错误，统一走 <code>failFrom</code>。finally 无条件 <code>inflight.remove(resource.id, ctrl)</code>，这是唯一防登记泄漏的点。</p><p>注意 finally 用的是 <code>ctrl</code> 而不是 id：如果同一个 id 已经被新任务复用，旧任务的迟到 finally 不会摘掉新登记。</p></div></article></aside></div></div><div class="block" id="block-resource-softdelete"><h3 class="block-title">src/adapter/repo/resource.ts（写守卫 + 软删事务 + 启动清扫）</h3><p class="block-intro">软删是这一格的数据层核心；上面的状态/标题更新也带 deleted_at 谓词，避免已删行继续漂移。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/resource.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="resource-softdelete">复制代码</button></div><div class="code-scroll"><div class="code" data-code="resource-softdelete"><div class="line" data-line="95" id="resource-softdelete-L95"><span class="ln">95</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> updateResourceStatus(</span></div><div class="line" data-line="96" id="resource-softdelete-L96"><span class="ln">96</span><span class="lc">  <span class="tok-t">Db</span>: <span class="tok-t">Pool</span>,</span></div><div class="line" data-line="97" id="resource-softdelete-L97"><span class="ln">97</span><span class="lc">  <span class="tok-t">Id</span>: <span class="tok-k">string</span>,</span></div><div class="line" data-line="98" id="resource-softdelete-L98"><span class="ln">98</span><span class="lc">  <span class="tok-t">Status</span>: <span class="tok-t">Resource</span>[<span class="tok-s">'status'</span>],</span></div><div class="line" data-line="99" id="resource-softdelete-L99"><span class="ln">99</span><span class="lc">  <span class="tok-t">Reason</span>?: <span class="tok-k">string</span>,</span></div><div class="line" data-line="100" id="resource-softdelete-L100"><span class="ln">100</span><span class="lc">): <span class="tok-t">Promise</span>&lt;<span class="tok-k">void</span>&gt; {</span></div><div class="line" data-line="101" id="resource-softdelete-L101"><span class="ln">101</span><span class="lc">  <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(</span></div><div class="line" data-line="102" id="resource-softdelete-L102"><span class="ln">102</span><span class="lc">    <span class="tok-s">`UPDATE resources SET status = $2, error_reason = $3, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`</span>,</span></div><div class="line" data-line="103" id="resource-softdelete-L103"><span class="ln">103</span><span class="lc">    [<span class="tok-t">Id</span>, <span class="tok-t">Status</span>, <span class="tok-t">Reason</span> ?? <span class="tok-k">null</span>],</span></div><div class="line" data-line="104" id="resource-softdelete-L104"><span class="ln">104</span><span class="lc">  )</span></div><div class="line" data-line="105" id="resource-softdelete-L105"><span class="ln">105</span><span class="lc">}</span></div><div class="line" data-line="106" id="resource-softdelete-L106"><span class="ln">106</span><span class="lc"> </span></div><div class="line" data-line="107" id="resource-softdelete-L107"><span class="ln">107</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> updateResourceTitle(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>, <span class="tok-t">Id</span>: <span class="tok-k">string</span>, <span class="tok-t">Title</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">void</span>&gt; {</span></div><div class="line" data-line="108" id="resource-softdelete-L108"><span class="ln">108</span><span class="lc">  <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(</span></div><div class="line" data-line="109" id="resource-softdelete-L109"><span class="ln">109</span><span class="lc">    <span class="tok-s">`UPDATE resources SET title = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`</span>,</span></div><div class="line" data-line="110" id="resource-softdelete-L110"><span class="ln">110</span><span class="lc">    [<span class="tok-t">Id</span>, <span class="tok-t">Title</span>],</span></div><div class="line" data-line="111" id="resource-softdelete-L111"><span class="ln">111</span><span class="lc">  )</span></div><div class="line" data-line="112" id="resource-softdelete-L112"><span class="ln">112</span><span class="lc">}</span></div><div class="line" data-line="113" id="resource-softdelete-L113"><span class="ln">113</span><span class="lc"> </span></div><div class="line" data-line="114" id="resource-softdelete-L114"><span class="ln">114</span><span class="lc"><span class="tok-c">// 软删：resources 行留痕（deleted_at），检索数据物理移除（chunks → embeddings 经 FK CASCADE 一起走）</span></span></div><div class="line" data-line="115" id="resource-softdelete-L115"><span class="ln">115</span><span class="lc"><span class="tok-c">// 返回 false = 该行不存在或早已软删，交调用方决定怎么报</span></span></div><div class="line" data-line="116" id="resource-softdelete-L116"><span class="ln">116</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> softDeleteResource(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>, <span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">boolean</span>&gt; {</span></div><div class="line" data-line="117" id="resource-softdelete-L117"><span class="ln">117</span><span class="lc">  <span class="tok-k">const</span> client = <span class="tok-k">await</span> <span class="tok-t">Db</span>.connect()</span></div><div class="line" data-line="118" id="resource-softdelete-L118"><span class="ln">118</span><span class="lc">  <span class="tok-k">try</span> {</span></div><div class="line" data-line="119" id="resource-softdelete-L119"><span class="ln">119</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'BEGIN'</span>)</span></div><div class="line" data-line="120" id="resource-softdelete-L120"><span class="ln">120</span><span class="lc">    <span class="tok-k">const</span> { rowCount } = <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="121" id="resource-softdelete-L121"><span class="ln">121</span><span class="lc">      <span class="tok-s">`UPDATE resources SET deleted_at = now(), updated_at = now()</span></span></div><div class="line" data-line="122" id="resource-softdelete-L122"><span class="ln">122</span><span class="lc">         WHERE id = $1 AND deleted_at IS NULL<span class="tok-s">`,</span></span></div><div class="line" data-line="123" id="resource-softdelete-L123"><span class="ln">123</span><span class="lc">      [<span class="tok-t">Id</span>],</span></div><div class="line" data-line="124" id="resource-softdelete-L124"><span class="ln">124</span><span class="lc">    )</span></div><div class="line" data-line="125" id="resource-softdelete-L125"><span class="ln">125</span><span class="lc">    <span class="tok-k">if</span> (rowCount === <span class="tok-n">0</span>) {</span></div><div class="line" data-line="126" id="resource-softdelete-L126"><span class="ln">126</span><span class="lc">      <span class="tok-k">await</span> rollbackOrLog(client)</span></div><div class="line" data-line="127" id="resource-softdelete-L127"><span class="ln">127</span><span class="lc">      <span class="tok-k">return</span> <span class="tok-k">false</span></span></div><div class="line" data-line="128" id="resource-softdelete-L128"><span class="ln">128</span><span class="lc">    }</span></div><div class="line" data-line="129" id="resource-softdelete-L129"><span class="ln">129</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">`DELETE FROM chunks WHERE resource_id = $1`</span>, [<span class="tok-t">Id</span>])</span></div><div class="line" data-line="130" id="resource-softdelete-L130"><span class="ln">130</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'COMMIT'</span>)</span></div><div class="line" data-line="131" id="resource-softdelete-L131"><span class="ln">131</span><span class="lc">    <span class="tok-k">return</span> <span class="tok-k">true</span></span></div><div class="line" data-line="132" id="resource-softdelete-L132"><span class="ln">132</span><span class="lc">  } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="133" id="resource-softdelete-L133"><span class="ln">133</span><span class="lc">    <span class="tok-k">await</span> rollbackOrLog(client)</span></div><div class="line" data-line="134" id="resource-softdelete-L134"><span class="ln">134</span><span class="lc">    <span class="tok-k">throw</span> err</span></div><div class="line" data-line="135" id="resource-softdelete-L135"><span class="ln">135</span><span class="lc">  } <span class="tok-k">finally</span> {</span></div><div class="line" data-line="136" id="resource-softdelete-L136"><span class="ln">136</span><span class="lc">    client.release()</span></div><div class="line" data-line="137" id="resource-softdelete-L137"><span class="ln">137</span><span class="lc">  }</span></div><div class="line" data-line="138" id="resource-softdelete-L138"><span class="ln">138</span><span class="lc">}</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="169" id="resource-softdelete-L169"><span class="ln">169</span><span class="lc"><span class="tok-c">// 启动清扫：上一次进程被杀掉时留在 processing 的资源，chunks 物理删、行转 failed(入库中断)。</span></span></div><div class="line" data-line="170" id="resource-softdelete-L170"><span class="ln">170</span><span class="lc"><span class="tok-c">// 由 bootstrap 在监听前调用一次，不在路由里、不在能力片里散着写（AD-7）。</span></span></div><div class="line" data-line="171" id="resource-softdelete-L171"><span class="ln">171</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> markInterruptedAsFailed(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>): <span class="tok-t">Promise</span>&lt;{ resources: <span class="tok-k">number</span> }&gt; {</span></div><div class="line" data-line="172" id="resource-softdelete-L172"><span class="ln">172</span><span class="lc">  <span class="tok-k">const</span> client = <span class="tok-k">await</span> <span class="tok-t">Db</span>.connect()</span></div><div class="line" data-line="173" id="resource-softdelete-L173"><span class="ln">173</span><span class="lc">  <span class="tok-k">try</span> {</span></div><div class="line" data-line="174" id="resource-softdelete-L174"><span class="ln">174</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'BEGIN'</span>)</span></div><div class="line" data-line="175" id="resource-softdelete-L175"><span class="ln">175</span><span class="lc"> </span></div><div class="line" data-line="176" id="resource-softdelete-L176"><span class="ln">176</span><span class="lc">    <span class="tok-k">const</span> { rows } = <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="177" id="resource-softdelete-L177"><span class="ln">177</span><span class="lc">      <span class="tok-s">`SELECT id FROM resources WHERE status = 'processing' AND deleted_at IS NULL`</span>,</span></div><div class="line" data-line="178" id="resource-softdelete-L178"><span class="ln">178</span><span class="lc">    )</span></div><div class="line" data-line="179" id="resource-softdelete-L179"><span class="ln">179</span><span class="lc">    <span class="tok-k">const</span> ids: <span class="tok-k">string</span>[] = rows.map((r) =&gt; r.id <span class="tok-k">as</span> <span class="tok-k">string</span>)</span></div><div class="line" data-line="180" id="resource-softdelete-L180"><span class="ln">180</span><span class="lc"> </span></div><div class="line" data-line="181" id="resource-softdelete-L181"><span class="ln">181</span><span class="lc">    <span class="tok-k">if</span> (ids.length &gt; <span class="tok-n">0</span>) {</span></div><div class="line" data-line="182" id="resource-softdelete-L182"><span class="ln">182</span><span class="lc">      <span class="tok-k">await</span> client.query(<span class="tok-s">`DELETE FROM chunks WHERE resource_id = ANY($1::uuid[])`</span>, [ids])</span></div><div class="line" data-line="183" id="resource-softdelete-L183"><span class="ln">183</span><span class="lc">      <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="184" id="resource-softdelete-L184"><span class="ln">184</span><span class="lc">        <span class="tok-s">`UPDATE resources SET status = 'failed', error_reason = '入库中断', updated_at = now() WHERE id = ANY($1::uuid[])`</span>,</span></div><div class="line" data-line="185" id="resource-softdelete-L185"><span class="ln">185</span><span class="lc">        [ids],</span></div><div class="line" data-line="186" id="resource-softdelete-L186"><span class="ln">186</span><span class="lc">      )</span></div><div class="line" data-line="187" id="resource-softdelete-L187"><span class="ln">187</span><span class="lc">    }</span></div><div class="line" data-line="188" id="resource-softdelete-L188"><span class="ln">188</span><span class="lc"> </span></div><div class="line" data-line="189" id="resource-softdelete-L189"><span class="ln">189</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'COMMIT'</span>)</span></div><div class="line" data-line="190" id="resource-softdelete-L190"><span class="ln">190</span><span class="lc">    <span class="tok-k">return</span> { resources: ids.length }</span></div><div class="line" data-line="191" id="resource-softdelete-L191"><span class="ln">191</span><span class="lc">  } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="192" id="resource-softdelete-L192"><span class="ln">192</span><span class="lc">    <span class="tok-k">await</span> rollbackOrLog(client)</span></div><div class="line" data-line="193" id="resource-softdelete-L193"><span class="ln">193</span><span class="lc">    <span class="tok-k">throw</span> err</span></div><div class="line" data-line="194" id="resource-softdelete-L194"><span class="ln">194</span><span class="lc">  } <span class="tok-k">finally</span> {</span></div><div class="line" data-line="195" id="resource-softdelete-L195"><span class="ln">195</span><span class="lc">    client.release()</span></div><div class="line" data-line="196" id="resource-softdelete-L196"><span class="ln">196</span><span class="lc">  }</span></div><div class="line" data-line="197" id="resource-softdelete-L197"><span class="ln">197</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="resource-softdelete 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="resource-softdelete" data-lines="95-105" data-note="resource-softdelete-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">改状态也带 deleted_at 谓词</span></div><p class="note-range">L95–105</p><div class="note-body"><p>review A7 指出：如果只有写入路径加谓词，<code>updateResourceStatus</code>（<code>fail()</code> 用）和 <code>updateResourceTitle</code> 仍会无条件写，用户拿到 204 之后那条已删行的 status/error_reason 还会继续变。</p><p>现在两条 UPDATE 都带 <code>AND deleted_at IS NULL</code>：已删行不再被改写，审计上更干净。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="resource-softdelete" data-lines="107-112" data-note="resource-softdelete-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">标题更新同样受守卫</span></div><p class="note-range">L107–112</p><div class="note-body"><p>解析出真标题后回填，是纯装饰性写入；但同样不能碰已删行。review E6 还建议把标题写失败降级成日志，避免一次装饰性失败把整条入库判成 <code>入库失败</code>——这是另一笔未在本页展开的账。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="resource-softdelete" data-lines="114-138" data-note="resource-softdelete-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">softDeleteResource：先留痕，再物理删 chunks</span></div><p class="note-range">L114–138</p><div class="note-body"><p>事务里先 <code>UPDATE resources SET deleted_at = now() ... WHERE deleted_at IS NULL</code>；<code>rowCount=0</code> 说明行不存在或早已软删，回滚并返回 false。</p><p>然后 <code>DELETE FROM chunks WHERE resource_id = $1</code>。embeddings 不在这里删：<code>embeddings.source_id → chunks.id ON DELETE CASCADE</code> 会带走它们。最后 COMMIT，返回 true，路由回 204。</p><p>为什么软删和 chunks 删除必须同事务？如果先删 chunks 再软删失败，资源还在列表里但检索数据没了；反过来则会让已删资源继续被检索命中。同事务保证两者同进同退。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="resource-softdelete" data-lines="169-197" data-note="resource-softdelete-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">启动清扫：进程重启后的兜底</span></div><p class="note-range">L169–197</p><div class="note-body"><p>登记表只在内存，进程被杀后全空，库里可能留下 processing 行。启动时 <code>markInterruptedAsFailed</code> 查出所有未删的 processing，先删 chunks，再统一转 <code>failed / 入库中断</code>。</p><p>这是 Story 1.1 的 AC，但 1.4 的取消链路依赖它：<code>/abort</code> 对「processing 但不在本进程登记」的行只能回 409 <code>E_NOT_INFLIGHT</code>，最终收口要靠下一次启动清扫或 DELETE 的 <code>入库中断</code> 分支。</p></div></article></aside></div></div><div class="block" id="block-chunk-write-delete"><h3 class="block-title">src/adapter/repo/chunk.ts（同事务写入 + 写守卫 + 删 chunks）</h3><p class="block-intro">「要么全写、要么全滚」的边界在这一块。写守卫和删除清理也在这里会合。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/chunk.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="chunk-write-delete">复制代码</button></div><div class="code-scroll"><div class="code" data-code="chunk-write-delete"><div class="line" data-line="78" id="chunk-write-delete-L78"><span class="ln">78</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> writeChunksWithEmbeddings(</span></div><div class="line" data-line="79" id="chunk-write-delete-L79"><span class="ln">79</span><span class="lc">  <span class="tok-t">Db</span>: <span class="tok-t">Pool</span>,</span></div><div class="line" data-line="80" id="chunk-write-delete-L80"><span class="ln">80</span><span class="lc">  <span class="tok-t">ResourceId</span>: <span class="tok-k">string</span>,</span></div><div class="line" data-line="81" id="chunk-write-delete-L81"><span class="ln">81</span><span class="lc">  <span class="tok-t">Chunks</span>: <span class="tok-t">Pick</span>&lt;<span class="tok-t">Chunk</span>, <span class="tok-s">'chunk_index'</span> | <span class="tok-s">'content'</span> | <span class="tok-s">'start_offset'</span> | <span class="tok-s">'end_offset'</span>&gt;[],</span></div><div class="line" data-line="82" id="chunk-write-delete-L82"><span class="ln">82</span><span class="lc">  <span class="tok-t">Vectors</span>: <span class="tok-t">Pick</span>&lt;<span class="tok-t">Embedding</span>, <span class="tok-s">'dimension'</span> | <span class="tok-s">'model'</span> | <span class="tok-s">'embedding'</span>&gt;[],</span></div><div class="line" data-line="83" id="chunk-write-delete-L83"><span class="ln">83</span><span class="lc">): <span class="tok-t">Promise</span>&lt;<span class="tok-k">number</span>&gt; {</span></div><div class="line" data-line="84" id="chunk-write-delete-L84"><span class="ln">84</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Chunks</span>.length === <span class="tok-n">0</span>) <span class="tok-k">return</span> <span class="tok-n">0</span></span></div><div class="line" data-line="85" id="chunk-write-delete-L85"><span class="ln">85</span><span class="lc">  <span class="tok-k">const</span> client = <span class="tok-k">await</span> <span class="tok-t">Db</span>.connect()</span></div><div class="line" data-line="86" id="chunk-write-delete-L86"><span class="ln">86</span><span class="lc">  <span class="tok-k">try</span> {</span></div><div class="line" data-line="87" id="chunk-write-delete-L87"><span class="ln">87</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'BEGIN'</span>)</span></div><div class="line" data-line="88" id="chunk-write-delete-L88"><span class="ln">88</span><span class="lc"> </span></div><div class="line" data-line="89" id="chunk-write-delete-L89"><span class="ln">89</span><span class="lc">    <span class="tok-k">const</span> { rows: [res] } = <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="90" id="chunk-write-delete-L90"><span class="ln">90</span><span class="lc">      <span class="tok-s">`SELECT data_uri FROM resources WHERE id = $1 AND deleted_at IS NULL`</span>,</span></div><div class="line" data-line="91" id="chunk-write-delete-L91"><span class="ln">91</span><span class="lc">      [<span class="tok-t">ResourceId</span>],</span></div><div class="line" data-line="92" id="chunk-write-delete-L92"><span class="ln">92</span><span class="lc">    )</span></div><div class="line" data-line="93" id="chunk-write-delete-L93"><span class="ln">93</span><span class="lc">    <span class="tok-k">if</span> (!res) <span class="tok-k">throw</span> <span class="tok-t">Object</span>.assign(<span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`资源行不存在或已删除，写入中止: ${ResourceId}`</span>), { code: <span class="tok-s">'E_RESOURCE_GONE'</span> })</span></div><div class="line" data-line="94" id="chunk-write-delete-L94"><span class="ln">94</span><span class="lc">    <span class="tok-k">const</span> resourceUri = res.data_uri <span class="tok-k">as</span> <span class="tok-k">string</span></span></div><div class="line" data-line="95" id="chunk-write-delete-L95"><span class="ln">95</span><span class="lc"> </span></div><div class="line" data-line="96" id="chunk-write-delete-L96"><span class="ln">96</span><span class="lc">    <span class="tok-k">const</span> cValues: <span class="tok-k">string</span>[] = []</span></div><div class="line" data-line="97" id="chunk-write-delete-L97"><span class="ln">97</span><span class="lc">    <span class="tok-k">const</span> cParams: <span class="tok-k">unknown</span>[] = []</span></div><div class="line" data-line="98" id="chunk-write-delete-L98"><span class="ln">98</span><span class="lc">    <span class="tok-k">let</span> i = <span class="tok-n">1</span></span></div><div class="line" data-line="99" id="chunk-write-delete-L99"><span class="ln">99</span><span class="lc">    <span class="tok-k">for</span> (<span class="tok-k">const</span> c <span class="tok-k">of</span> <span class="tok-t">Chunks</span>) {</span></div><div class="line" data-line="100" id="chunk-write-delete-L100"><span class="ln">100</span><span class="lc">      cValues.push(<span class="tok-s">`(${i}, ${i + 1}, ${i + 2}, ${i + 3}, ${i + 4}, ${i + 5})`</span>)</span></div><div class="line" data-line="101" id="chunk-write-delete-L101"><span class="ln">101</span><span class="lc">      cParams.push(<span class="tok-t">ResourceId</span>, resourceUri, c.chunk_index, c.content, c.start_offset, c.end_offset)</span></div><div class="line" data-line="102" id="chunk-write-delete-L102"><span class="ln">102</span><span class="lc">      i += <span class="tok-n">6</span></span></div><div class="line" data-line="103" id="chunk-write-delete-L103"><span class="ln">103</span><span class="lc">    }</span></div><div class="line" data-line="104" id="chunk-write-delete-L104"><span class="ln">104</span><span class="lc">    <span class="tok-k">const</span> { rows: chunkRows } = <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="105" id="chunk-write-delete-L105"><span class="ln">105</span><span class="lc">      <span class="tok-s">`INSERT INTO chunks (resource_id, resource_uri, chunk_index, content, start_offset, end_offset)</span></span></div><div class="line" data-line="106" id="chunk-write-delete-L106"><span class="ln">106</span><span class="lc">         VALUES ${cValues.join(<span class="tok-s">','</span>)}</span></div><div class="line" data-line="107" id="chunk-write-delete-L107"><span class="ln">107</span><span class="lc">         RETURNING id, chunk_index<span class="tok-s">`,</span></span></div><div class="line" data-line="108" id="chunk-write-delete-L108"><span class="ln">108</span><span class="lc">      cParams,</span></div><div class="line" data-line="109" id="chunk-write-delete-L109"><span class="ln">109</span><span class="lc">    )</span></div><div class="line" data-line="110" id="chunk-write-delete-L110"><span class="ln">110</span><span class="lc">    <span class="tok-k">const</span> idByIndex = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">number</span>, <span class="tok-k">string</span>&gt;(</span></div><div class="line" data-line="111" id="chunk-write-delete-L111"><span class="ln">111</span><span class="lc">      chunkRows.map((r) =&gt; [r.chunk_index <span class="tok-k">as</span> <span class="tok-k">number</span>, r.id <span class="tok-k">as</span> <span class="tok-k">string</span>]),</span></div><div class="line" data-line="112" id="chunk-write-delete-L112"><span class="ln">112</span><span class="lc">    )</span></div><div class="line" data-line="113" id="chunk-write-delete-L113"><span class="ln">113</span><span class="lc"> </span></div><div class="line" data-line="114" id="chunk-write-delete-L114"><span class="ln">114</span><span class="lc">    <span class="tok-k">const</span> eValues: <span class="tok-k">string</span>[] = []</span></div><div class="line" data-line="115" id="chunk-write-delete-L115"><span class="ln">115</span><span class="lc">    <span class="tok-k">const</span> eParams: <span class="tok-k">unknown</span>[] = []</span></div><div class="line" data-line="116" id="chunk-write-delete-L116"><span class="ln">116</span><span class="lc">    <span class="tok-k">let</span> j = <span class="tok-n">1</span></span></div><div class="line" data-line="117" id="chunk-write-delete-L117"><span class="ln">117</span><span class="lc">    <span class="tok-k">for</span> (<span class="tok-k">let</span> k = <span class="tok-n">0</span>; k &lt; <span class="tok-t">Chunks</span>.length; k++) {</span></div><div class="line" data-line="118" id="chunk-write-delete-L118"><span class="ln">118</span><span class="lc">      <span class="tok-k">const</span> sourceId = idByIndex.<span class="tok-k">get</span>(<span class="tok-t">Chunks</span>[k]!.chunk_index)!</span></div><div class="line" data-line="119" id="chunk-write-delete-L119"><span class="ln">119</span><span class="lc">      <span class="tok-k">const</span> v = <span class="tok-t">Vectors</span>[k]!</span></div><div class="line" data-line="120" id="chunk-write-delete-L120"><span class="ln">120</span><span class="lc">      eValues.push(<span class="tok-s">`(${j}, ${j + 1}, ${j + 2}, ${j + 3}, ${j + 4}::halfvec)`</span>)</span></div><div class="line" data-line="121" id="chunk-write-delete-L121"><span class="ln">121</span><span class="lc">      eParams.push(sourceId, <span class="tok-s">'chunk'</span>, v.dimension, v.model, vecToHalfvecStr(v.embedding))</span></div><div class="line" data-line="122" id="chunk-write-delete-L122"><span class="ln">122</span><span class="lc">      j += <span class="tok-n">5</span></span></div><div class="line" data-line="123" id="chunk-write-delete-L123"><span class="ln">123</span><span class="lc">    }</span></div><div class="line" data-line="124" id="chunk-write-delete-L124"><span class="ln">124</span><span class="lc">    <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="125" id="chunk-write-delete-L125"><span class="ln">125</span><span class="lc">      <span class="tok-s">`INSERT INTO embeddings (source_id, source_type, dimension, model, embedding)</span></span></div><div class="line" data-line="126" id="chunk-write-delete-L126"><span class="ln">126</span><span class="lc">         VALUES ${eValues.join(<span class="tok-s">','</span>)}<span class="tok-s">`,</span></span></div><div class="line" data-line="127" id="chunk-write-delete-L127"><span class="ln">127</span><span class="lc">      eParams,</span></div><div class="line" data-line="128" id="chunk-write-delete-L128"><span class="ln">128</span><span class="lc">    )</span></div><div class="line" data-line="129" id="chunk-write-delete-L129"><span class="ln">129</span><span class="lc"> </span></div><div class="line" data-line="130" id="chunk-write-delete-L130"><span class="ln">130</span><span class="lc">    <span class="tok-c">// 带 deleted_at 谓词：软删若发生在 embed 之后、写入期间，这里 rowCount=0 就整笔回滚，</span></span></div><div class="line" data-line="131" id="chunk-write-delete-L131"><span class="ln">131</span><span class="lc">    <span class="tok-c">// 杜绝给一条已删资源补写一批 chunks（那是检索会命中的孤儿数据）</span></span></div><div class="line" data-line="132" id="chunk-write-delete-L132"><span class="ln">132</span><span class="lc">    <span class="tok-k">const</span> { rowCount } = <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="133" id="chunk-write-delete-L133"><span class="ln">133</span><span class="lc">      <span class="tok-s">`UPDATE resources SET status = 'ready', error_reason = NULL, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`</span>,</span></div><div class="line" data-line="134" id="chunk-write-delete-L134"><span class="ln">134</span><span class="lc">      [<span class="tok-t">ResourceId</span>],</span></div><div class="line" data-line="135" id="chunk-write-delete-L135"><span class="ln">135</span><span class="lc">    )</span></div><div class="line" data-line="136" id="chunk-write-delete-L136"><span class="ln">136</span><span class="lc">    <span class="tok-k">if</span> (rowCount === <span class="tok-n">0</span>) <span class="tok-k">throw</span> <span class="tok-t">Object</span>.assign(<span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`资源在写入期间被删除，写入中止: ${ResourceId}`</span>), { code: <span class="tok-s">'E_RESOURCE_GONE'</span> })</span></div><div class="line" data-line="137" id="chunk-write-delete-L137"><span class="ln">137</span><span class="lc"> </span></div><div class="line" data-line="138" id="chunk-write-delete-L138"><span class="ln">138</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'COMMIT'</span>)</span></div><div class="line" data-line="139" id="chunk-write-delete-L139"><span class="ln">139</span><span class="lc">    <span class="tok-k">return</span> <span class="tok-t">Chunks</span>.length</span></div><div class="line" data-line="140" id="chunk-write-delete-L140"><span class="ln">140</span><span class="lc">  } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="141" id="chunk-write-delete-L141"><span class="ln">141</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'ROLLBACK'</span>).<span class="tok-k">catch</span>((rbErr) =&gt;</span></div><div class="line" data-line="142" id="chunk-write-delete-L142"><span class="ln">142</span><span class="lc">      logError(<span class="tok-s">'E_ROLLBACK'</span>, <span class="tok-t">String</span>(rbErr)),</span></div><div class="line" data-line="143" id="chunk-write-delete-L143"><span class="ln">143</span><span class="lc">    ) <span class="tok-c">// 别用回滚自身的错顶掉真因</span></span></div><div class="line" data-line="144" id="chunk-write-delete-L144"><span class="ln">144</span><span class="lc">    <span class="tok-k">throw</span> err</span></div><div class="line" data-line="145" id="chunk-write-delete-L145"><span class="ln">145</span><span class="lc">  } <span class="tok-k">finally</span> {</span></div><div class="line" data-line="146" id="chunk-write-delete-L146"><span class="ln">146</span><span class="lc">    client.release()</span></div><div class="line" data-line="147" id="chunk-write-delete-L147"><span class="ln">147</span><span class="lc">  }</span></div><div class="line" data-line="148" id="chunk-write-delete-L148"><span class="ln">148</span><span class="lc">}</span></div><div class="line" data-line="149" id="chunk-write-delete-L149"><span class="ln">149</span><span class="lc"> </span></div><div class="line" data-line="150" id="chunk-write-delete-L150"><span class="ln">150</span><span class="lc"><span class="tok-c">// 删 chunk；embedding 经 FK source_id→chunks.id ON DELETE CASCADE 随之删除，无孤儿向量</span></span></div><div class="line" data-line="151" id="chunk-write-delete-L151"><span class="ln">151</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> deleteChunksByResource(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>, <span class="tok-t">ResourceId</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">void</span>&gt; {</span></div><div class="line" data-line="152" id="chunk-write-delete-L152"><span class="ln">152</span><span class="lc">  <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(<span class="tok-s">`DELETE FROM chunks WHERE resource_id = $1`</span>, [<span class="tok-t">ResourceId</span>])</span></div><div class="line" data-line="153" id="chunk-write-delete-L153"><span class="ln">153</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="chunk-write-delete 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="78-93" data-note="chunk-write-delete-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">事务开头：先确认资源还活着</span></div><p class="note-range">L78–93</p><div class="note-body"><p>开事务后第一件事是 <code>SELECT data_uri FROM resources WHERE id = $1 AND deleted_at IS NULL</code>。查不到就抛 <code>E_RESOURCE_GONE</code>，整笔写入还没开始就结束。</p><p>这是 review E5 的修正：旧代码直接 <code>res.data_uri</code>，行不存在时会得到 <code>undefined.data_uri</code> 的 TypeError，而不是一句干净的中止原因。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="96-109" data-note="chunk-write-delete-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">批量 INSERT chunks</span></div><p class="note-range">L96–109</p><div class="note-body"><p>用 <code>$1..$n</code> 拼多值 INSERT，<code>RETURNING id, chunk_index</code> 拿回数据库生成的 chunk id。后面写 embeddings 需要 <code>source_id</code>，所以必须按 <code>chunk_index</code> 建一张映射表。</p><p>这里没有逐条插入：一次事务、一条多值 INSERT，减少往返；代价是 chunk 数极大时会逼近 pg 参数上限，归到「写入分批」那条后续账。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="110-128" data-note="chunk-write-delete-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">写 embeddings：source_id 指向 chunk</span></div><p class="note-range">L110–128</p><div class="note-body"><p><code>idByIndex.get(chunk_index)</code> 找回 chunk id，<code>vecToHalfvecStr</code> 把 number[] 变成 halfvec 字面量。写入的 <code>source_id</code> 就是 <code>chunks.id</code>，这正是 FK CASCADE 的父键。</p><p>chunks 与 embeddings 在同一事务里：不会出现「chunk 已落、向量没落」或「向量已落、行还 processing」。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="130-139" data-note="chunk-write-delete-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">写守卫：rowCount=0 就整笔回滚</span></div><p class="note-range">L130–139</p><div class="note-body"><p>转 ready 的 UPDATE 带 <code>AND deleted_at IS NULL</code>。如果软删发生在 embed 之后、写入期间，这一句 <code>rowCount=0</code>，抛 <code>E_RESOURCE_GONE</code>，catch 里 ROLLBACK，整笔 chunks+embeddings 都不落库。</p><p>这条守卫救的是「删除 + 写入」这条路；但它<strong>救不了「只 abort 不删除」</strong>：<code>/abort</code> 不写 <code>deleted_at</code>，谓词通过，事务照常提交 ready。这正是 C1 必须靠写后复查补上的原因。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="140-147" data-note="chunk-write-delete-4"><div class="note-head"><span class="note-num">05</span><span class="note-title">回滚不吞真因</span></div><p class="note-range">L140–147</p><div class="note-body"><p>catch 里先 <code>ROLLBACK</code>，回滚自身失败只记 <code>E_ROLLBACK</code>，不覆盖原始错误；最后 <code>client.release()</code> 把连接还给池。</p><p>如果回滚错误顶掉真因，日志里只会看到「回滚失败」，真正该看的 <code>E_RESOURCE_GONE</code> 或约束冲突就丢了。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chunk-write-delete" data-lines="150-153" data-note="chunk-write-delete-5"><div class="note-head"><span class="note-num">06</span><span class="note-title">deleteChunksByResource：一条 DELETE 带走向量</span></div><p class="note-range">L150–153</p><div class="note-body"><p>只写 <code>DELETE FROM chunks WHERE resource_id = $1</code>，不手写删 embeddings。FK 的 <code>ON DELETE CASCADE</code> 负责级联；这也是 handoff 里「孤儿向量 0」的底层依据。</p><p>它是无事务单语句清理，和软删事务里的那条 DELETE 故意不合并：一个要跟 resources 的 deleted_at 同进同退，一个是失败清理/启动清扫的独立动作。</p></div></article></aside></div></div><div class="block" id="block-search-vector"><h3 class="block-title">src/adapter/repo/search-vector.ts（向量路软删过滤）</h3><p class="block-intro">检索侧不依赖「chunks 已删」这一事实，SQL 自己再挡一道。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/search-vector.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="search-vector">复制代码</button></div><div class="code-scroll"><div class="code" data-code="search-vector"><div class="line" data-line="20" id="search-vector-L20"><span class="ln">20</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> vectorCandidates(</span></div><div class="line" data-line="21" id="search-vector-L21"><span class="ln">21</span><span class="lc">  <span class="tok-t">Db</span>: <span class="tok-t">Pool</span>,</span></div><div class="line" data-line="22" id="search-vector-L22"><span class="ln">22</span><span class="lc">  <span class="tok-t">QueryVector</span>: <span class="tok-k">number</span>[],</span></div><div class="line" data-line="23" id="search-vector-L23"><span class="ln">23</span><span class="lc">  <span class="tok-t">Limit</span>: <span class="tok-k">number</span>,</span></div><div class="line" data-line="24" id="search-vector-L24"><span class="ln">24</span><span class="lc">  <span class="tok-t">Dim</span>: <span class="tok-k">number</span>,</span></div><div class="line" data-line="25" id="search-vector-L25"><span class="ln">25</span><span class="lc">): <span class="tok-t">Promise</span>&lt;<span class="tok-t">ChunkCandidate</span>[]&gt; {</span></div><div class="line" data-line="26" id="search-vector-L26"><span class="ln">26</span><span class="lc">  <span class="tok-k">if</span> (!<span class="tok-t">Number</span>.isInteger(<span class="tok-t">Dim</span>) || <span class="tok-t">Dim</span> &lt;= <span class="tok-n">0</span>) {</span></div><div class="line" data-line="27" id="search-vector-L27"><span class="ln">27</span><span class="lc">    <span class="tok-k">throw</span> <span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`vectorCandidates: dimension 需为正整数，收到 ${Dim}`</span>)</span></div><div class="line" data-line="28" id="search-vector-L28"><span class="ln">28</span><span class="lc">  }</span></div><div class="line" data-line="29" id="search-vector-L29"><span class="ln">29</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">QueryVector</span>.length !== <span class="tok-t">Dim</span>) {</span></div><div class="line" data-line="30" id="search-vector-L30"><span class="ln">30</span><span class="lc">    <span class="tok-k">throw</span> <span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`vectorCandidates: 查询向量 ${QueryVector.length} 维与检索维度 ${Dim} 不符`</span>)</span></div><div class="line" data-line="31" id="search-vector-L31"><span class="ln">31</span><span class="lc">  }</span></div><div class="line" data-line="32" id="search-vector-L32"><span class="ln">32</span><span class="lc"> </span></div><div class="line" data-line="33" id="search-vector-L33"><span class="ln">33</span><span class="lc">  <span class="tok-k">const</span> { rows } = <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(</span></div><div class="line" data-line="34" id="search-vector-L34"><span class="ln">34</span><span class="lc">    <span class="tok-s">`SELECT c.*, r.title AS doc_title, r.source AS source, r.data_uri AS data_uri,</span></span></div><div class="line" data-line="35" id="search-vector-L35"><span class="ln">35</span><span class="lc">            (<span class="tok-n">1</span> - (e.embedding::halfvec(${<span class="tok-t">Dim</span>}) &lt;=&gt; $1::halfvec(${<span class="tok-t">Dim</span>})))::float8 AS similarity</span></div><div class="line" data-line="36" id="search-vector-L36"><span class="ln">36</span><span class="lc">       FROM embeddings e</span></div><div class="line" data-line="37" id="search-vector-L37"><span class="ln">37</span><span class="lc">       JOIN chunks c    ON c.id = e.source_id</span></div><div class="line" data-line="38" id="search-vector-L38"><span class="ln">38</span><span class="lc">       JOIN resources r ON r.id = c.resource_id AND r.deleted_at IS NULL</span></div><div class="line" data-line="39" id="search-vector-L39"><span class="ln">39</span><span class="lc">      WHERE e.dimension = ${<span class="tok-t">Dim</span>}</span></div><div class="line" data-line="40" id="search-vector-L40"><span class="ln">40</span><span class="lc">      ORDER BY e.embedding::halfvec(${<span class="tok-t">Dim</span>}) &lt;=&gt; $1::halfvec(${<span class="tok-t">Dim</span>})</span></div><div class="line" data-line="41" id="search-vector-L41"><span class="ln">41</span><span class="lc">      LIMIT $2<span class="tok-s">`,</span></span></div><div class="line" data-line="42" id="search-vector-L42"><span class="ln">42</span><span class="lc">    [<span class="tok-s">`[${QueryVector.join(',')}]`</span>, <span class="tok-t">Limit</span>],</span></div><div class="line" data-line="43" id="search-vector-L43"><span class="ln">43</span><span class="lc">  )</span></div><div class="line" data-line="44" id="search-vector-L44"><span class="ln">44</span><span class="lc"> </span></div><div class="line" data-line="45" id="search-vector-L45"><span class="ln">45</span><span class="lc">  <span class="tok-k">return</span> rows.map((row: <span class="tok-t">Record</span>&lt;<span class="tok-k">string</span>, <span class="tok-k">unknown</span>&gt;) =&gt; ({</span></div><div class="line" data-line="46" id="search-vector-L46"><span class="ln">46</span><span class="lc">    chunk: rowToChunk(row),</span></div><div class="line" data-line="47" id="search-vector-L47"><span class="ln">47</span><span class="lc">    docTitle: <span class="tok-t">String</span>(row.doc_title),</span></div><div class="line" data-line="48" id="search-vector-L48"><span class="ln">48</span><span class="lc">    source: row.source === <span class="tok-k">null</span> ? <span class="tok-k">null</span> : <span class="tok-t">String</span>(row.source),</span></div><div class="line" data-line="49" id="search-vector-L49"><span class="ln">49</span><span class="lc">    dataUri: <span class="tok-t">String</span>(row.data_uri),</span></div><div class="line" data-line="50" id="search-vector-L50"><span class="ln">50</span><span class="lc">    similarity: <span class="tok-t">Number</span>(row.similarity),</span></div><div class="line" data-line="51" id="search-vector-L51"><span class="ln">51</span><span class="lc">    lexicalScore: <span class="tok-k">null</span>,</span></div><div class="line" data-line="52" id="search-vector-L52"><span class="ln">52</span><span class="lc">  }))</span></div><div class="line" data-line="53" id="search-vector-L53"><span class="ln">53</span><span class="lc">}</span></div><div class="line" data-line="54" id="search-vector-L54"><span class="ln">54</span><span class="lc"> </span></div><div class="line" data-line="55" id="search-vector-L55"><span class="ln">55</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> dimensionsInStore(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">number</span>[]&gt; {</span></div><div class="line" data-line="56" id="search-vector-L56"><span class="ln">56</span><span class="lc">  <span class="tok-k">const</span> { rows } = <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(<span class="tok-s">`SELECT DISTINCT dimension FROM embeddings ORDER BY dimension`</span>)</span></div><div class="line" data-line="57" id="search-vector-L57"><span class="ln">57</span><span class="lc">  <span class="tok-k">return</span> rows.map((row: { dimension: <span class="tok-k">number</span> }) =&gt; <span class="tok-t">Number</span>(row.dimension))</span></div><div class="line" data-line="58" id="search-vector-L58"><span class="ln">58</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="search-vector 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-vector" data-lines="20-31" data-note="search-vector-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">维度参数先校验</span></div><p class="note-range">L20–31</p><div class="note-body"><p><code>Dim</code> 只接受正整数且必须与查询向量长度一致。它随后被拼进 SQL 的 <code>::halfvec(N)</code> 类型修饰符（不能绑定参数），所以这道校验是该处唯一的注入防线。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-vector" data-lines="33-43" data-note="search-vector-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">JOIN resources 时挡住软删行</span></div><p class="note-range">L33–43</p><div class="note-body"><p>向量候选从 <code>embeddings</code> 出发，JOIN <code>chunks</code> 再 JOIN <code>resources</code>，资源侧带 <code>deleted_at IS NULL</code>。</p><p>为什么 chunks 已经物理删了还要这一道？因为「软删刚发生、chunks 清理尚未完成」的窗口里，chunks 可能还在；SQL 谓词让检索从第一毫秒就不再命中。这是纵深防御，不是重复。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-vector" data-lines="45-52" data-note="search-vector-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">只交候选，不算分</span></div><p class="note-range">L45–52</p><div class="note-body"><p>相似度 <code>1 - 余弦距离</code> 在 SQL 里算好带出，但阈值过滤、RRF 名次融合归 <code>retrieve/</code>。本层只负责「按维度取 top-k 候选」。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-vector" data-lines="55-58" data-note="search-vector-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">dimensionsInStore：只数向量事实</span></div><p class="note-range">L55–58</p><div class="note-body"><p>它数的是 <code>embeddings</code> 里实际有哪些维度，不看资源是否软删。用途是检索前的混维判定；如果库不可达就抛，由调用方处置。</p></div></article></aside></div></div><div class="block" id="block-search-lexical"><h3 class="block-title">src/adapter/repo/search-lexical.ts（BM25 路软删过滤）</h3><p class="block-intro">词法路与向量路口径必须一致，否则删掉的资源还能从 BM25 漏回来。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/search-lexical.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="search-lexical">复制代码</button></div><div class="code-scroll"><div class="code" data-code="search-lexical"><div class="line" data-line="19" id="search-lexical-L19"><span class="ln">19</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> lexicalCandidates(</span></div><div class="line" data-line="20" id="search-lexical-L20"><span class="ln">20</span><span class="lc">  <span class="tok-t">Db</span>: <span class="tok-t">Pool</span>,</span></div><div class="line" data-line="21" id="search-lexical-L21"><span class="ln">21</span><span class="lc">  <span class="tok-t">QueryText</span>: <span class="tok-k">string</span>,</span></div><div class="line" data-line="22" id="search-lexical-L22"><span class="ln">22</span><span class="lc">  <span class="tok-t">Limit</span>: <span class="tok-k">number</span>,</span></div><div class="line" data-line="23" id="search-lexical-L23"><span class="ln">23</span><span class="lc">): <span class="tok-t">Promise</span>&lt;<span class="tok-t">ChunkCandidate</span>[]&gt; {</span></div><div class="line" data-line="24" id="search-lexical-L24"><span class="ln">24</span><span class="lc">  <span class="tok-k">const</span> { rows } = <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(</span></div><div class="line" data-line="25" id="search-lexical-L25"><span class="ln">25</span><span class="lc">    <span class="tok-s">`SELECT c.*, r.title AS doc_title, r.source AS source, r.data_uri AS data_uri,</span></span></div><div class="line" data-line="26" id="search-lexical-L26"><span class="ln">26</span><span class="lc">            paradedb.score(c.id) AS lexical_score</span></div><div class="line" data-line="27" id="search-lexical-L27"><span class="ln">27</span><span class="lc">       FROM chunks c</span></div><div class="line" data-line="28" id="search-lexical-L28"><span class="ln">28</span><span class="lc">       JOIN resources r ON r.id = c.resource_id AND r.deleted_at IS NULL</span></div><div class="line" data-line="29" id="search-lexical-L29"><span class="ln">29</span><span class="lc">      WHERE c.content @@@ paradedb.match_disjunction(<span class="tok-s">'content'</span>, $1)</span></div><div class="line" data-line="30" id="search-lexical-L30"><span class="ln">30</span><span class="lc">      ORDER BY lexical_score DESC</span></div><div class="line" data-line="31" id="search-lexical-L31"><span class="ln">31</span><span class="lc">      LIMIT $2<span class="tok-s">`,</span></span></div><div class="line" data-line="32" id="search-lexical-L32"><span class="ln">32</span><span class="lc">    [<span class="tok-t">QueryText</span>, <span class="tok-t">Limit</span>],</span></div><div class="line" data-line="33" id="search-lexical-L33"><span class="ln">33</span><span class="lc">  )</span></div><div class="line" data-line="34" id="search-lexical-L34"><span class="ln">34</span><span class="lc"> </span></div><div class="line" data-line="35" id="search-lexical-L35"><span class="ln">35</span><span class="lc">  <span class="tok-k">return</span> rows.map((row: <span class="tok-t">Record</span>&lt;<span class="tok-k">string</span>, <span class="tok-k">unknown</span>&gt;) =&gt; ({</span></div><div class="line" data-line="36" id="search-lexical-L36"><span class="ln">36</span><span class="lc">    chunk: rowToChunk(row),</span></div><div class="line" data-line="37" id="search-lexical-L37"><span class="ln">37</span><span class="lc">    docTitle: <span class="tok-t">String</span>(row.doc_title),</span></div><div class="line" data-line="38" id="search-lexical-L38"><span class="ln">38</span><span class="lc">    source: row.source === <span class="tok-k">null</span> ? <span class="tok-k">null</span> : <span class="tok-t">String</span>(row.source),</span></div><div class="line" data-line="39" id="search-lexical-L39"><span class="ln">39</span><span class="lc">    dataUri: <span class="tok-t">String</span>(row.data_uri),</span></div><div class="line" data-line="40" id="search-lexical-L40"><span class="ln">40</span><span class="lc">    similarity: <span class="tok-k">null</span>,</span></div><div class="line" data-line="41" id="search-lexical-L41"><span class="ln">41</span><span class="lc">    lexicalScore: <span class="tok-t">Number</span>(row.lexical_score),</span></div><div class="line" data-line="42" id="search-lexical-L42"><span class="ln">42</span><span class="lc">  }))</span></div><div class="line" data-line="43" id="search-lexical-L43"><span class="ln">43</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="search-lexical 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-lexical" data-lines="24-33" data-note="search-lexical-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">同一道 resources 谓词</span></div><p class="note-range">L24–33</p><div class="note-body"><p><code>chunks c JOIN resources r ON r.id = c.resource_id AND r.deleted_at IS NULL</code>，与向量路逐字同口径。BM25 索引建在 chunks 上，chunks 一旦被物理删，索引项也随之消失；谓词兜住删除事务尚未提交的窗口。</p><p>查询用 <code>paradedb.match_disjunction('content', $1)</code>：把问句交给索引的同一分词器，token 之间取 OR。文件头记录了裸串 <code>@@@</code> 会抛错/静默 0 命中的实测。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="search-lexical" data-lines="35-42" data-note="search-lexical-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">输出形状与向量路对齐</span></div><p class="note-range">L35–42</p><div class="note-body"><p>同样返回 <code>ChunkCandidate</code>：<code>similarity: null</code>、<code>lexicalScore</code> 有值。谁融合、谁定阈值不在这层，保证两条路可以互换/合并。</p></div></article></aside></div></div><div class="block" id="block-crud-list"><h3 class="block-title">src/routes/crud.ts（列表 / 详情 / 软删口径）</h3><p class="block-intro">现在的列表与详情不在 resources.ts，而由 hono-crud 统一生成；1.4 只保留「软删行不可见」这条语义。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/routes/crud.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="crud-list">复制代码</button></div><div class="code-scroll"><div class="code" data-code="crud-list"><div class="line" data-line="28" id="crud-list-L28"><span class="ln">28</span><span class="lc"><span class="tok-k">const</span> <span class="tok-t">Tables</span>: <span class="tok-t">TableEntry</span>[] = [</span></div><div class="line" data-line="29" id="crud-list-L29"><span class="ln">29</span><span class="lc">  {</span></div><div class="line" data-line="30" id="crud-list-L30"><span class="ln">30</span><span class="lc">    table: resources,</span></div><div class="line" data-line="31" id="crud-list-L31"><span class="ln">31</span><span class="lc">    path: <span class="tok-s">'/resources'</span>,</span></div><div class="line" data-line="32" id="crud-list-L32"><span class="ln">32</span><span class="lc">    tag: <span class="tok-s">'Resources'</span>,</span></div><div class="line" data-line="33" id="crud-list-L33"><span class="ln">33</span><span class="lc">    endpoints: {</span></div><div class="line" data-line="34" id="crud-list-L34"><span class="ln">34</span><span class="lc">      list: {</span></div><div class="line" data-line="35" id="crud-list-L35"><span class="ln">35</span><span class="lc">        filtering: { fields: [<span class="tok-s">'status'</span>, <span class="tok-s">'content_type'</span>, <span class="tok-s">'created_at'</span>, <span class="tok-s">'updated_at'</span>] },</span></div><div class="line" data-line="36" id="crud-list-L36"><span class="ln">36</span><span class="lc">        search: { fields: [<span class="tok-s">'title'</span>, <span class="tok-s">'source'</span>] },</span></div><div class="line" data-line="37" id="crud-list-L37"><span class="ln">37</span><span class="lc">        sorting: { fields: [<span class="tok-s">'created_at'</span>, <span class="tok-s">'updated_at'</span>, <span class="tok-s">'title'</span>, <span class="tok-s">'status'</span>], <span class="tok-k">default</span>: <span class="tok-s">'created_at'</span>, defaultOrder: <span class="tok-s">'desc'</span> },</span></div><div class="line" data-line="38" id="crud-list-L38"><span class="ln">38</span><span class="lc">        pagination: { defaultPerPage: <span class="tok-n">1000</span>, maxPerPage: <span class="tok-n">1000</span> },</span></div><div class="line" data-line="39" id="crud-list-L39"><span class="ln">39</span><span class="lc">      },</span></div><div class="line" data-line="40" id="crud-list-L40"><span class="ln">40</span><span class="lc">      read: {},</span></div><div class="line" data-line="41" id="crud-list-L41"><span class="ln">41</span><span class="lc">    },</span></div><div class="line" data-line="42" id="crud-list-L42"><span class="ln">42</span><span class="lc">    envelope: { listKey: <span class="tok-s">'resources'</span>, itemKey: <span class="tok-s">'resource'</span> },</span></div><div class="line" data-line="43" id="crud-list-L43"><span class="ln">43</span><span class="lc">  },</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="144" id="crud-list-L144"><span class="ln">144</span><span class="lc"><span class="tok-k">function</span> modelOf(<span class="tok-t">Table</span>: <span class="tok-k">any</span>, <span class="tok-t">Tag</span>: <span class="tok-k">string</span>) {</span></div><div class="line" data-line="145" id="crud-list-L145"><span class="ln">145</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Config</span> = getTableConfig(<span class="tok-t">Table</span>)</span></div><div class="line" data-line="146" id="crud-list-L146"><span class="ln">146</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Columns</span>: <span class="tok-k">string</span>[] = <span class="tok-t">Config</span>.columns.map((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.name)</span></div><div class="line" data-line="147" id="crud-list-L147"><span class="ln">147</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">PrimaryKeys</span>: <span class="tok-k">string</span>[] = <span class="tok-t">Config</span>.columns.filter((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.primary).map((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.name)</span></div><div class="line" data-line="148" id="crud-list-L148"><span class="ln">148</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">PrimaryKeys</span>.length === <span class="tok-n">0</span>) <span class="tok-k">throw</span> <span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`表 ${Config.name} 没有主键，hono-crud 需要 primaryKeys`</span>)</span></div><div class="line" data-line="149" id="crud-list-L149"><span class="ln">149</span><span class="lc"> </span></div><div class="line" data-line="150" id="crud-list-L150"><span class="ln">150</span><span class="lc">  <span class="tok-k">return</span> {</span></div><div class="line" data-line="151" id="crud-list-L151"><span class="ln">151</span><span class="lc">    tableName: getTableName(<span class="tok-t">Table</span>),</span></div><div class="line" data-line="152" id="crud-list-L152"><span class="ln">152</span><span class="lc">    table: <span class="tok-t">Table</span>,</span></div><div class="line" data-line="153" id="crud-list-L153"><span class="ln">153</span><span class="lc">    schema: createSelectSchema(<span class="tok-t">Table</span>),</span></div><div class="line" data-line="154" id="crud-list-L154"><span class="ln">154</span><span class="lc">    primaryKeys: <span class="tok-t">PrimaryKeys</span>,</span></div><div class="line" data-line="155" id="crud-list-L155"><span class="ln">155</span><span class="lc">    tag: <span class="tok-t">Tag</span>,</span></div><div class="line" data-line="156" id="crud-list-L156"><span class="ln">156</span><span class="lc">    ...(<span class="tok-t">Columns</span>.includes(<span class="tok-s">'deleted_at'</span>) ? { softDelete: { field: <span class="tok-s">'deleted_at'</span> } } : {}),</span></div><div class="line" data-line="157" id="crud-list-L157"><span class="ln">157</span><span class="lc">    ...(<span class="tok-t">Columns</span>.includes(<span class="tok-s">'created_at'</span>) &amp;&amp; <span class="tok-t">Columns</span>.includes(<span class="tok-s">'updated_at'</span>)</span></div><div class="line" data-line="158" id="crud-list-L158"><span class="ln">158</span><span class="lc">      ? { timestamps: { createdAt: <span class="tok-s">'created_at'</span>, updatedAt: <span class="tok-s">'updated_at'</span> } }</span></div><div class="line" data-line="159" id="crud-list-L159"><span class="ln">159</span><span class="lc">      : { timestamps: <span class="tok-k">false</span> }),</span></div><div class="line" data-line="160" id="crud-list-L160"><span class="ln">160</span><span class="lc">  }</span></div><div class="line" data-line="161" id="crud-list-L161"><span class="ln">161</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="crud-list 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="crud-list" data-lines="30-39" data-note="crud-list-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">resources 只开 list/read</span><span class="badge b-now">现状</span></div><p class="note-range">L30–39</p><div class="note-body"><p>3.1 前置重构把四张表的 CRUD 收到这里。resources 故意只开 list/read：建必须走入库管线，删必须走 1.4 的取消语义，不能交给通用 CRUD。</p><p>列表支持 status/content_type/时间过滤、title/source 搜索、排序与分页；默认每页 1000，前端概览页用得上。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="crud-list" data-lines="40" data-note="crud-list-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">GET /resources/:id 详情</span><span class="badge b-now">2.4</span></div><p class="note-range">L40</p><div class="note-body"><p>这是 2.4「来源删除提示」补丁的后端落点：前端打开引用抽屉时按需查详情，404 就显示「来源已删除 · 以下为回答时的快照」。</p><p>1.4 的 AC 只要求「看到库里有哪些资源」，没有这条详情端点；不要把快照降级算进 1.4。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="crud-list" data-lines="42-43" data-note="crud-list-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">响应信封</span></div><p class="note-range">L42–43</p><div class="note-body"><p>list 回 <code>{ resources, pagination }</code>，read 回 <code>{ resource }</code>。字段名由 <code>envelopeFor</code> 统一，路由层不再各自拼。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="crud-list" data-lines="144-161" data-note="crud-list-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">modelOf：deleted_at 交给 hono-crud 当 softDelete</span><span class="badge b-now">现状</span></div><p class="note-range">L144–161</p><div class="note-body"><p>只要表里有 <code>deleted_at</code>，就登记 <code>softDelete: { field: 'deleted_at' }</code>。hono-crud 的 list/read 默认加 <code>deleted_at IS NULL</code>，只有显式 <code>withDeleted</code> / <code>onlyDeleted</code> 才看得到已删行。</p><p>1.4 的「列表不显示已删资源」现在由这条配置承接；路由里不再手写列表 SQL。这也是为什么页面把列表标成「现状」而不是 1.4 的新代码。</p></div></article></aside></div></div><div class="block" id="block-migration-fk"><h3 class="block-title">db/migrations/20261010025742_create_core_tables.sql（FK CASCADE 源头）</h3><p class="block-intro">无孤儿向量不是靠应用层勤快，而是库级约束兜底。</p><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">db/migrations/20261010025742_create_core_tables.sql</span><span class="code-lang">SQL</span><button type="button" class="copy-code" data-copy="migration-fk">复制代码</button></div><div class="code-scroll"><div class="code" data-code="migration-fk"><div class="line" data-line="5" id="migration-fk-L5"><span class="ln">5</span><span class="lc"><span class="tok-k">CREATE</span> <span class="tok-k">TABLE</span> resources (</span></div><div class="line" data-line="6" id="migration-fk-L6"><span class="ln">6</span><span class="lc">  id           <span class="tok-k">uuid</span> <span class="tok-k">PRIMARY</span> <span class="tok-k">KEY</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">gen_random_uuid</span>(),</span></div><div class="line" data-line="7" id="migration-fk-L7"><span class="ln">7</span><span class="lc">  title        <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,</span></div><div class="line" data-line="8" id="migration-fk-L8"><span class="ln">8</span><span class="lc">  source       <span class="tok-k">text</span>,                              <span class="tok-c">-- URL 来源（粘贴则 NULL）</span></span></div><div class="line" data-line="9" id="migration-fk-L9"><span class="ln">9</span><span class="lc">  data_uri     <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,                     <span class="tok-c">-- 内容来源标识（FR-11 自动生成）</span></span></div><div class="line" data-line="10" id="migration-fk-L10"><span class="ln">10</span><span class="lc">  content_type resource_content_type <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,</span></div><div class="line" data-line="11" id="migration-fk-L11"><span class="ln">11</span><span class="lc">  status       resource_status <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-s">'processing'</span>,</span></div><div class="line" data-line="12" id="migration-fk-L12"><span class="ln">12</span><span class="lc">  error_reason <span class="tok-k">text</span>,</span></div><div class="line" data-line="13" id="migration-fk-L13"><span class="ln">13</span><span class="lc">  created_at   <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="14" id="migration-fk-L14"><span class="ln">14</span><span class="lc">  updated_at   <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="15" id="migration-fk-L15"><span class="ln">15</span><span class="lc">  deleted_at   <span class="tok-k">timestamptz</span>                        <span class="tok-c">-- 软删（FR-5）</span></span></div><div class="line" data-line="16" id="migration-fk-L16"><span class="ln">16</span><span class="lc">);</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="18" id="migration-fk-L18"><span class="ln">18</span><span class="lc"><span class="tok-k">CREATE</span> <span class="tok-k">TABLE</span> chunks (</span></div><div class="line" data-line="19" id="migration-fk-L19"><span class="ln">19</span><span class="lc">  id           <span class="tok-k">uuid</span> <span class="tok-k">PRIMARY</span> <span class="tok-k">KEY</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">gen_random_uuid</span>(),</span></div><div class="line" data-line="20" id="migration-fk-L20"><span class="ln">20</span><span class="lc">  resource_id  <span class="tok-k">uuid</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">REFERENCES</span> resources(id) <span class="tok-k">ON</span> <span class="tok-k">DELETE</span> <span class="tok-k">CASCADE</span>,</span></div><div class="line" data-line="21" id="migration-fk-L21"><span class="ln">21</span><span class="lc">  resource_uri <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,</span></div><div class="line" data-line="22" id="migration-fk-L22"><span class="ln">22</span><span class="lc">  chunk_index  int  <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,</span></div><div class="line" data-line="23" id="migration-fk-L23"><span class="ln">23</span><span class="lc">  content      <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,</span></div><div class="line" data-line="24" id="migration-fk-L24"><span class="ln">24</span><span class="lc">  start_offset int,</span></div><div class="line" data-line="25" id="migration-fk-L25"><span class="ln">25</span><span class="lc">  end_offset   int,</span></div><div class="line" data-line="26" id="migration-fk-L26"><span class="ln">26</span><span class="lc">  created_at   <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="27" id="migration-fk-L27"><span class="ln">27</span><span class="lc">  updated_at   <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="28" id="migration-fk-L28"><span class="ln">28</span><span class="lc">  deleted_at   <span class="tok-k">timestamptz</span></span></div><div class="line" data-line="29" id="migration-fk-L29"><span class="ln">29</span><span class="lc">);</span></div><div class="line" data-line="30" id="migration-fk-L30"><span class="ln">30</span><span class="lc"><span class="tok-k">CREATE</span> <span class="tok-k">INDEX</span> chunks_resource_idx <span class="tok-k">ON</span> chunks(resource_id);</span></div><div class="line" data-line="31" id="migration-fk-L31"><span class="ln">31</span><span class="lc"> </span></div><div class="line" data-line="32" id="migration-fk-L32"><span class="ln">32</span><span class="lc"><span class="tok-k">CREATE</span> <span class="tok-k">TABLE</span> embeddings (</span></div><div class="line" data-line="33" id="migration-fk-L33"><span class="ln">33</span><span class="lc">  id          <span class="tok-k">uuid</span> <span class="tok-k">PRIMARY</span> <span class="tok-k">KEY</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">gen_random_uuid</span>(),</span></div><div class="line" data-line="34" id="migration-fk-L34"><span class="ln">34</span><span class="lc">  source_id   <span class="tok-k">uuid</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">REFERENCES</span> chunks(id) <span class="tok-k">ON</span> <span class="tok-k">DELETE</span> <span class="tok-k">CASCADE</span>,  <span class="tok-c">-- 关联 chunk（AD-3 分表）</span></span></div><div class="line" data-line="35" id="migration-fk-L35"><span class="ln">35</span><span class="lc">  source_type <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-s">'chunk'</span>,</span></div><div class="line" data-line="36" id="migration-fk-L36"><span class="ln">36</span><span class="lc">  dim         int  <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,                      <span class="tok-c">-- 记录维度，供 NFR-6 校验</span></span></div><div class="line" data-line="37" id="migration-fk-L37"><span class="ln">37</span><span class="lc">  model       <span class="tok-k">text</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,                      <span class="tok-c">-- 记录产向量的模型</span></span></div><div class="line" data-line="38" id="migration-fk-L38"><span class="ln">38</span><span class="lc">  embedding   halfvec(<span class="tok-n">1024</span>) <span class="tok-k">NOT</span> <span class="tok-k">NULL</span>,             <span class="tok-c">-- AD-4：锁 1024 维</span></span></div><div class="line" data-line="39" id="migration-fk-L39"><span class="ln">39</span><span class="lc">  created_at  <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="40" id="migration-fk-L40"><span class="ln">40</span><span class="lc">  updated_at  <span class="tok-k">timestamptz</span> <span class="tok-k">NOT</span> <span class="tok-k">NULL</span> <span class="tok-k">DEFAULT</span> <span class="tok-k">now</span>(),</span></div><div class="line" data-line="41" id="migration-fk-L41"><span class="ln">41</span><span class="lc">  deleted_at  <span class="tok-k">timestamptz</span></span></div><div class="line" data-line="42" id="migration-fk-L42"><span class="ln">42</span><span class="lc">);</span></div></div></div></div><aside class="notes" aria-label="migration-fk 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="migration-fk" data-lines="5-16" data-note="migration-fk-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">resources.deleted_at：软删的落点</span><span class="badge b-pre">前置</span></div><p class="note-range">L5–16</p><div class="note-body"><p>建表时就留了 <code>deleted_at timestamptz</code>。1.4 的软删只是往这一列写时间戳；行本身不删，所以历史引用、审计都还有得查。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="migration-fk" data-lines="18-30" data-note="migration-fk-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">chunks.resource_id → resources ON DELETE CASCADE</span><span class="badge b-pre">前置</span></div><p class="note-range">L18–30</p><div class="note-body"><p>chunks 是物理删的：<code>DELETE FROM chunks WHERE resource_id = ...</code>。反过来，如果哪天真的硬删 resources 行，chunks 也会被级联带走。</p><p>注意：1.4 的软删<strong>不会</strong>触发这条资源的 CASCADE（因为行还在），所以应用层必须显式删 chunks；embeddings 的级联才是自动的。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="migration-fk" data-lines="32-42" data-note="migration-fk-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">embeddings.source_id → chunks ON DELETE CASCADE</span><span class="badge b-pre">前置</span></div><p class="note-range">L32–42</p><div class="note-body"><p>删 chunks 时，embeddings 自动消失。这就是「无孤儿向量」的库级保证，也是 handoff 里那条全库核对 SQL 的依据。</p><p>本迁移里的列名是 <code>dim</code>，后续迁移 <code>20261010060331_rename_embedding_dim_to_dimension.sql</code> 改成了 <code>dimension</code>；读当前代码时以 <code>dimension</code> 为准，别被这条历史 DDL 误导。</p></div></article></aside></div></div></section>
+
+<section class="section" id="decisions-and-pitfalls">
+  <header class="section-head">
+    <span class="kicker">TRADEOFFS · 07</span>
+    <h2>关键取舍与踩过的坑</h2>
+    <p class="section-sub">这一节回答「为什么不是另一种写法」，以及哪些坑是实测出来的、不是推演出来的。</p>
+  </header>
+
+  <div class="choice-grid">
+    <div class="choice">
+      <span class="choice-no">01</span>
+      <h3>软删 resources + 物理删 chunks</h3>
+      <p>资源行要留痕（历史引用、审计、排障），所以只写 <code>deleted_at</code>；检索数据要立刻消失，所以 chunks 真删。两者放同一事务，避免「列表里没了但还搜得到」或「搜不到了但列表还在」。</p>
+      <p><strong>否掉了：</strong>整行硬删（历史引用失去锚点）、chunks 也软删（BM25/HNSW 索引里仍留数据，检索必须再加一层过滤，且索引会膨胀）。</p>
+    </div>
+    <div class="choice">
+      <span class="choice-no">02</span>
+      <h3>取消开关归服务端，不归 HTTP 连接</h3>
+      <p>管线自己 <code>new AbortController()</code>，按 resourceId 登记。任意请求都能按，客户端断连不再是否决票。</p>
+      <p><strong>为什么：</strong>客户端断连就取消，会让「批量上传后关页面」变成灾难；防泄漏改由三条服务端腿保证：inflight.abort、fetch/embed 各自的 30s 超时、启动清扫。</p>
+    </div>
+    <div class="choice">
+      <span class="choice-no">03</span>
+      <h3><code>/abort</code> 只取消不删除</h3>
+      <p>取消是「停止任务」，删除是「移除资源」，两个意图分开。abort 成功回 202，行稍后转 failed(入库取消) 但仍在列表里；用户想清掉再按 DELETE。</p>
+      <p><strong>否掉了：</strong>abort 顺手软删（会让「取消」变成不可逆的破坏性动作，也混淆两个 AC）。</p>
+    </div>
+    <div class="choice">
+      <span class="choice-no">04</span>
+      <h3>DELETE 遇 processing 先 abort 再软删</h3>
+      <p>顺序反了会给已删资源补写一批 chunks。先按取消把窗口缩到最小，再进软删事务；软删事务里的 <code>deleted_at</code> 谓词负责兜住残余竞态。</p>
+      <p><strong>按不下去怎么办：</strong>（重启遗留/异进程）当前代码用 <code>updateResourceStatus(id, 'failed', '入库中断')</code> 自己收口，避免留下永远 processing 的行。</p>
+    </div>
+  </div>
+
+  <ul class="pitfall-list">
+    <li><strong>真实坑 C1：取消落在写入期，事务已提交成 ready。</strong>写入不是可中断的：pg 调用不吃 signal，写入前最后一次检查之后，取消仍可能落下。修复是写完再查 <code>Signal.aborted</code>，走 <code>cancelled()</code> 撤回。复现序列：<code>processing/chunks=0 → ready/chunks=16 → ready/chunks=0 → failed/chunks=0/入库取消</code>。中间那帧 ready 就是 bug 本身——202 承诺了「不会转为已就绪」，但只 abort 不删除时 <code>deleted_at</code> 仍为 NULL，写守卫谓词通过，事务照常提交。</li>
+    <li><strong>死锁断言被 200 轮实测否证，不是「没遇到」。</strong>review 原推理：写入方 INSERT chunks → UPDATE resources，软删方 UPDATE resources → DELETE chunks，锁顺序相反 ⇒ 环等待。实测漏了一步：<code>INSERT INTO chunks</code> 会因外键先对父 resources 行加 KEY SHARE 锁，父行成为唯一排队点；两个方向都只有一把锁要排，环闭合不了。两个顺序各 100 轮（共 200 轮），<code>40P01</code> 死锁 0 次、<code>57014</code> 超时 0 次。</li>
+    <li><strong>真正换名字的残余风险：DELETE 会等整个写入事务。</strong>场景一证明 DELETE 会阻塞到写入 COMMIT。16 块 &lt;1ms 无感；等到几千块、INSERT 参数逼近 65535，写入事务可达数秒，DELETE 会撞 <code>query_timeout: 5000</code> 报 500 <code>E_DELETE</code>。用户看到「删除失败」，但 abort 其实已按下、行随后照样转 failed——取消成功了，删除没有。归口在「写入分批」，不是本轮的锁问题。</li>
+    <li><strong>写守卫只救「删除 + 写入」，救不了「只取消不删除」。</strong><code>AND deleted_at IS NULL</code> 的前提是有人写 <code>deleted_at</code>；<code>/abort</code> 不写。别看到守卫就以为取消路径也安全——这是 C1 存在的根因，也是 review 反向收获。</li>
+    <li><strong>登记只在内存，跨进程/重启即失效。</strong>第二个进程或重启后 <code>/abort</code> 诚实回 409 <code>E_NOT_INFLIGHT</code>；最终收口靠启动清扫或 DELETE 的「入库中断」分支。Redis 存不了 <code>AbortController</code>（进程内活对象，序列化即失效），跨进程只能传「取消意图」，所以本地 Map 无论如何都在。</li>
+    <li><strong>取消延迟有下限：同步 parse/chunk 是地板。</strong>parser 与 chunker 是同步的，这段时间事件循环被占，连 DELETE/abort 请求本身都进不来；只能在异步边界观测取消，最坏要等当前同步段或写事务跑完。</li>
+  </ul>
+</section>
+
+<section class="section" id="verification-commands">
+  <header class="section-head">
+    <span class="kicker">VERIFY · 08</span>
+    <h2>可复制的验证命令</h2>
+    <p class="section-sub">每条都标了证据等级：<strong>历史真跑过</strong>（2026-10-13 收口时真库 + Ollama + 真 URL）或<strong>代码路径存在、本轮未重跑</strong>。本轮只做静态校验，没有起服务、没有动数据库。</p>
+  </header>
+
+  <div class="callout strong">
+    <strong>先准备：</strong>以下命令默认在 <code>app/server</code> 下执行，服务跑在 <code>127.0.0.1:3000</code>，<code>DATABASE_URL</code> 已在 <code>.env</code>。先 <code>set -a; . ./.env; set +a</code> 把连接串导入 shell。命令会读写本地库，别对非测试库执行。
+  </div>
+
+  <div class="test-grid">
+    <div class="test-card">
+      <h3>1. 删一条 ready 资源：204 + 留痕 + 0 chunks</h3>
+      <p class="test-note">历史真跑过（build1，真库）。</p>
+      <pre class="snippet"><code>cd app/server
+set -a; . ./.env; set +a
+ID=$(psql "$DATABASE_URL" -Atc "SELECT id FROM resources WHERE status='ready' AND deleted_at IS NULL LIMIT 1")
+[ -n "$ID" ] || { echo 'no ready resource'; exit 1; }
+psql "$DATABASE_URL" -c "SELECT count(*) AS chunks_before FROM chunks WHERE resource_id='$ID'"
+curl -i -X DELETE "http://127.0.0.1:3000/resources/$ID"
+# 期望 204，无 body
+psql "$DATABASE_URL" -c "SELECT status, deleted_at IS NOT NULL AS deleted FROM resources WHERE id='$ID'"
+# 期望 ready | t（行还在，只打时间戳）
+psql "$DATABASE_URL" -c "SELECT (SELECT count(*) FROM chunks WHERE resource_id='$ID') AS chunks, (SELECT count(*) FROM embeddings e JOIN chunks c ON c.id=e.source_id WHERE c.resource_id='$ID') AS embeddings"
+# 期望 0 | 0
+psql "$DATABASE_URL" -c "SELECT count(*) AS orphan_vectors FROM embeddings e LEFT JOIN chunks c ON c.id=e.source_id WHERE c.id IS NULL"
+# 期望 0</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>2. 删 processing 资源：先 abort，再软删</h3>
+      <p class="test-note">历史真跑过（build2，真 URL 入库中 DELETE）：204，行 <code>failed | 入库取消</code>、<code>deleted_at</code> 已置、chunks 0。下面用 SQL 造行，属于「代码路径存在、本轮未重跑」。</p>
+      <pre class="snippet"><code>ID=$(psql "$DATABASE_URL" -Atc "INSERT INTO resources (title, data_uri, content_type, status) VALUES ('probe-processing','urn:kc:probe:del','plaintext','processing') RETURNING id")
+curl -i -X DELETE "http://127.0.0.1:3000/resources/$ID"
+# 期望 204
+psql "$DATABASE_URL" -c "SELECT status, error_reason, deleted_at IS NOT NULL AS deleted FROM resources WHERE id='$ID'"
+# 无 inflight 登记（探针行）：期望 failed | 入库中断 | t
+# 真入库中：期望 failed | 入库取消 | t
+psql "$DATABASE_URL" -c "DELETE FROM resources WHERE id='$ID'"  # 清理探针</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>3. abort 一条 processing：202 + 行稍后转 failed</h3>
+      <p class="test-note">历史真跑过（build2）：202；2s 内该行 <code>failed | 入库取消</code>、chunks 0、<strong>未软删</strong>。需要一条真在跑的任务；SQL 造的探针行没有登记，会回 409。</p>
+      <pre class="snippet"><code>ID=$(psql "$DATABASE_URL" -Atc "SELECT id FROM resources WHERE status='processing' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1")
+curl -i -X POST "http://127.0.0.1:3000/resources/$ID/abort"
+# 期望 202 {"message":"取消已按下，任务不会转为已就绪，将在当前长操作结束后转 failed","resource_id":"..."}
+sleep 2
+psql "$DATABASE_URL" -c "SELECT status, error_reason, deleted_at IS NOT NULL AS deleted FROM resources WHERE id='$ID'"
+# 期望 failed | 入库取消 | f
+psql "$DATABASE_URL" -c "SELECT count(*) FROM chunks WHERE resource_id='$ID'"  # 0</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>4. abort 的三种按不下去</h3>
+      <p class="test-note">核心状态码历史真跑过（build2）；ec36c9e 把 <code>E_NOT_ABORTABLE</code> 拆成 <code>E_NOT_PROCESSING</code> / <code>E_NOT_INFLIGHT</code> 属代码路径、本轮未重跑。</p>
+      <pre class="snippet"><code># ready 行
+curl -i -X POST "http://127.0.0.1:3000/resources/$READY_ID/abort"
+# 期望 409 E_NOT_PROCESSING
+# 已软删行 / 不存在
+curl -i -X POST "http://127.0.0.1:3000/resources/$DELETED_ID/abort"
+# 期望 404 E_NOT_FOUND
+# 垃圾 id
+curl -i -X POST "http://127.0.0.1:3000/resources/not-a-uuid/abort"
+# 期望 400 E_BAD_ID
+# processing 但不在本进程登记（重启遗留）
+# 期望 409 E_NOT_INFLIGHT，body 带重读后的 status</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>5. 列表不再返回软删行</h3>
+      <p class="test-note">代码路径存在、本轮未重跑。当前列表由 hono-crud 按 <code>softDelete</code> 配置自动加 <code>deleted_at IS NULL</code>；1.4 时是手写列表 SQL，语义相同。</p>
+      <pre class="snippet"><code>ID=$(psql "$DATABASE_URL" -Atc "SELECT id FROM resources WHERE deleted_at IS NOT NULL LIMIT 1")
+curl -s "http://127.0.0.1:3000/resources?per_page=1000" | jq -r '.resources[].id' | grep -x "$ID"   && echo 'FAIL: 已删资源出现在列表' || echo 'OK: 列表不含已删资源'
+psql "$DATABASE_URL" -c "SELECT count(*) AS active FROM resources WHERE deleted_at IS NULL"</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>6. 检索不再命中已删资源</h3>
+      <p class="test-note">代码路径存在、本轮未重跑。删除后 chunks 已物理删，SQL 还有 <code>deleted_at</code> 谓词；两条路都不该再返回这个 resourceId。</p>
+      <pre class="snippet"><code>ID=$(psql "$DATABASE_URL" -Atc "SELECT id FROM resources WHERE deleted_at IS NOT NULL LIMIT 1")
+curl -s -X POST http://127.0.0.1:3000/retrieve   -H 'content-type: application/json'   -d '{"query":"被删资源里的独特词","limit":10}'   | jq --arg id "$ID" '[.hits[] | select(.resourceId == $id)] | length'
+# 期望 0。若问句本身没命中任何东西，hits 为空也正常；
+# 关键断言是「已删 id 不出现」，不是「hits 必须非空」。</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>7. 类型检查与测试</h3>
+      <p class="test-note">历史真跑过：1.4 收口时 <code>tsc --noEmit</code> EXIT=0、<code>vitest</code> 8 passed；2026-10-23 记录为 9 文件 / 31 条全绿。本轮未重跑。</p>
+      <pre class="snippet"><code>cd app/server
+npx tsc --noEmit
+npx vitest run
+# 注意：这 8/31 条并不覆盖删除与取消本身。
+# review F1–F5 的结论是：把写守卫、inflight.add/remove、/abort 相关代码删掉，
+# 现有测试仍会全绿——本 story 的行为证据主要是人工 curl + 已删除的探针脚本。</code></pre>
+    </div>
+
+    <div class="test-card">
+      <h3>8. 全库孤儿向量核对</h3>
+      <p class="test-note">历史真跑过（handoff build2）：探针行全清后，库回到 1 行 / 27 chunks / 27 embeddings，孤儿向量 0。</p>
+      <pre class="snippet"><code>psql "$DATABASE_URL" -c "
+SELECT
+  (SELECT count(*) FROM resources WHERE deleted_at IS NULL) AS active_resources,
+  (SELECT count(*) FROM chunks) AS chunks,
+  (SELECT count(*) FROM embeddings) AS embeddings,
+  (SELECT count(*) FROM embeddings e LEFT JOIN chunks c ON c.id = e.source_id WHERE c.id IS NULL) AS orphan_vectors
+"
+# orphan_vectors 期望 0</code></pre>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>不能复跑的证据：</strong>review 里那两次撞锁探针（<code>tmp-lockorder-probe.ts</code>、<code>tmp-abort-window-probe.ts</code>）跑完即删，200 轮死锁否证与 C1 的 2ms 采样序列只留在 review 文本里。它们是历史实测结论，不是本轮可复制的命令。
+  </div>
+</section>
+
+<section class="section" id="story-continuity">
+  <header class="section-head">
+    <span class="kicker">CONTINUITY · 09</span>
+    <h2>与前后 story 的衔接</h2>
+    <p class="section-sub">1.4 把「删除 + 取消」的地基交出去，后面的检索、引用降级、观测都踩在它上面。</p>
+  </header>
+
+  <div class="flow-map">
+    <div class="flow-card">
+      <h3>上一格交进来</h3>
+      <ul class="flow-list">
+        <li><span>1.1</span><code>resources/chunks/embeddings 建表 + FK CASCADE + 启动清扫</code></li>
+        <li><span>1.2</span><code>入库管线支持 AbortController</code></li>
+        <li><span>1.3</span><code>粘贴 Markdown/纯文本复用同一管线</code></li>
+      </ul>
+    </div>
+    <div class="flow-card">
+      <h3>这一格交出去</h3>
+      <ul class="flow-list">
+        <li><span>软删语义</span><code>deleted_at 留痕，chunks 物理删</code></li>
+        <li><span>取消语义</span><code>进程级 inflight + /abort 202</code></li>
+        <li><span>写守卫</span><code>deleted_at 谓词 + 写后撤回</code></li>
+        <li><span>检索口径</span><code>两条候选 SQL 都带软删谓词</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <ul class="pitfall-list">
+    <li><strong>→ 2.1 混合检索：</strong>「检索不得命中已软删资源」从 1.4 的写侧保证，升级为读侧 SQL 谓词（<code>search-vector.ts</code> / <code>search-lexical.ts</code>）。有了这条，取消信号与 409 类闸门从「必须」降级成「锦上添花」。</li>
+    <li><strong>→ 2.3 / 2.4 引用与原文回链：</strong>历史回答的引用不能依赖被删的 chunk 行。快照在写入时已内嵌进 messages；<code>GET /resources/:id</code> 返回 404 时前端显示「来源已删除」，内容仍可读。这条详情端点是 2.4 补丁，不是 1.4。</li>
+    <li><strong>→ 3.4 ingest 五段：</strong><code>runStage</code> 把 fetch/parse/chunk/embed/write 包成可观测阶段。取消/超时的行为不变，但日志与 trace_stages 能看到卡在哪一段。页面里相关行都带 <code>3.4</code> 徽章。</li>
+    <li><strong>→ Epic 2 DI：</strong>路由/工厂从「构造函数吃 deps 对象」改成 tsyringe 注入。<code>InflightRegistry</code> 仍是 <code>@singleton()</code>，工厂与路由共用同一实例——这条绑定不变，只是注入方式变了。</li>
+    <li><strong>→ 后续界面：</strong>删除/取消按钮与列表轮询在 2026-10-14 界面轮接上（<code>frontend-deferred.md</code> 已记闭合）。它们不是 1.4 的验收证据；本 story 收口时仍以 API + SQL 为准。</li>
+    <li><strong>→ P3 队列化：</strong>跨进程取消的终局是「从队列撤任务」，<code>InflightRegistry</code> 这一层可整体退役。Redis 存不了 <code>AbortController</code>，别走「把 Map 搬进 Redis」的回头路。</li>
+  </ul>
+
+  <div class="next-box">
+    <p><strong>一句话带走：</strong>删除的难点不在 DELETE 语句，而在「取消可能落在写入期」和「软删后索引里不能留数据」。1.4 用「先 abort、写后复查、同事务物理删 chunks、FK CASCADE、检索再过滤」五道防线把这两件事钉住；后面的 story 只是在这个地基上加读取与观测。</p>
+    <div class="next-links">
+      <a href="#conclusion-and-boundary">回到边界</a>
+      <a href="#decisions-and-pitfalls">再看坑</a>
+      <a href="#verification-commands">跑验证</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Story 1.4 走读页 · 代码来自 2026-10-24 当前工作区 · 生成配置与校验记录在 <code>_Agents/walkthroughs/.runs/epic1-story4/</code>。历史实测以 handoff / review 原文为准；本轮只做静态校验，未起服务、未动数据库。</p>
+</footer>
+</main>
+</div>
+<button type="button" class="to-top" id="to-top" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var progress = document.getElementById('progress');
+  var toTop = document.getElementById('to-top');
+  var themeToggle = document.getElementById('theme-toggle');
+  var expandAll = document.getElementById('expand-all');
+  var expanded = false;
+
+  function readTheme() {
+    try {
+      var saved = localStorage.getItem('story-walkthrough-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
+    try { localStorage.setItem('story-walkthrough-theme', theme); } catch (e) {}
+  }
+
+  applyTheme(readTheme());
+
+  themeToggle.addEventListener('click', function () {
+    applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  function onScroll() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = max > 0 ? window.scrollY / max : 0;
+    progress.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+    toTop.classList.toggle('show', window.scrollY > 600);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function codeOf(id) {
+    return document.querySelector('.code[data-code="' + id + '"]');
+  }
+
+  function clearHighlights(id) {
+    var code = codeOf(id);
+    if (!code) return;
+    code.querySelectorAll('.line.hl').forEach(function (line) { line.classList.remove('hl'); });
+  }
+
+  function parseLines(spec) {
+    var set = new Set();
+    spec.split(',').forEach(function (part) {
+      var bits = part.trim().split('-').map(Number);
+      if (bits.length === 2 && isFinite(bits[0]) && isFinite(bits[1])) {
+        for (var i = bits[0]; i <= bits[1]; i += 1) set.add(i);
+      } else if (bits.length === 1 && isFinite(bits[0])) {
+        set.add(bits[0]);
+      }
+    });
+    return set;
+  }
+
+  function highlight(id, spec, scroll) {
+    var code = codeOf(id);
+    if (!code) return;
+    clearHighlights(id);
+    var numbers = parseLines(spec);
+    var first = null;
+    numbers.forEach(function (n) {
+      var line = code.querySelector('.line[data-line="' + n + '"]');
+      if (line) {
+        line.classList.add('hl');
+        if (first === null) first = line;
+      }
+    });
+    if (first && scroll !== false) {
+      var scroller = code.closest('.code-scroll');
+      if (scroller) {
+        var top = first.offsetTop - Math.round(scroller.clientHeight * 0.28);
+        scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+  }
+
+  document.querySelectorAll('.note').forEach(function (note) {
+    function activate() {
+      var id = note.getAttribute('data-code');
+      var lines = note.getAttribute('data-lines');
+      document.querySelectorAll('.note.active').forEach(function (n) { n.classList.remove('active'); n.setAttribute('aria-pressed', 'false'); });
+      note.classList.add('active');
+      note.setAttribute('aria-pressed', 'true');
+      highlight(id, lines, true);
+    }
+    note.addEventListener('click', activate);
+    note.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        activate();
+      }
+    });
+  });
+
+  document.querySelectorAll('.journey-step').forEach(function (step) {
+    step.addEventListener('click', function () {
+      var target = step.getAttribute('data-goto');
+      var bits = target.split(':');
+      var id = bits[0];
+      var lines = bits[1];
+      var code = codeOf(id);
+      if (!code) return;
+      var section = code.closest('.section');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(function () { highlight(id, lines, true); }, 260);
+    });
+  });
+
+  document.querySelectorAll('.copy-code').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var id = button.getAttribute('data-copy');
+      var code = codeOf(id);
+      if (!code) return;
+      var text = Array.from(code.querySelectorAll('.line[data-line] .lc')).map(function (line) {
+        return line.textContent;
+      }).join('\n');
+      var done = function () {
+        var old = button.textContent;
+        button.textContent = '已复制';
+        window.setTimeout(function () { button.textContent = old; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        });
+      } else {
+        try {
+          var area = document.createElement('textarea');
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          document.body.removeChild(area);
+          done();
+        } catch (e) {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        }
+      }
+    });
+  });
+
+  expandAll.addEventListener('click', function () {
+    expanded = !expanded;
+    document.querySelectorAll('.code-scroll').forEach(function (scroller) {
+      scroller.style.maxHeight = expanded ? 'none' : '';
+    });
+    expandAll.textContent = expanded ? '收起代码' : '展开代码';
+  });
+
+  var tocLinks = Array.from(document.querySelectorAll('#toc a'));
+  var sections = tocLinks.map(function (link) {
+    return document.getElementById(link.getAttribute('data-toc'));
+  }).filter(Boolean);
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(function (link) {
+          var active = link.getAttribute('data-toc') === entry.target.id;
+          link.classList.toggle('active', active);
+        });
+      });
+    }, { rootMargin: '-18% 0px -70% 0px', threshold: 0.01 });
+    sections.forEach(function (section) { observer.observe(section); });
+  }
+})();
+</script>
+<script src="anim/story-link.js?v=20261026p" defer></script>
+<script src="anim/stories.js?v=20261026s"></script>
+<script src="anim/story-guide.js?v=20261026s"></script>
+</body>
+</html>

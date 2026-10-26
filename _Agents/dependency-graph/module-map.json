@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "description": "Logical modules for the code graph. Every source file maps to exactly one module; longer paths win.",
+  "modules": [
+    {
+      "module_id": "web",
+      "label": "Web",
+      "layer": "presentation",
+      "paths": ["app/web/src"]
+    },
+    {
+      "module_id": "routes",
+      "label": "Routes",
+      "layer": "interface",
+      "paths": ["app/server/src/routes"]
+    },
+    {
+      "module_id": "agent",
+      "label": "Agent",
+      "layer": "application",
+      "paths": ["app/server/src/agent"]
+    },
+    {
+      "module_id": "retrieve",
+      "label": "Retrieve",
+      "layer": "application",
+      "paths": ["app/server/src/retrieve"]
+    },
+    {
+      "module_id": "ingest",
+      "label": "Ingest",
+      "layer": "application",
+      "paths": ["app/server/src/ingest"]
+    },
+    {
+      "module_id": "adapter",
+      "label": "Adapter",
+      "layer": "infrastructure",
+      "paths": ["app/server/src/adapter"]
+    },
+    {
+      "module_id": "trace",
+      "label": "Trace",
+      "layer": "infrastructure",
+      "paths": ["app/server/src/trace"]
+    },
+    {
+      "module_id": "core",
+      "label": "Core",
+      "layer": "infrastructure",
+      "paths": ["app/server/src/config.ts", "app/server/src/index.ts"]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6f5072f7-43f9-4429-9504-b0ec327b66dd",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-citations-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-citations-20261024-235659/citations.html",
+  "specification": {
+    "sha256": "5db15c21ed3a644dcfb5681e4c03585e592076e477ac92ddf591e5cb2fd9fbf9",
+    "bytes": 2732
+  },
+  "artifact": {
+    "sha256": "d2a1989353fb76e3637e8b3292d6ceab0bf40580f222718a5b84923fd82d7aff",
+    "bytes": 812355
+  }
+}

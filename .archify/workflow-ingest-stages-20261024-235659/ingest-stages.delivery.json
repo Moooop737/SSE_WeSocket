@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7039e5d5-300a-4b69-a7e9-dba4d19d8aed",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-ingest-stages-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-ingest-stages-20261024-235659/ingest-stages.html",
+  "specification": {
+    "sha256": "ffa3148ffb013134b85946c3422549fbb2708e606e1e408a8e1692d3dfb85c27",
+    "bytes": 4476
+  },
+  "artifact": {
+    "sha256": "59a44c4297a0618d0ff483a06dab93ad9c816eb3513909c8a49fd9e5210276eb",
+    "bytes": 824495
+  }
+}

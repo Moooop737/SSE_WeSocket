@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Copilot · 依赖图</title>
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --panel: #101114;
+    --panel-2: #15171b;
+    --line: #23262c;
+    --text: #e6e8ec;
+    --muted: #8b919c;
+    --accent: #f5f5f5;
+    --server: #f0a35e;
+    --web: #5ec8d8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.45 ui-sans-serif, -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    overflow: hidden;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(16,17,20,.92);
+    backdrop-filter: blur(10px);
+  }
+  .brand { font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .brand span { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
+  .views { display: flex; gap: 2px; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+  .views button {
+    appearance: none; border: 0; background: transparent; color: var(--muted);
+    padding: 5px 11px; border-radius: 6px; font: inherit; cursor: pointer;
+  }
+  .views button.active { background: #2a2d33; color: var(--text); }
+  .search { flex: 1; max-width: 360px; position: relative; }
+  .search input {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 7px; padding: 7px 10px 7px 28px; font: inherit; outline: none;
+  }
+  .search input:focus { border-color: #4b5563; }
+  .search::before { content: "⌕"; position: absolute; left: 9px; top: 5px; color: var(--muted); font-size: 15px; }
+  .ghost {
+    appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    padding: 6px 10px; border-radius: 7px; font: inherit; cursor: pointer; white-space: nowrap;
+  }
+  .ghost:hover { color: var(--text); border-color: #3a3f47; }
+  main { display: grid; grid-template-columns: 258px 1fr 330px; min-height: 0; }
+  aside { background: var(--panel); overflow-y: auto; }
+  .left { border-right: 1px solid var(--line); padding: 14px 12px 40px; }
+  .right { border-left: 1px solid var(--line); padding: 14px 14px 40px; }
+  aside::-webkit-scrollbar { width: 8px; }
+  aside::-webkit-scrollbar-thumb { background: #24272d; border-radius: 4px; }
+  section { margin-bottom: 20px; }
+  h3 {
+    margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted);
+  }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 12px; }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-direction: column; gap: 3px; max-height: 208px; overflow-y: auto; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #c3c7ce; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+  .legend-row:hover { background: var(--panel-2); }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .legend-row em { margin-left: auto; color: var(--muted); font-style: normal; font-size: 11px; }
+  .edge-legend { display: grid; gap: 4px; font-size: 12px; color: #c3c7ce; }
+  .edge-legend div { display: flex; align-items: center; gap: 8px; }
+  .edge-legend i { width: 22px; height: 0; border-top: 2px solid; flex: none; }
+  .checks { display: grid; gap: 7px; font-size: 12px; color: #c3c7ce; }
+  .checks label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .checks input { accent-color: #9ca3af; margin: 0; }
+  .hint { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+  .seq { margin-top: 10px; border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: #0c0e12; }
+  .seq-title { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .seq-parts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .seq-part { font: inherit; font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: #15171b; color: var(--text); cursor: pointer; }
+  .seq-part.resolved { border-color: #326b3a; color: #9ef0a8; }
+  .seq-part.external { color: var(--muted); border-style: dashed; cursor: default; }
+  .seq-part.unresolved { color: #f2777a; border-color: #6e2a2c; cursor: default; }
+  .seq-msgs { display: grid; gap: 1px; }
+  .seq-msg { display: grid; grid-template-columns: 82px 16px 1fr 82px; gap: 3px; align-items: center; width: 100%; text-align: left; border: 0; border-top: 1px solid #1a1d22; background: none; color: #c8cdd5; font: inherit; font-size: 11.5px; padding: 5px 2px; cursor: default; }
+  .seq-msg.resolved { cursor: pointer; }
+  .seq-msg.resolved:hover { background: #15171b; }
+  .seq-msg .arrow { color: #9ef0a8; text-align: center; }
+  .seq-msg .label { color: var(--text); }
+  .seq-msg .from, .seq-msg .to { color: var(--muted); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; }
+  .seq-msg.external { opacity: .7; }
+  .seq-msg.unresolved { opacity: .45; }
+  .match-list { display: grid; gap: 2px; }
+  .match {
+    text-align: left; border: 0; background: transparent; color: #c3c7ce; font: inherit;
+    padding: 4px 6px; border-radius: 5px; cursor: pointer; display: block; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .match:hover { background: var(--panel-2); color: var(--text); }
+  .match small { color: var(--muted); margin-left: 6px; }
+  .ext { display: grid; gap: 4px; font-size: 12px; }
+  .ext div { display: flex; justify-content: space-between; gap: 8px; color: #c3c7ce; }
+  .ext b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cycle { border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; margin-bottom: 6px; font-size: 11.5px; color: #b7bcc5; line-height: 1.5; }
+  .cycle button { border: 0; background: none; color: #d9dde3; font: inherit; padding: 0; cursor: pointer; }
+  .cycle button:hover { text-decoration: underline; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  #hint {
+    position: absolute; left: 14px; bottom: 12px; color: #6f7580; font-size: 11.5px;
+    pointer-events: none; user-select: none;
+  }
+  #tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: rgba(20,22,26,.96); border: 1px solid #30343b; border-radius: 6px;
+    padding: 5px 8px; font-size: 11.5px; color: var(--text); max-width: 340px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  #tooltip small { color: var(--muted); display: block; }
+  .empty { color: var(--muted); font-size: 12px; padding-top: 6px; }
+  .node-title { font-size: 15px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 12px; }
+  .badge { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.exported { color: #a7f3d0; border-color: #1f6f55; }
+  .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #aeb4bd; word-break: break-all; }
+  .detail-sub { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  .edge-list { display: grid; gap: 2px; }
+  .edge-item {
+    display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left;
+    border: 0; background: transparent; color: #c9cdd4; font: inherit; cursor: pointer;
+    padding: 3px 5px; border-radius: 4px; font-size: 12px;
+  }
+  .edge-item:hover { background: var(--panel-2); color: var(--text); }
+  .edge-item .kind { font-size: 10px; color: var(--muted); flex: none; }
+  .edge-item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .edge-item .count { margin-left: auto; color: var(--muted); font-size: 10.5px; flex: none; }
+  .method { border-top: 1px solid var(--line); padding: 8px 0; }
+  .method-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #d7dbe1; }
+  .method .edge-list { margin-top: 4px; padding-left: 8px; border-left: 1px solid #262a30; }
+  .file-link { border: 0; background: none; color: #93c5fd; font: inherit; padding: 0; cursor: pointer; text-align: left; }
+  .file-link:hover { text-decoration: underline; }
+  .toggle-symbol { border: 0; background: var(--panel-2); color: var(--text); border-radius: 5px; font: inherit; font-size: 11.5px; padding: 3px 8px; cursor: pointer; margin-top: 6px; }
+  @media (max-width: 980px) {
+    main { grid-template-columns: 200px 1fr; }
+    .right {
+      display: block;
+      position: fixed;
+      right: 10px;
+      bottom: 10px;
+      width: min(380px, calc(100vw - 20px));
+      max-height: 48vh;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .55);
+      z-index: 20;
+      background: var(--panel);
+    }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">依赖图 <span>Knowledge Copilot</span></div>
+  <div class="views" id="views">
+    <button data-mode="dir" class="active">目录</button>
+    <button data-mode="file">文件</button>
+    <button data-mode="symbol">函数 · 类</button>
+    <button data-mode="wiki">Wiki</button>
+  </div>
+  <div class="search"><input id="search" placeholder="搜索目录 / 文件 / 函数 / 类" autocomplete="off" spellcheck="false"></div>
+  <button class="ghost" id="fit">适配</button>
+</header>
+<main>
+  <aside class="left">
+    <section id="stats"></section>
+    <section id="filters"></section>
+    <section id="matches" hidden></section>
+    <section id="legend"></section>
+    <section id="cycles"></section>
+    <section id="externals"></section>
+  </aside>
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+    <div id="hint">滚轮缩放 · 拖拽平移 · 拖动节点 · 点击查看详情 · 双击聚焦</div>
+  </div>
+  <aside class="right" id="detail"><div class="empty">点击节点查看详情</div></aside>
+</main>
+<script>
+const DATA = /*__GRAPH_DATA__*/null
+
+const moduleGraph = DATA.moduleGraph
+const symbolGraph = DATA.symbolGraph
+const GROUP = new Map(moduleGraph.groups.map((g) => [g.id, g]))
+const FILE_GROUP = new Map(moduleGraph.nodes.map((n) => [n.id, n.group]))
+const SYMBOL_BY_ID = new Map(symbolGraph.nodes.map((n) => [n.id, n]))
+const FILE_BY_ID = new Map(moduleGraph.nodes.map((n) => [n.id, n]))
+const DIR_BY_ID = new Map(moduleGraph.dirNodes.map((n) => [n.id, n]))
+const SYMBOLS_BY_FILE = new Map()
+for (const n of symbolGraph.nodes) {
+  if (!SYMBOLS_BY_FILE.has(n.file)) SYMBOLS_BY_FILE.set(n.file, [])
+  SYMBOLS_BY_FILE.get(n.file).push(n)
+}
+
+const state = {
+  mode: 'dir',
+  selected: null,
+  hovered: null,
+  search: '',
+  showTypeEdges: true,
+  kinds: new Set(['call', 'render', 'new', 'ref']),
+  crossFileOnly: false,
+  hideIsolated: false,
+  hideGenerated: false,
+}
+let viewNodes = []
+let viewNodeById = new Map()
+let viewEdges = []
+let adjacency = new Map()
+let matches = new Set()
+let cam = { scale: 1, tx: 0, ty: 0 }
+let dpr = 1
+let W = 0
+let H = 0
+let dragging = null
+let panning = null
+let hoverPoint = null
+let moved = false
+let raf = 0
+let cameraTouched = false
+
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const tooltip = document.getElementById('tooltip')
+const detail = document.getElementById('detail')
+const searchInput = document.getElementById('search')
+const statsEl = document.getElementById('stats')
+const filtersEl = document.getElementById('filters')
+const matchesEl = document.getElementById('matches')
+const legendEl = document.getElementById('legend')
+const cyclesEl = document.getElementById('cycles')
+const externalsEl = document.getElementById('externals')
+
+const EDGE_COLOR = {
+  call: '#7ba7f7',
+  render: '#3dd6c3',
+  new: '#f0a35e',
+  ref: '#8b93a1',
+  runtime: '#7ba7f7',
+  type: '#5b6472',
+  wiki: '#8b93a1',
+}
+const EDGE_LABEL = { call: '调用', render: 'JSX 渲染', new: '实例化', ref: '值引用', runtime: '运行时 import', type: '仅类型 import', wiki: 'Wiki 链接' }
+const KIND_LABEL = { function: '函数', class: '类', dir: '目录', file: '文件' }
+
+const WIKI_TYPE_COLOR = { summary: '#7ba7f7', entity: '#b58cff', concept: '#f0a35e' }
+const WIKI_EXTERNAL = new Set(['Langfuse', 'Ollama', 'DeepSeek', 'ParadeDB', 'PostgreSQL', 'Redis'])
+const WIKI_PAGES_SPEC = [
+  { id: 'wiki/chat-request', title: '聊天请求链路', type: 'summary', summary: '从 POST /chat 进入，ChatRoute 装配 ChatService，模型通过 retrieve 工具检索知识库并流式返回。', links: ['wiki/chatservice', 'wiki/retriever-factory', 'wiki/rrf', 'wiki/retrieve-tool', 'wiki/observability'], refs: ['ChatRoute', 'ChatService', 'buildAgentTools', 'buildRetrieveTool', 'RetrieverFactory', 'Langfuse'] , sequence: `sequenceDiagram
+  participant Browser
+  participant ChatRoute
+  participant ChatService
+  participant buildAgentTools
+  participant buildRetrieveTool
+  Browser->>ChatRoute: POST /chat
+  ChatRoute->>ChatService: ask(query)
+  ChatService->>buildAgentTools: 组装工具
+  buildAgentTools->>buildRetrieveTool: 注册 retrieve` },
+  { id: 'wiki/retrieval', title: '检索与融合', type: 'summary', summary: 'BM25 与向量两路召回，经 RRF 融合后交给模型；RetrieverFactory 负责组装。', links: ['wiki/retriever-factory', 'wiki/rrf', 'wiki/chat-request'], refs: ['RetrieverFactory', 'ParadeDbBm25Search', 'ParadeDbVectorSearch', 'RrfFuser'] },
+  { id: 'wiki/ingest', title: '入库流水线', type: 'summary', summary: 'URL 或文本进入 IngestFactory，经过 fetch、parse、chunk、embed、write 五个阶段。', links: ['wiki/ingest-factory', 'wiki/chat-request'], refs: ['IngestFactory', 'HttpFetcher', 'HtmlParser', 'LegacyChunker'] },
+  { id: 'wiki/observability', title: '观测与 Trace', type: 'summary', summary: 'endpoint 中间件、stage runner 和 Langfuse span processor 记录每次请求。', links: ['wiki/chatspanprocessor', 'wiki/langfuse', 'wiki/chat-request'], refs: ['createEndpointTrace', 'runStage', 'ChatSpanProcessor', 'Langfuse'] },
+  { id: 'wiki/multiturn', title: '多轮会话', type: 'summary', summary: '服务端按 session 读库历史，只回灌 text parts，最近 6 轮交给模型。', links: ['wiki/chatservice', 'wiki/chat-request'], refs: ['SessionsRoute', 'PostgresRepo', 'ChatService'] },
+  { id: 'wiki/chatservice', title: 'ChatService', type: 'entity', summary: '聊天编排类：装配模型、工具与会话历史。', links: ['wiki/chat-request', 'wiki/retrieve-tool', 'wiki/streaming'], refs: ['ChatService'] },
+  { id: 'wiki/retriever-factory', title: 'RetrieverFactory', type: 'entity', summary: '混合检索器工厂：装配 BM25、向量与 RRF。', links: ['wiki/retrieval', 'wiki/rrf'], refs: ['RetrieverFactory'] },
+  { id: 'wiki/ingest-factory', title: 'IngestFactory', type: 'entity', summary: '入库流水线工厂：按 Recipe 组装 stages。', links: ['wiki/ingest'], refs: ['IngestFactory'] },
+  { id: 'wiki/chatspanprocessor', title: 'ChatSpanProcessor', type: 'entity', summary: '把 chat 根 span 的 session 与 trace 信息写入 Langfuse。', links: ['wiki/observability', 'wiki/langfuse'], refs: ['ChatSpanProcessor'] },
+  { id: 'wiki/langfuse', title: 'Langfuse', type: 'entity', summary: '外部观测平台，保存 chat trace 与 session。', links: ['wiki/observability'], refs: ['Langfuse'] },
+  { id: 'wiki/rrf', title: 'RRF 融合', type: 'concept', summary: '按名次融合 BM25 与向量两路结果，不做分数归一化。', links: ['wiki/retrieval', 'wiki/retriever-factory'], refs: ['RrfFuser'] },
+  { id: 'wiki/retrieve-tool', title: '检索工具化', type: 'concept', summary: '把 retrieve 包成工具交给模型调用，最多 4 次有界重查。', links: ['wiki/chat-request', 'wiki/chatservice', 'wiki/retriever-factory'], refs: ['buildRetrieveTool', 'buildAgentTools'] },
+  { id: 'wiki/streaming', title: '流式输出', type: 'concept', summary: 'streamText 转 UI message stream，经 Hono 直通 SSE。', links: ['wiki/chat-request', 'wiki/chatservice'], refs: ['ChatService', 'ChatRoute'] },
+]
+
+const SYMBOL_BY_NAME = new Map()
+for (const n of symbolGraph.nodes) {
+  if (!SYMBOL_BY_NAME.has(n.name)) SYMBOL_BY_NAME.set(n.name, [])
+  SYMBOL_BY_NAME.get(n.name).push(n)
+}
+
+const WIKI_PAGES = WIKI_PAGES_SPEC.map((page) => ({
+  ...page,
+  refs: page.refs.map((surface) => {
+    if (WIKI_EXTERNAL.has(surface)) return { surface, status: 'external', codeId: null, evidence: '外部依赖，代码图里没有' }
+    const hits = SYMBOL_BY_NAME.get(surface) ?? []
+    if (hits.length === 1) return { surface, status: 'resolved', codeId: hits[0].id, evidence: `${hits[0].file}:${hits[0].line}` }
+    if (hits.length > 1) return { surface, status: 'ambiguous', codeId: null, evidence: `${hits.length} 个同名符号` }
+    return { surface, status: 'unresolved', codeId: null, evidence: '代码索引里没有这个名字' }
+  }),
+}))
+const WIKI_BY_ID = new Map(WIKI_PAGES.map((p) => [p.id, p]))
+
+const WIKI_NODES = []
+const wikiByType = { summary: [], entity: [], concept: [] }
+for (const p of WIKI_PAGES) wikiByType[p.type].push(p)
+const WIKI_TYPE_X = { summary: -760, entity: -480, concept: -200 }
+for (const [type, list] of Object.entries(wikiByType)) {
+  list.forEach((p, i) => {
+    WIKI_NODES.push({
+      id: p.id,
+      kind: 'wiki',
+      type,
+      name: p.title,
+      label: p.title,
+      title: p.title,
+      summary: p.summary,
+      group: `wiki/${type}`,
+      x: WIKI_TYPE_X[type],
+      y: (i - (list.length - 1) / 2) * 120,
+      r: 34,
+      degree: p.refs.length,
+      page: p,
+    })
+  })
+}
+const WIKI_EDGES = []
+for (const p of WIKI_PAGES) {
+  for (const target of p.links) if (WIKI_BY_ID.has(target)) WIKI_EDGES.push({ source: p.id, target, kind: 'wiki' })
+}
+
+const GHOST_NODES = []
+const GHOST_BY_ID = new Map()
+const resolvedSymbolIds = [...new Set(WIKI_PAGES.flatMap((p) => p.refs.map((r) => r.codeId)).filter(Boolean))]
+resolvedSymbolIds.forEach((id, i) => {
+  const src = SYMBOL_BY_ID.get(id)
+  if (!src) return
+  const cols = 4
+  const rows = Math.ceil(resolvedSymbolIds.length / cols)
+  const node = {
+    ...src,
+    ghost: true,
+    x: 220 + (i % cols) * 230,
+    y: (Math.floor(i / cols) - (rows - 1) / 2) * 112,
+  }
+  GHOST_NODES.push(node)
+  GHOST_BY_ID.set(id, node)
+})
+
+const WIKI_REFERENCES_BY_SYMBOL = new Map()
+for (const page of WIKI_PAGES) {
+  for (const ref of page.refs) {
+    if (!ref.codeId) continue
+    if (!WIKI_REFERENCES_BY_SYMBOL.has(ref.codeId)) WIKI_REFERENCES_BY_SYMBOL.set(ref.codeId, [])
+    const list = WIKI_REFERENCES_BY_SYMBOL.get(ref.codeId)
+    if (!list.includes(page)) list.push(page)
+  }
+}
+
+function wikiMatchPairs() {
+  if (state.mode !== 'wiki' || !state.selected) return []
+  if (WIKI_BY_ID.has(state.selected)) {
+    const page = WIKI_BY_ID.get(state.selected)
+    return page.refs
+      .filter((r) => r.codeId && GHOST_BY_ID.has(r.codeId))
+      .map((r) => ({ page, code: GHOST_BY_ID.get(r.codeId), surface: r.surface }))
+  }
+  const ghost = GHOST_BY_ID.get(state.selected)
+  if (!ghost) return []
+  return WIKI_PAGES
+    .filter((p) => p.refs.some((r) => r.codeId === state.selected))
+    .map((page) => ({ page, code: ghost, surface: page.refs.find((r) => r.codeId === state.selected).surface }))
+}
+
+function wikiMatchedIds() {
+  return new Set(wikiMatchPairs().map((pair) => pair.code.id))
+}
+
+function parseSequence(source) {
+  const participants = []
+  const messages = []
+  const seen = new Set()
+  const ensure = (id) => {
+    if (!seen.has(id)) { seen.add(id); participants.push({ id, label: id }) }
+  }
+  for (const raw of String(source).split('\n')) {
+    const line = raw.trim()
+    if (!line || line.startsWith('sequenceDiagram') || line.startsWith('%%')) continue
+    const part = line.match(/^(?:participant|actor)\s+([\w$.]+)(?:\s+as\s+(.+))?$/)
+    if (part) { ensure(part[1]); continue }
+    const msg = line.match(/^([\w$.]+)\s*(?:->>|-->>|->|-->)\s*([\w$.]+)\s*:\s*(.+)$/)
+    if (msg) {
+      ensure(msg[1]); ensure(msg[2])
+      messages.push({ from: msg[1], to: msg[2], label: msg[3].trim() })
+    }
+  }
+  return { participants, messages }
+}
+
+function participantResult(name) {
+  if (WIKI_EXTERNAL.has(name)) return { status: 'external', codeId: null, label: name }
+  const hits = SYMBOL_BY_NAME.get(name) ?? []
+  if (hits.length === 1) return { status: 'resolved', codeId: hits[0].id, label: name }
+  return { status: hits.length > 1 ? 'unresolved' : 'unresolved', codeId: null, label: name }
+}
+
+function messageResult(message) {
+  const method = (message.label.match(/^([A-Za-z_$][\w$]*)\s*\(/) || [])[1]
+  if (method) {
+    const direct = SYMBOL_BY_NAME.get(method) ?? []
+    if (direct.length === 1) return { status: 'resolved', codeId: direct[0].id, label: method }
+    const from = participantResult(message.from)
+    const fromSymbol = from.codeId ? SYMBOL_BY_ID.get(from.codeId) : null
+    if (fromSymbol?.methods?.some((m) => m.name === method)) {
+      return { status: 'resolved', codeId: fromSymbol.id, label: `${fromSymbol.name}.${method}` }
+    }
+  }
+  const to = participantResult(message.to)
+  if (to.codeId) return { status: 'resolved', codeId: to.codeId, label: message.label }
+  const from = participantResult(message.from)
+  if (from.codeId) return { status: 'resolved', codeId: from.codeId, label: message.label }
+  return { status: 'unresolved', codeId: null, label: message.label }
+}
+
+function renderSequence(page) {
+  if (!page.sequence) return ''
+  const model = parseSequence(page.sequence)
+  const parts = model.participants.map((p) => {
+    const r = participantResult(p.id)
+    const attr = r.codeId ? `data-seq-symbol="${escapeHtml(r.codeId)}"` : ''
+    return `<button class="seq-part ${r.status}" ${attr}>${escapeHtml(p.label)}</button>`
+  }).join('')
+  const rows = model.messages.map((m) => {
+    const r = messageResult(m)
+    const attr = r.codeId ? `data-seq-symbol="${escapeHtml(r.codeId)}"` : ''
+    return `<button class="seq-msg ${r.status}" ${attr}>
+      <span class="from">${escapeHtml(m.from)}</span>
+      <span class="arrow">→</span>
+      <span class="label">${escapeHtml(m.label)}</span>
+      <span class="to">${escapeHtml(m.to)}</span>
+    </button>`
+  }).join('')
+  return `<div class="seq"><div class="seq-title">时序图 · 点击元素跳到代码</div>
+    <div class="seq-parts">${parts}</div>
+    <div class="seq-msgs">${rows}</div>
+  </div>`
+}
+
+function colorOf(node) {
+  if (node.kind === 'wiki') return WIKI_TYPE_COLOR[node.type] || '#94a3b8'
+  const g = GROUP.get(node.group)
+  return g ? g.color : '#94a3b8'
+}
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1)
+  const rect = canvas.getBoundingClientRect()
+  W = rect.width
+  H = rect.height
+  canvas.width = Math.round(W * dpr)
+  canvas.height = Math.round(H * dpr)
+  if (!cameraTouched && viewNodes.length && W > 80 && H > 80) fit()
+  draw()
+}
+
+function edgesForMode() {
+  if (state.mode === 'wiki') return WIKI_EDGES
+  if (state.mode === 'symbol') {
+    return symbolGraph.edges.filter((e) => {
+      if (!state.kinds.has(e.kind)) return false
+      if (state.crossFileOnly) {
+        const a = SYMBOL_BY_ID.get(e.source)
+        const b = SYMBOL_BY_ID.get(e.target)
+        if (!a || !b || a.file === b.file) return false
+      }
+      return true
+    })
+  }
+  if (state.mode === 'file') {
+    return moduleGraph.edges.filter((e) => state.showTypeEdges || e.kind !== 'type')
+  }
+  const agg = new Map()
+  for (const e of moduleGraph.edges) {
+    if (!state.showTypeEdges && e.kind === 'type') continue
+    if (state.hideGenerated && (FILE_BY_ID.get(e.source)?.generated || FILE_BY_ID.get(e.target)?.generated)) continue
+    const a = FILE_GROUP.get(e.source)
+    const b = FILE_GROUP.get(e.target)
+    if (!a || !b || a === b) continue
+    const key = a + '->' + b
+    const cur = agg.get(key) || { source: a, target: b, count: 0, kinds: new Set() }
+    cur.count += 1
+    cur.kinds.add(e.kind)
+    agg.set(key, cur)
+  }
+  return [...agg.values()]
+}
+
+function nodesForMode(edges) {
+  if (state.mode === 'wiki') return [...WIKI_NODES, ...GHOST_NODES]
+  if (state.mode === 'dir') {
+    return moduleGraph.dirNodes.map((n) => ({ ...n, kind: 'dir', file: null }))
+  }
+  if (state.mode === 'file') {
+    return moduleGraph.nodes
+      .filter((n) => !state.hideGenerated || !n.generated)
+      .map((n) => ({ ...n, kind: 'file' }))
+  }
+  let nodes = symbolGraph.nodes
+  if (state.hideIsolated) {
+    const linked = new Set()
+    for (const e of edges) { linked.add(e.source); linked.add(e.target) }
+    nodes = nodes.filter((n) => linked.has(n.id))
+  }
+  return nodes
+}
+
+function rebuild() {
+  viewEdges = edgesForMode()
+  viewNodes = nodesForMode(viewEdges)
+  viewNodeById = new Map(viewNodes.map((n) => [n.id, n]))
+  adjacency = new Map(viewNodes.map((n) => [n.id, new Set()]))
+  for (const e of viewEdges) {
+    adjacency.get(e.source)?.add(e.target)
+    adjacency.get(e.target)?.add(e.source)
+  }
+  rebuildMatches()
+  renderSidebar()
+  if (state.selected) {
+    const exists = viewNodes.some((n) => n.id === state.selected)
+    if (!exists) state.selected = null
+  }
+  renderDetail()
+  requestDraw()
+}
+
+function rebuildMatches() {
+  matches = new Set()
+  const q = state.search.trim().toLowerCase()
+  if (!q) return
+  for (const n of viewNodes) {
+    const hay = [n.name, n.label, n.file, n.group, n.id, n.title, n.summary, n.type].filter(Boolean).join(' ').toLowerCase()
+    if (hay.includes(q)) matches.add(n.id)
+  }
+}
+
+function requestDraw() {
+  if (raf) return
+  raf = requestAnimationFrame(() => { raf = 0; draw() })
+}
+
+function fit() {
+  fitToNodes(viewNodes)
+}
+
+function fitToNodes(nodes, touch = false) {
+  if (!nodes.length) return
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x - n.r)
+    maxX = Math.max(maxX, n.x + n.r)
+    minY = Math.min(minY, n.y - n.r)
+    maxY = Math.max(maxY, n.y + n.r)
+  }
+  const pad = 56
+  const s = Math.min((W - pad * 2) / Math.max(1, maxX - minX), (H - pad * 2) / Math.max(1, maxY - minY))
+  cam.scale = Math.max(0.04, Math.min(3, s))
+  cam.tx = W / 2 - ((minX + maxX) / 2) * cam.scale
+  cam.ty = H / 2 - ((minY + maxY) / 2) * cam.scale
+  if (touch) cameraTouched = true
+  requestDraw()
+}
+
+function toWorld(px, py) {
+  return { x: (px - cam.tx) / cam.scale, y: (py - cam.ty) / cam.scale }
+}
+
+function nodeAt(px, py) {
+  const p = toWorld(px, py)
+  let best = null
+  let bestD = Infinity
+  for (const n of viewNodes) {
+    const d = Math.hypot(n.x - p.x, n.y - p.y)
+    const hit = n.kind === 'class' ? Math.abs(n.x - p.x) < n.r * 1.1 && Math.abs(n.y - p.y) < n.r * 1.1 : d < n.r + 6 / cam.scale
+    if (hit && d < bestD) { best = n; bestD = d }
+  }
+  return best
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, W, H)
+  const bg = ctx.createLinearGradient(0, 0, 0, H)
+  bg.addColorStop(0, '#0b0c0f')
+  bg.addColorStop(1, '#08090b')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+  drawGrid()
+  ctx.save()
+  ctx.translate(cam.tx, cam.ty)
+  ctx.scale(cam.scale, cam.scale)
+  drawEdges()
+  drawWikiMatches()
+  drawNodes()
+  drawLabels()
+  ctx.restore()
+}
+
+function drawGrid() {
+  const step = 80 * cam.scale
+  if (step < 26) return
+  ctx.fillStyle = 'rgba(255,255,255,0.045)'
+  const ox = cam.tx % step
+  const oy = cam.ty % step
+  for (let x = ox; x < W; x += step) {
+    for (let y = oy; y < H; y += step) {
+      ctx.fillRect(x, y, 1, 1)
+    }
+  }
+}
+
+function drawEdges() {
+  const sel = state.selected
+  const scale = cam.scale
+  ctx.lineCap = 'round'
+  for (const e of viewEdges) {
+    const a = viewNodeById.get(e.source)
+    const b = viewNodeById.get(e.target)
+    if (!a || !b) continue
+    const connected = sel && (e.source === sel || e.target === sel)
+    let alpha = sel ? (connected ? 0.85 : 0.04) : state.mode === 'wiki' ? 0.42 : 0.16
+    if (!sel && matches.size && (matches.has(e.source) || matches.has(e.target))) alpha = 0.5
+    if (alpha < 0.04) continue
+    const kind = state.mode === 'dir' ? (e.kinds && e.kinds.has('runtime') ? 'runtime' : 'type') : e.kind
+    ctx.strokeStyle = EDGE_COLOR[kind] || '#8b93a1'
+    ctx.globalAlpha = alpha
+    ctx.lineWidth = (connected ? 1.8 : 1) / scale
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const d = Math.hypot(dx, dy) || 1
+    const ux = dx / d
+    const uy = dy / d
+    const sa = a.r + 2 / scale
+    const sb = b.r + 2 / scale
+    const x1 = a.x + ux * sa
+    const y1 = a.y + uy * sa
+    const x2 = b.x - ux * sb
+    const y2 = b.y - uy * sb
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+    if (connected || scale > 0.5) {
+      const ah = (connected ? 7 : 5) / scale
+      ctx.beginPath()
+      ctx.moveTo(x2, y2)
+      ctx.lineTo(x2 - ux * ah - uy * ah * 0.45, y2 - uy * ah + ux * ah * 0.45)
+      ctx.lineTo(x2 - ux * ah + uy * ah * 0.45, y2 - uy * ah - ux * ah * 0.45)
+      ctx.closePath()
+      ctx.fillStyle = EDGE_COLOR[kind] || '#8b93a1'
+      ctx.fill()
+    }
+    if (state.mode === 'dir' && scale > 0.3 && e.count) {
+      const mx = (x1 + x2) / 2
+      const my = (y1 + y2) / 2
+      ctx.globalAlpha = sel ? (connected ? 0.95 : 0.1) : 0.7
+      ctx.fillStyle = '#a9b0ba'
+      ctx.font = `${10 / scale}px ui-sans-serif, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(String(e.count), mx, my - 3 / scale)
+    }
+  }
+  ctx.globalAlpha = 1
+}
+
+function drawWikiMatches() {
+  const pairs = wikiMatchPairs()
+  if (!pairs.length) return
+  const scale = cam.scale
+  for (const { page, code, surface } of pairs) {
+    const pageNode = viewNodeById.get(page.id) || page
+    const dx = code.x - pageNode.x
+    const dy = code.y - pageNode.y
+    const d = Math.hypot(dx, dy) || 1
+    const ux = dx / d
+    const uy = dy / d
+    const x1 = pageNode.x + ux * pageNode.r
+    const y1 = pageNode.y + uy * pageNode.r
+    const x2 = code.x - ux * code.r
+    const y2 = code.y - uy * code.r
+    ctx.save()
+    ctx.strokeStyle = 'rgba(158,240,168,.85)'
+    ctx.lineWidth = 1.6 / scale
+    ctx.setLineDash([5 / scale, 4 / scale])
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+    ctx.setLineDash([])
+    if (pairs.length === 1) {
+      const mx = (x1 + x2) / 2
+      const my = (y1 + y2) / 2
+      ctx.font = `${10 / scale}px ui-sans-serif, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const tw = ctx.measureText(surface).width * scale
+      ctx.fillStyle = '#0b0c0f'
+      ctx.fillRect(mx - tw / 2 - 4 / scale, my - 8 / scale, tw + 8 / scale, 16 / scale)
+      ctx.fillStyle = '#9ef0a8'
+      ctx.fillText(surface, mx, my)
+    }
+    ctx.restore()
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function drawNodes() {
+  const sel = state.selected
+  const neighbors = sel ? adjacency.get(sel) : null
+  const wikiMatched = state.mode === 'wiki' ? wikiMatchedIds() : new Set()
+  const wikiPageSelected = state.mode === 'wiki' && sel && WIKI_BY_ID.has(sel)
+  const scale = cam.scale
+  for (const n of viewNodes) {
+    if (wikiPageSelected && n.ghost && !wikiMatched.has(n.id)) continue
+    const inFocus = !sel || n.id === sel || neighbors.has(n.id) || wikiMatched.has(n.id)
+    const isMatch = matches.has(n.id)
+    ctx.globalAlpha = inFocus ? 1 : 0.16
+    const fill = colorOf(n)
+    if (n.kind === 'class' || state.mode === 'dir') {
+      const s = n.r * (state.mode === 'dir' ? 1.55 : 1.35)
+      roundRect(n.x - s, n.y - s * 0.86, s * 2, s * 1.72, state.mode === 'dir' ? 10 : 6)
+      ctx.fillStyle = fill
+      ctx.globalAlpha *= n.kind === 'class' ? 0.9 : 0.8
+      ctx.fill()
+      ctx.globalAlpha = inFocus ? 1 : 0.16
+      ctx.lineWidth = (n.id === sel ? 2.4 : isMatch ? 1.8 : 1) / scale
+      ctx.strokeStyle = n.id === sel ? '#ffffff' : isMatch ? '#fde68a' : 'rgba(0,0,0,.45)'
+      ctx.stroke()
+    } else {
+      const exported = n.exported !== false
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2)
+      ctx.fillStyle = fill
+      ctx.globalAlpha *= exported ? 0.88 : 0.5
+      ctx.fill()
+      ctx.globalAlpha = inFocus ? 1 : 0.16
+      ctx.lineWidth = (n.id === sel ? 2.4 : isMatch ? 1.8 : 1) / scale
+      ctx.strokeStyle = n.id === sel ? '#ffffff' : isMatch ? '#fde68a' : 'rgba(0,0,0,.4)'
+      ctx.stroke()
+      if (n.generated) {
+        ctx.setLineDash([3 / scale, 3 / scale])
+        ctx.strokeStyle = 'rgba(200,205,215,.5)'
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+    }
+    if (n.id === sel && neighbors) {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + 7 / scale, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'
+      ctx.lineWidth = 1.2 / scale
+      ctx.stroke()
+    }
+  }
+  ctx.globalAlpha = 1
+}
+
+function displayName(n) {
+  return n.name || n.label || n.id
+}
+
+function drawLabels() {
+  const sel = state.selected
+  const neighbors = sel ? adjacency.get(sel) : null
+  const wikiMatched = state.mode === 'wiki' ? wikiMatchedIds() : new Set()
+  const scale = cam.scale
+  const items = []
+  for (const n of viewNodes) {
+    const inFocus = !sel || n.id === sel || neighbors.has(n.id) || wikiMatched.has(n.id)
+    if (!inFocus) continue
+    const isMatch = matches.has(n.id)
+    let show = false
+    if (state.mode === 'dir') show = true
+    else if (state.mode === 'file') show = scale > 0.18 || n.id === sel || isMatch
+    else if (state.mode === 'wiki') show = n.kind === 'wiki' || scale > 0.2 || n.id === sel || isMatch
+    else show = scale > 0.22 || n.id === sel || isMatch || (n.kind === 'class' && scale > 0.2)
+    if (!show) continue
+    const rank = (n.id === sel ? 1e6 : 0) + (isMatch ? 1e5 : 0) + (n.kind === 'class' ? 1e4 : 0) + (n.degree || 0)
+    items.push({ n, rank, isMatch })
+  }
+  items.sort((a, b) => b.rank - a.rank)
+  const boxes = []
+  for (const { n, isMatch } of items) {
+    const name = displayName(n)
+    const label = name.length > 30 ? name.slice(0, 29) + '…' : name
+    const size = (n.kind === 'wiki' ? 12.5 : state.mode === 'dir' ? 11.5 : 11) / scale
+    ctx.font = `${size}px ui-sans-serif, -apple-system, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    const worldY = n.y + (n.kind === 'class' ? n.r * 1.05 : n.r * (state.mode === 'dir' ? 1.45 : 1)) + 5 / scale
+    const sx = n.x * scale + cam.tx
+    const sy = worldY * scale + cam.ty
+    const tw = ctx.measureText(label).width * scale
+    const th = size * scale
+    const box = { x: sx - tw / 2 - 2, y: sy - 1, w: tw + 4, h: th + 3 }
+    if (n.id !== sel && !isMatch) {
+      const hit = boxes.some((b) => !(box.x + box.w < b.x || box.x > b.x + b.w || box.y + box.h < b.y || box.y > b.y + b.h))
+      if (hit) continue
+    }
+    boxes.push(box)
+    ctx.fillStyle = n.id === sel ? '#ffffff' : isMatch ? '#fde68a' : 'rgba(220,224,230,.82)'
+    ctx.fillText(label, n.x, worldY)
+  }
+}
+
+// ---------- sidebar ----------
+
+function renderSidebar() {
+  const nodeCount = viewNodes.length
+  const edgeCount = viewEdges.length
+  const stats = [
+    ['当前视图', state.mode === 'dir' ? '目录聚合' : state.mode === 'file' ? '文件' : state.mode === 'wiki' ? 'Wiki 页面' : '函数 / 类'],
+    ['节点', nodeCount],
+    ['边', edgeCount],
+  ]
+  if (state.mode === 'wiki') {
+    const resolved = WIKI_PAGES.reduce((a, p) => a + p.refs.filter((r) => r.status === 'resolved').length, 0)
+    const external = WIKI_PAGES.reduce((a, p) => a + p.refs.filter((r) => r.status === 'external').length, 0)
+    stats.push(['页面', WIKI_PAGES.length])
+    stats.push(['引用', `${resolved} resolved · ${external} external`])
+  } else if (state.mode === 'symbol') {
+    stats.push(['函数 / 类', `${symbolGraph.stats.functions} / ${symbolGraph.stats.classes}`])
+    stats.push(['跨文件边', symbolGraph.stats.crossFileEdges])
+  } else {
+    stats.push(['源文件', moduleGraph.stats.files])
+    stats.push(['模块边', moduleGraph.stats.edges])
+  }
+  statsEl.innerHTML = '<h3>概览</h3><div class="kv">' + stats.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('') + '</div>'
+
+  const filterRows = []
+  if (state.mode === 'wiki') {
+    filterRows.push('<div class="hint">节点 = Wiki 页面。点击页面看它引用的代码符号；点击 ghost 符号进入完整符号图。</div>')
+  } else if (state.mode === 'symbol') {
+    for (const k of ['call', 'render', 'new', 'ref']) {
+      filterRows.push(`<label><input type="checkbox" data-kind="${k}" ${state.kinds.has(k) ? 'checked' : ''}> ${EDGE_LABEL[k]}</label>`)
+    }
+    filterRows.push(`<label><input type="checkbox" id="cross-file" ${state.crossFileOnly ? 'checked' : ''}> 只看跨文件边</label>`)
+    filterRows.push(`<label><input type="checkbox" id="isolated" ${state.hideIsolated ? 'checked' : ''}> 隐藏无连线节点</label>`)
+  } else {
+    filterRows.push(`<label><input type="checkbox" id="type-edges" ${state.showTypeEdges ? 'checked' : ''}> 含仅类型 import</label>`)
+    filterRows.push(`<label><input type="checkbox" id="generated" ${state.hideGenerated ? 'checked' : ''}> 隐藏 routeTree.gen.ts</label>`)
+    if (state.mode === 'file') filterRows.push('<div class="hint">虚线描边的节点是自动生成文件。</div>')
+  }
+  filtersEl.innerHTML = '<h3>过滤</h3><div class="checks">' + filterRows.join('') + '</div>'
+
+  if (state.search.trim()) {
+    matchesEl.hidden = false
+    const list = [...matches].slice(0, 40)
+    matchesEl.innerHTML = `<h3>匹配 ${matches.size}</h3><div class="match-list">` +
+      list.map((id) => {
+        const n = viewNodes.find((x) => x.id === id)
+        if (!n) return ''
+        const sub = n.file ? n.file.replace('app/server/src/', 'server/').replace('app/web/src/', 'web/') : ''
+        return `<button class="match" data-id="${escapeHtml(id)}">${escapeHtml(displayName(n))}<small>${escapeHtml(sub)}</small></button>`
+      }).join('') + '</div>'
+    if (matches.size > 40) matchesEl.innerHTML += `<div class="hint">仅显示前 40 个，继续输入以缩小范围。</div>`
+  } else {
+    matchesEl.hidden = true
+  }
+
+  const relevantGroups = new Map()
+  for (const n of viewNodes) {
+    if (!n.group) continue
+    relevantGroups.set(n.group, (relevantGroups.get(n.group) || 0) + 1)
+  }
+  const legendRows = [...relevantGroups.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([g, count]) => {
+      const meta = GROUP.get(g)
+      const label = meta ? meta.label : g
+      const shownCount = state.mode === 'dir' ? (meta ? meta.files : 0) : count
+      const suffix = state.mode === 'dir' ? ' 文件' : ''
+      return `<div class="legend-row" data-group="${escapeHtml(g)}"><span class="swatch" style="background:${meta ? meta.color : '#94a3b8'}"></span>${escapeHtml((g.startsWith('server/') ? 'S · ' : 'W · ') + label)}<em>${shownCount}${suffix}</em></div>`
+    })
+  legendEl.innerHTML = '<h3>分组</h3><div class="legend">' + legendRows.join('') + '</div>' +
+    '<h3 style="margin-top:14px">边</h3><div class="edge-legend">' +
+    (state.mode === 'symbol'
+      ? ['call', 'render', 'new', 'ref'].map((k) => `<div><i style="border-color:${EDGE_COLOR[k]}"></i>${EDGE_LABEL[k]}</div>`).join('')
+      : `<div><i style="border-color:${EDGE_COLOR.runtime}"></i>运行时 import</div><div><i style="border-color:${EDGE_COLOR.type};border-top-style:dashed"></i>仅类型 import</div>`) +
+    '</div>'
+
+  const runtimeCycles = moduleGraph.cycles || []
+  const allCycles = moduleGraph.allCycles || []
+  if ((state.mode === 'dir' || state.mode === 'file') && allCycles.length) {
+    let html = '<h3>循环依赖</h3>'
+    if (runtimeCycles.length === 0) html += '<div class="hint">运行时 import 无环；下面是把仅类型 import 算进去后的环。</div>'
+    const shown = runtimeCycles.length ? runtimeCycles : allCycles
+    html += shown.slice(0, 4).map((cycle) => {
+      const items = cycle.slice(0, 6).map((f) => {
+        const short = f.replace('app/server/src/', '').replace('app/web/src/', '')
+        return `<button data-file="${escapeHtml(f)}">${escapeHtml(short)}</button>`
+      })
+      return `<div class="cycle">${items.join(' ↔ ')}${cycle.length > 6 ? ` … 共 ${cycle.length} 个文件` : ''}</div>`
+    }).join('')
+    cyclesEl.innerHTML = html
+    cyclesEl.hidden = false
+  } else {
+    cyclesEl.hidden = true
+  }
+
+  if (state.mode === 'dir' || state.mode === 'file') {
+    const top = moduleGraph.externals.slice(0, 12)
+    externalsEl.innerHTML = '<h3>外部包 · 引用文件数</h3><div class="ext">' +
+      top.map((p) => `<div><span>${escapeHtml(p.name)}</span><b>${p.files}</b></div>`).join('') + '</div>'
+  } else if (state.mode === 'symbol') {
+    externalsEl.innerHTML = '<div class="hint">节点 = 顶层函数 / 类 / 箭头函数常量。方法聚合在类节点里，点击类查看方法级出边。</div>'
+  } else {
+    externalsEl.innerHTML = '<div class="hint">Wiki 页面是示例内容（取自本仓库设计）；代码符号与边来自真实 AST。</div>'
+  }
+  if (state.mode === 'wiki') {
+    const typeRows = ['summary', 'entity', 'concept'].map((t) => {
+      const count = WIKI_PAGES.filter((p) => p.type === t).length
+      return `<div class="legend-row"><span class="swatch" style="background:${WIKI_TYPE_COLOR[t]}"></span>${t}<em>${count}</em></div>`
+    })
+    legendEl.innerHTML = '<h3>页面类型</h3><div class="legend">' + typeRows.join('') + '</div>' +
+      '<h3 style="margin-top:14px">边</h3><div class="edge-legend"><div><i style="border-color:#8b93a1"></i>Wiki 链接</div><div><i style="border-color:#9ef0a8;border-top-style:dashed"></i>引用匹配</div></div>'
+  }
+}
+
+function renderDetail() {
+  if (!state.selected) {
+    detail.innerHTML = '<div class="empty">点击节点查看详情</div>'
+    return
+  }
+  const id = state.selected
+  if (state.mode === 'wiki') {
+    const page = WIKI_BY_ID.get(id)
+    if (!page) return
+    const refs = page.refs.map((r) => {
+      const cls = r.status === 'resolved' ? 'ok' : r.status === 'external' ? '' : 'bad'
+      const tag = r.status === 'resolved' ? 'resolved' : r.status === 'external' ? 'external' : r.status
+      const attr = r.codeId ? `data-symbol="${escapeHtml(r.codeId)}"` : ''
+      return `<button class="edge-item" ${attr}><span class="kind">${r.status === 'resolved' ? 'ref' : r.status}</span><span class="nm">${escapeHtml(r.surface)}</span><span class="count ${cls}">${tag}</span></button>`
+    }).join('')
+    const links = page.links.map((linkId) => {
+      const target = WIKI_BY_ID.get(linkId)
+      return target ? `<button class="edge-item" data-wiki="${escapeHtml(linkId)}"><span class="kind">wiki</span><span class="nm">${escapeHtml(target.title)}</span></button>` : ''
+    }).join('')
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(page.title)}</div>
+      <div class="badges"><span class="badge">${page.type}</span><span class="badge">${page.refs.length} 个引用</span><span class="badge">${page.links.length} 条链接</span></div>
+      <div class="path">${escapeHtml(page.id)}</div>
+      <div class="hint" style="margin-top:8px">${escapeHtml(page.summary)}</div>
+      ${renderSequence(page)}
+      <div class="detail-sub">代码引用</div>
+      <div class="edge-list">${refs}</div>
+      <div class="detail-sub">链接页面</div>
+      <div class="edge-list">${links}</div>
+      <div class="hint">点击 resolved 引用进入完整符号图；external / unresolved 不跳转。</div>`
+    return
+  }
+  if (state.mode === 'dir') {
+    const n = DIR_BY_ID.get(id)
+    if (!n) return
+    const files = moduleGraph.nodes.filter((f) => f.group === id).sort((a, b) => b.lines - a.lines)
+    const out = viewEdges.filter((e) => e.source === id)
+    const inc = viewEdges.filter((e) => e.target === id)
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(n.label)}</div>
+      <div class="badges"><span class="badge">目录</span><span class="badge">${n.files} 文件</span><span class="badge">${n.lines} 行</span></div>
+      <div class="path">${escapeHtml(n.zone + ' · ' + n.id.replace('server/', 'app/server/src/').replace('web/', 'app/web/src/'))}</div>
+      <button class="toggle-symbol" id="open-file-mode">在文件视图查看</button>
+      ${edgeSection('依赖出去', out, 'target')}
+      ${edgeSection('被依赖', inc, 'source')}
+      <div class="detail-sub">组内文件</div>
+      <div class="edge-list">${files.map((f) => `<button class="edge-item" data-file="${escapeHtml(f.id)}"><span class="nm">${escapeHtml(f.file.split('/').pop())}</span><span class="count">${f.lines} 行</span></button>`).join('')}</div>`
+    return
+  }
+  if (state.mode === 'file') {
+    const n = FILE_BY_ID.get(id)
+    if (!n) return
+    const symbols = (SYMBOLS_BY_FILE.get(id) || []).slice().sort((a, b) => b.degree - a.degree)
+    const out = viewEdges.filter((e) => e.source === id)
+    const inc = viewEdges.filter((e) => e.target === id)
+    const meta = GROUP.get(n.group)
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(n.label)}</div>
+      <div class="badges"><span class="badge" style="border-color:${meta ? meta.color : '#555'}">${escapeHtml(meta ? meta.label : n.group)}</span><span class="badge">${n.lines} 行</span>${n.generated ? '<span class="badge">generated</span>' : ''}</div>
+      <div class="path">${escapeHtml(n.id)}</div>
+      ${edgeSection('import 出去', out, 'target')}
+      ${edgeSection('被 import', inc, 'source')}
+      <div class="detail-sub">顶层符号 · ${symbols.length}</div>
+      <div class="edge-list">${symbols.slice(0, 60).map((s) => `<button class="edge-item" data-symbol="${escapeHtml(s.id)}"><span class="kind">${s.kind === 'class' ? 'C' : 'ƒ'}</span><span class="nm">${escapeHtml(s.name)}</span><span class="count">${s.degree}</span></button>`).join('')}</div>`
+    return
+  }
+  const n = SYMBOL_BY_ID.get(id)
+  if (!n) return
+  const out = viewEdges.filter((e) => e.source === id)
+  const inc = viewEdges.filter((e) => e.target === id)
+  const methods = (n.methods || []).filter((m) => m.edges.length)
+  const wikiPages = WIKI_REFERENCES_BY_SYMBOL.get(id) ?? []
+  detail.innerHTML = `
+    <div class="node-title">${escapeHtml(n.name)}</div>
+    <div class="badges">
+      <span class="badge">${KIND_LABEL[n.kind] || n.kind}</span>
+      ${n.exported ? '<span class="badge exported">exported</span>' : ''}
+      <span class="badge">line ${n.line}</span>
+      <span class="badge">in ${n.inDegree} · out ${n.degree - n.inDegree}</span>
+    </div>
+    <button class="file-link" data-file="${escapeHtml(n.file)}">${escapeHtml(n.file)}</button>
+    ${edgeSection('引用出去', out, 'target')}
+    ${edgeSection('被引用', inc, 'source')}
+    ${wikiPages.length ? `<div class="detail-sub">Wiki 引用 · ${wikiPages.length}</div><div class="edge-list">${wikiPages.map((p) => `<button class="edge-item" data-wiki="${escapeHtml(p.id)}"><span class="kind">wiki</span><span class="nm">${escapeHtml(p.title)}</span></button>`).join('')}</div>` : ''}
+    ${methods.length ? `<div class="detail-sub">类方法 · 方法级出边</div>` + methods.map((m) => `
+      <div class="method">
+        <div class="method-name">${escapeHtml(m.name)}()</div>
+        <div class="edge-list">${m.edges.map((e) => {
+          const t = SYMBOL_BY_ID.get(e.to)
+          return `<button class="edge-item" data-symbol="${escapeHtml(e.to)}"><span class="kind">${e.kind}</span><span class="nm">${escapeHtml(t ? t.name : e.to.split('#').pop())}</span><span class="count">${e.count}</span></button>`
+        }).join('')}</div>
+      </div>`).join('') : ''}`
+}
+
+function edgeSection(title, edges, key) {
+  if (!edges.length) return `<div class="detail-sub">${title} · 0</div>`
+  const sorted = edges.slice().sort((a, b) => (b.count || 0) - (a.count || 0))
+  return `<div class="detail-sub">${title} · ${edges.length}</div><div class="edge-list">` +
+    sorted.map((e) => {
+      const targetId = e[key]
+      const node = state.mode === 'symbol' ? SYMBOL_BY_ID.get(targetId) : state.mode === 'file' ? FILE_BY_ID.get(targetId) || DIR_BY_ID.get(targetId) : DIR_BY_ID.get(targetId) || FILE_BY_ID.get(targetId)
+      const label = node ? displayName(node) : targetId.split('#').pop()
+      const kind = state.mode === 'symbol' ? e.kind : (e.kind === 'type' ? 'type' : 'import')
+      const clickAttr = node ? `data-symbol="${escapeHtml(targetId)}"` : ''
+      return `<button class="edge-item" ${clickAttr}><span class="kind">${kind}</span><span class="nm">${escapeHtml(label)}</span><span class="count">${e.count || ''}</span></button>`
+    }).join('') + '</div>'
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+// ---------- selection & modes ----------
+
+function switchMode(mode) {
+  state.mode = mode
+  state.selected = null
+  cameraTouched = false
+  document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode))
+  rebuild()
+  fit()
+}
+
+function select(id, focus = false) {
+  if (!id) return
+  let targetMode = state.mode
+  if (WIKI_BY_ID.has(id)) targetMode = 'wiki'
+  else if (id.includes('#')) targetMode = 'symbol'
+  else if (FILE_BY_ID.has(id)) targetMode = 'file'
+  else if (DIR_BY_ID.has(id)) targetMode = 'dir'
+  if (targetMode !== state.mode) {
+    state.mode = targetMode
+    document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('active', b.dataset.mode === targetMode))
+    rebuild()
+  }
+  if (!viewNodeById.has(id)) return
+  state.selected = id
+  renderDetail()
+  if (focus) {
+    if (state.mode === 'wiki' && WIKI_BY_ID.has(id)) {
+      const pageNode = viewNodeById.get(id)
+      const ghostMatches = WIKI_BY_ID.get(id).refs
+        .map((r) => r.codeId && viewNodeById.get(r.codeId))
+        .filter(Boolean)
+      fitToNodes([pageNode, ...ghostMatches].filter(Boolean), true)
+    } else {
+      const n = viewNodes.find((x) => x.id === id)
+      if (n) {
+        cameraTouched = true
+        cam.scale = Math.max(cam.scale, 0.5)
+        cam.tx = W / 2 - n.x * cam.scale
+        cam.ty = H / 2 - n.y * cam.scale
+      }
+    }
+  }
+  requestDraw()
+}
+
+function focusGroup(group) {
+  const ids = viewNodes.filter((n) => n.group === group).map((n) => n.id)
+  if (!ids.length) return
+  state.search = ''
+  searchInput.value = ''
+  matches = new Set(ids)
+  requestDraw()
+}
+
+// ---------- events ----------
+
+document.getElementById('views').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-mode]')
+  if (btn) switchMode(btn.dataset.mode)
+})
+document.getElementById('fit').addEventListener('click', fit)
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value
+  rebuildMatches()
+  renderSidebar()
+  requestDraw()
+})
+filtersEl.addEventListener('change', (e) => {
+  const t = e.target
+  if (t.dataset.kind) {
+    if (t.checked) state.kinds.add(t.dataset.kind)
+    else state.kinds.delete(t.dataset.kind)
+    rebuild()
+  } else if (t.id === 'cross-file') { state.crossFileOnly = t.checked; rebuild() }
+  else if (t.id === 'isolated') { state.hideIsolated = t.checked; rebuild() }
+  else if (t.id === 'type-edges') { state.showTypeEdges = t.checked; rebuild() }
+  else if (t.id === 'generated') { state.hideGenerated = t.checked; rebuild() }
+})
+legendEl.addEventListener('click', (e) => {
+  const row = e.target.closest('.legend-row')
+  if (row) focusGroup(row.dataset.group)
+})
+matchesEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-id]')
+  if (btn) select(btn.dataset.id, true)
+})
+cyclesEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-file]')
+  if (btn) select(btn.dataset.file, true)
+})
+detail.addEventListener('click', (e) => {
+  const seqBtn = e.target.closest('button[data-seq-symbol]')
+  if (seqBtn) { select(seqBtn.dataset.seqSymbol, true); return }
+  const wikiBtn = e.target.closest('button[data-wiki]')
+  if (wikiBtn) { select(wikiBtn.dataset.wiki, true); return }
+  const symbolBtn = e.target.closest('button[data-symbol]')
+  if (symbolBtn) { select(symbolBtn.dataset.symbol, true); return }
+  const fileBtn = e.target.closest('button[data-file]')
+  if (fileBtn) { select(fileBtn.dataset.file, true); return }
+  if (e.target.id === 'open-file-mode') {
+    const group = state.selected
+    switchMode('file')
+    if (group) fitToNodes(viewNodes.filter((n) => n.group === group), true)
+    return
+  }
+})
+
+canvas.addEventListener('pointerdown', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const hit = nodeAt(x, y)
+  moved = false
+  canvas.setPointerCapture(e.pointerId)
+  if (hit) {
+    dragging = { node: hit, dx: hit.x - toWorld(x, y).x, dy: hit.y - toWorld(x, y).y }
+    cameraTouched = true
+  } else {
+    panning = { x, y, tx: cam.tx, ty: cam.ty }
+    cameraTouched = true
+    canvas.classList.add('dragging')
+  }
+})
+canvas.addEventListener('pointermove', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  if (dragging) {
+    const p = toWorld(x, y)
+    dragging.node.x = p.x + dragging.dx
+    dragging.node.y = p.y + dragging.dy
+    moved = true
+    requestDraw()
+    return
+  }
+  if (panning) {
+    cam.tx = panning.tx + (x - panning.x)
+    cam.ty = panning.ty + (y - panning.y)
+    moved = true
+    requestDraw()
+    return
+  }
+  const hit = nodeAt(x, y)
+  state.hovered = hit ? hit.id : null
+  if (hit) {
+    tooltip.style.display = 'block'
+    tooltip.style.left = Math.min(W - 340, x + 14) + 'px'
+    tooltip.style.top = Math.min(H - 70, y + 14) + 'px'
+    const sub = hit.file ? hit.file.replace('app/server/src/', 'server/').replace('app/web/src/', 'web/') : hit.group || ''
+    tooltip.innerHTML = `<div>${escapeHtml(displayName(hit))}</div><small>${escapeHtml(sub)}</small>`
+    canvas.style.cursor = 'pointer'
+  } else {
+    tooltip.style.display = 'none'
+    canvas.style.cursor = 'grab'
+  }
+})
+canvas.addEventListener('pointerup', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  if (dragging && !moved) {
+    select(dragging.node.id)
+  } else if (!dragging && !moved) {
+    const hit = nodeAt(x, y)
+    if (hit) select(hit.id)
+    else { state.selected = null; renderDetail(); requestDraw() }
+  }
+  dragging = null
+  panning = null
+  canvas.classList.remove('dragging')
+})
+canvas.addEventListener('pointercancel', () => { dragging = null; panning = null; canvas.classList.remove('dragging') })
+canvas.addEventListener('dblclick', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const hit = nodeAt(e.clientX - rect.left, e.clientY - rect.top)
+  if (hit) select(hit.id, true)
+})
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  cameraTouched = true
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+  const p = toWorld(px, py)
+  const k = Math.exp(-e.deltaY * 0.0014)
+  cam.scale = Math.max(0.04, Math.min(4, cam.scale * k))
+  cam.tx = px - p.x * cam.scale
+  cam.ty = py - p.y * cam.scale
+  requestDraw()
+}, { passive: false })
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { state.selected = null; renderDetail(); requestDraw() }
+  if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus() }
+})
+window.addEventListener('resize', resize)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas)
+
+resize()
+rebuild()
+resize()
+</script>
+</body>
+</html>

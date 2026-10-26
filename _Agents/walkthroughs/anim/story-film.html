@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story animation</title>
+<link rel="stylesheet" href="../assets/walkthrough.css?v=20261026s">
+<style>
+html, body { height: 100%; }
+body { margin: 0; overflow: auto; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+body.embed { overflow: hidden; background: transparent; }
+.film-shell { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 100%; padding: clamp(0px, 3vh, 28px) 0; box-sizing: border-box; }
+body.embed .film-shell { height: 100%; padding: 0; }
+.film-player { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+body:not(.embed) .film-player { width: min(1180px, 100%, calc((100vh - 6vh - 118px) * 16 / 9)); }
+.film-screen { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--bg); }
+body.embed .film-player, body.embed .film-screen { height: 100%; }
+body.embed .film-screen { aspect-ratio: auto; }
+body.is-manual .film-screen { cursor: pointer; }
+.stage { position: absolute; top: 0; left: 0; width: 1024px; height: 576px; transform-origin: 0 0; }
+.bg { position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--line) 30%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--line) 30%, transparent) 1px, transparent 1px); background-size: 48px 48px; opacity: .35; }
+.glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 64%); }
+.hud { position: absolute; top: 20px; left: 26px; right: 26px; z-index: 5; display: flex; justify-content: space-between; gap: 10px; color: var(--ink-3); font-family: var(--mono); font-size: 13px; letter-spacing: .05em; }
+.hud b { color: var(--accent); font-weight: 600; }
+.caption { position: absolute; left: 50%; bottom: 22px; z-index: 6; width: 760px; padding: 11px 18px; border: 1px solid var(--line); border-radius: 9px; background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--ink); font-size: 20px; line-height: 1.45; text-align: center; transform: translateX(-50%); box-shadow: 0 10px 28px rgba(0,0,0,.07); }
+.caption b { color: var(--accent); font-weight: 600; }
+.controls { display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.controls button { height: 28px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink-2); font-family: var(--sans); font-size: 12px; cursor: pointer; }
+.controls button:hover { border-color: var(--accent); color: var(--accent); }
+.nav { width: 28px; padding: 0; font-size: 16px; }
+.step { min-width: 150px; max-width: 330px; padding: 0 9px; overflow: hidden; font-family: var(--mono); font-size: 11px; text-align: left; white-space: nowrap; text-overflow: ellipsis; }
+.mode { display: flex; margin-left: auto; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; }
+.mode button { border: 0; border-radius: 0; padding: 0 10px; color: var(--ink-3); }
+.mode button + button { border-left: 1px solid var(--line); }
+.mode button.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.hint { padding: 0 6px; color: var(--ink-3); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
+.chapters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.chapters[hidden] { display: none; }
+.chapters button { min-height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink-2); font-family: var(--sans); font-size: 12px; text-align: left; cursor: pointer; }
+.chapters button:hover { border-color: var(--accent); color: var(--accent); }
+.chapters button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+.part { position: absolute; z-index: 2; width: 132px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--raised); text-align: center; }
+.part b { display: block; color: var(--ink); font-family: var(--mono); font-size: 12px; line-height: 1.3; }
+.part span { display: block; margin-top: 3px; color: var(--ink-3); font-size: 9px; line-height: 1.3; }
+.part.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent); }
+.part[data-type="frontend"] { border-bottom: 3px solid var(--accent); }
+.part[data-type="backend"] { border-bottom: 3px solid #7c60f5; }
+.part[data-type="database"] { border-bottom: 3px solid var(--success); }
+.part[data-type="cloud"] { border-bottom: 3px solid var(--warning); }
+.part[data-type="security"] { border-bottom: 3px solid var(--danger); }
+.part[data-type="external"] { border-bottom: 3px solid var(--ink-3); }
+.part[data-type="messagebus"] { border-bottom: 3px solid #8b5cf6; }
+.lifeline { position: absolute; top: 112px; bottom: 74px; z-index: 0; border-left: 1px dashed var(--line-strong); opacity: .55; }
+.msg { position: absolute; z-index: 3; height: 2px; color: var(--accent); background: currentColor; }
+.msg::after { content: ''; position: absolute; top: -4px; right: -1px; border-left: 7px solid currentColor; border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+.msg.left::after { right: auto; left: -1px; border-left: 0; border-right: 7px solid currentColor; }
+.msg.return { color: var(--ink-3); }
+.msg.security { color: var(--danger); }
+.msg.dashed { height: 0; border-top: 2px dashed currentColor; background: transparent; }
+.msg.dashed::after { top: -5px; }
+.msg-label { position: absolute; z-index: 4; padding: 1px 5px; border-radius: 4px; background: var(--bg); color: var(--ink-2); font-family: var(--mono); font-size: 9px; white-space: nowrap; }
+.token { position: absolute; z-index: 5; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent); }
+.node { position: absolute; z-index: 2; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); box-sizing: border-box; }
+.node b { display: block; overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1.3; white-space: nowrap; text-overflow: ellipsis; }
+.node span { display: block; margin-top: 2px; overflow: hidden; color: var(--ink-3); font-size: 9px; line-height: 1.3; white-space: nowrap; text-overflow: ellipsis; }
+.node.done { border-color: color-mix(in srgb, var(--success) 45%, var(--line)); background: var(--success-soft); }
+.node.active { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.node.side { opacity: .45; }
+.node[data-type="frontend"], .arch[data-type="frontend"] { border-left: 3px solid var(--accent); }
+.node[data-type="backend"], .arch[data-type="backend"] { border-left: 3px solid #7c60f5; }
+.node[data-type="database"], .arch[data-type="database"] { border-left: 3px solid var(--success); }
+.node[data-type="cloud"], .arch[data-type="cloud"] { border-left: 3px solid var(--warning); }
+.node[data-type="security"], .arch[data-type="security"] { border-left: 3px solid var(--danger); }
+.node[data-type="external"], .arch[data-type="external"] { border-left: 3px solid var(--ink-3); }
+.node[data-type="messagebus"], .arch[data-type="messagebus"] { border-left: 3px solid #8b5cf6; }
+.lane-band { position: absolute; z-index: 0; background: color-mix(in srgb, var(--fill) 34%, transparent); }
+.lane-band.alt { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.lane-rule { position: absolute; z-index: 1; border-top: 1px solid var(--line); opacity: .45; }
+.lane-label { position: absolute; z-index: 1; color: var(--ink-3); font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+.edge-layer { position: absolute; inset: 0; z-index: 1; width: 1024px; height: 576px; pointer-events: none; }
+.edge { fill: none; stroke: var(--line-strong); stroke-width: 1.5; opacity: .5; }
+.edge.done { stroke: var(--accent); opacity: .85; }
+.edge-label { fill: var(--ink-3); font-family: var(--mono); font-size: 9px; opacity: .5; }
+.edge-label.active { fill: var(--accent); opacity: 1; }
+.edge-label.done { fill: var(--success-ink); opacity: .8; }
+.edge.active { stroke: var(--accent); stroke-width: 2; opacity: 1; }
+.arch { position: absolute; z-index: 2; display: flex; flex-direction: column; justify-content: center; padding: 7px 9px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); }
+.arch b { color: var(--ink); font-family: var(--mono); font-size: 11px; line-height: 1.3; }
+.arch span { margin-top: 2px; color: var(--ink-3); font-size: 9px; line-height: 1.3; }
+.arch.done { border-color: color-mix(in srgb, var(--success) 45%, var(--line)); }
+.arch.active { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+@media (max-width: 620px) {
+  body:not(.embed) .film-shell { justify-content: flex-start; align-items: flex-start; overflow-x: auto; padding: 8px 0; }
+  body:not(.embed) .film-player { width: 720px; min-width: 720px; }
+  .step { min-width: 110px; font-size: 10px; }
+  .hint { display: none; }
+  .chapters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.film-back { display: flex; align-self: flex-start; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); }
+.film-back a { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; color: var(--ink-3); font-family: var(--sans); font-size: 11px; text-decoration: none; }
+.film-back a:hover { background: var(--accent-soft); color: var(--accent-ink); }
+body.embed .film-back, body.embed .controls, body.embed .chapters { display: none; }
+@media (max-width: 620px) { .film-back a { height: 24px; padding: 0 8px; font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="film-shell">
+  <div class="film-player">
+    <nav class="film-back" aria-label="返回目录"><a href="index.html">← 动画目录</a><a href="../index.html">走读目录</a></nav>
+    <div class="film-screen" id="screen">
+      <div class="stage" id="stage"></div>
+    </div>
+    <div class="controls" id="controls">
+      <button class="nav" type="button" id="prev" aria-label="上一步">‹</button>
+      <button class="step" type="button" id="step" aria-expanded="false">1 / 1</button>
+      <button class="nav" type="button" id="next" aria-label="下一步">›</button>
+      <span class="mode"><button type="button" id="manual" class="active">手动</button><button type="button" id="auto">自动</button></span>
+      <span class="hint" id="hint">点画面继续</span>
+    </div>
+    <div class="chapters" id="chapters" hidden></div>
+  </div>
+</div>
+<script src="stories.js?v=20261026s"></script>
+<script>
+(function () {
+  var Params = new URLSearchParams(location.search)
+  var Theme = Params.get('theme') === 'dark' ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', Theme)
+  document.body.classList.toggle('embed', Params.get('embed') === '1')
+  var StoryId = Params.get('story') || '1.1'
+  var Story = window.STORY_FILMS[StoryId]
+  var Screen = document.getElementById('screen')
+  var Stage = document.getElementById('stage')
+  var Controls = document.getElementById('controls')
+  var Prev = document.getElementById('prev')
+  var Next = document.getElementById('next')
+  var Step = document.getElementById('step')
+  var Manual = document.getElementById('manual')
+  var Auto = document.getElementById('auto')
+  var Hint = document.getElementById('hint')
+  var Chapters = document.getElementById('chapters')
+  var Width = 1024
+  var Height = 576
+  var Cues = Story ? Story.cues : []
+  var ChaptersData = buildChapters()
+  var Index = 0
+  var Mode = 'manual'
+  var Timer = 0
+  var LastToken = null
+
+  function fit() {
+    Stage.style.transform = 'scale(' + Screen.clientWidth / Width + ')'
+  }
+
+  function el(ClassName, Html, X, Y, W, H) {
+    var Node = document.createElement('div')
+    Node.className = ClassName
+    Node.innerHTML = Html || ''
+    if (X != null) Node.style.left = X + 'px'
+    if (Y != null) Node.style.top = Y + 'px'
+    if (W != null) Node.style.width = W + 'px'
+    if (H != null) Node.style.height = H + 'px'
+    Stage.appendChild(Node)
+    return Node
+  }
+
+  function anim(Element, Frames, Options) {
+    if (!Element) return
+    Element.animate(Frames, Object.assign({ fill: 'both', duration: 500, easing: 'cubic-bezier(.2,.7,.2,1)' }, Options || {}))
+  }
+
+  function buildChapters() {
+    if (!Story) return []
+    if (Story.type === 'sequence' && Story.segments && Story.segments.length) {
+      return Story.segments.map(function (Segment, SegmentIndex) {
+        var From = Cues.findIndex(function (Cue) { return Cue.phase === SegmentIndex })
+        var To = Cues.length - 1
+        for (var Index = Cues.length - 1; Index >= 0; Index -= 1) {
+          if (Cues[Index].phase === SegmentIndex) { To = Index; break }
+        }
+        return { label: Segment.label, from: Math.max(0, From), to: Math.max(0, To) }
+      }).filter(function (Chapter) { return Chapter.from <= Chapter.to })
+    }
+    if (Story.type === 'workflow') {
+      var Seen = []
+      var Out = []
+      Cues.forEach(function (Cue, CueIndex) {
+        var Node = Story.nodes.find(function (Item) { return Item.id === Cue.node })
+        if (!Node) return
+        var Lane = Story.lanes.find(function (Item) { return Item.id === Node.lane })
+        var Label = Lane ? Lane.label : Node.lane
+        if (Seen.indexOf(Label) === -1) {
+          Seen.push(Label)
+          Out.push({ label: Label, from: CueIndex, to: CueIndex })
+        } else {
+          Out[Out.length - 1].to = CueIndex
+        }
+      })
+      return Out
+    }
+    return [{ label: '链路', from: 0, to: Math.max(0, Cues.length - 1) }]
+  }
+
+  function base() {
+    Stage.innerHTML = '<div class="bg"></div><div class="glow"></div><div class="hud"><span><b>STORY ' + StoryId + '</b> · ' + Story.title + '</span><span>' + Story.type.toUpperCase() + ' · ' + Cues.length + ' 步</span></div><div class="caption" id="caption"></div>'
+    if (Story.type === 'sequence') renderSequenceBase()
+    else if (Story.type === 'workflow') renderWorkflowBase()
+    else renderArchitectureBase()
+  }
+
+  function sequencePositions() {
+    var Count = Story.participants.length
+    var Positions = {}
+    Story.participants.forEach(function (Participant, Index) {
+      var X = 76 + Index * (872 / Math.max(1, Count - 1))
+      Positions[Participant.id] = X
+    })
+    return Positions
+  }
+
+  function renderSequenceBase() {
+    var Positions = sequencePositions()
+    Story.participants.forEach(function (Participant) {
+      var X = Positions[Participant.id] - 66
+      var Card = el('part', '<b>' + escapeHtml(Participant.label) + '</b><span>' + escapeHtml(Participant.sublabel || '') + '</span>', X, 52, 132, null)
+      Card.dataset.participant = Participant.id
+      Card.dataset.type = Participant.type || 'backend'
+      var Line = el('div', '', Positions[Participant.id], null, null, null)
+      Line.className = 'lifeline'
+    })
+    var Svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    Svg.setAttribute('class', 'edge-layer')
+    Stage.appendChild(Svg)
+  }
+
+  function renderWorkflowBase() {
+    var LaneIndex = {}
+    Story.lanes.forEach(function (Lane, Index) { LaneIndex[Lane.id] = Index })
+    var LaneHeight = 430 / Math.max(1, Story.lanes.length)
+    Story.lanes.forEach(function (Lane, Index) {
+      var Y = 72 + Index * LaneHeight
+      var Band = el('div', '', 0, Y, 1024, LaneHeight)
+      Band.className = 'lane-band' + (Index % 2 ? ' alt' : '')
+      el('div', escapeHtml(Lane.label), 20, Y + 8, 110, null).className = 'lane-label'
+      el('div', '', 130, Y, 860, null).className = 'lane-rule'
+    })
+    var Svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    Svg.setAttribute('class', 'edge-layer')
+    Stage.appendChild(Svg)
+    Story.nodes.forEach(function (Node) {
+      var Lane = LaneIndex[Node.lane] == null ? 0 : LaneIndex[Node.lane]
+      var X = 150 + Node.col * 142
+      var Y = 72 + Lane * LaneHeight + LaneHeight / 2 - 24
+      var Card = el('node', '<b>' + escapeHtml(Node.label) + '</b><span>' + escapeHtml(Node.sublabel || '') + '</span>', X, Y, Math.min(Node.width || 150, 132), 48)
+      Card.dataset.node = Node.id
+      Card.dataset.type = Node.type || 'backend'
+      if (Story.path.indexOf(Node.id) === -1) Card.classList.add('side')
+    })
+    Story.edges.forEach(function (Edge) {
+      var From = nodeCenter(Edge.from)
+      var To = nodeCenter(Edge.to)
+      if (!From || !To) return
+      var Line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      Line.setAttribute('class', 'edge')
+      Line.setAttribute('d', 'M' + From.x + ' ' + From.y + ' C' + (From.x + 30) + ' ' + From.y + ' ' + (To.x - 30) + ' ' + To.y + ' ' + To.x + ' ' + To.y)
+      Line.dataset.edge = Edge.from + '>' + Edge.to
+      Svg.appendChild(Line)
+      var Label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      Label.setAttribute('class', 'edge-label')
+      Label.setAttribute('x', (From.x + To.x) / 2)
+      Label.setAttribute('y', (From.y + To.y) / 2 - 6)
+      Label.textContent = Edge.label || ''
+      Label.dataset.edgeLabel = Edge.from + '>' + Edge.to
+      Svg.appendChild(Label)
+    })
+  }
+
+  function nodeCenter(Id) {
+    var Node = Stage.querySelector('[data-node="' + Id + '"]')
+    if (!Node) return null
+    return { x: Node.offsetLeft + Node.offsetWidth / 2, y: Node.offsetTop + Node.offsetHeight / 2 }
+  }
+
+  function renderArchitectureBase() {
+    var MinX = 9999, MinY = 9999, MaxX = 0, MaxY = 0
+    Story.components.forEach(function (Component) {
+      MinX = Math.min(MinX, Component.pos[0])
+      MinY = Math.min(MinY, Component.pos[1])
+      MaxX = Math.max(MaxX, Component.pos[0] + Component.size[0])
+      MaxY = Math.max(MaxY, Component.pos[1] + Component.size[1])
+    })
+    var Scale = Math.min(880 / Math.max(1, MaxX - MinX), 390 / Math.max(1, MaxY - MinY), 1)
+    var OffsetX = 72 - MinX * Scale
+    var OffsetY = 82 - MinY * Scale
+    var Svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    Svg.setAttribute('class', 'edge-layer')
+    Stage.appendChild(Svg)
+    Story.components.forEach(function (Component) {
+      var X = OffsetX + Component.pos[0] * Scale
+      var Y = OffsetY + Component.pos[1] * Scale
+      var Card = el('arch', '<b>' + escapeHtml(Component.label) + '</b><span>' + escapeHtml(Component.sublabel || '') + '</span>', X, Y, Math.max(96, Component.size[0] * Scale), Math.max(42, Component.size[1] * Scale))
+      Card.dataset.component = Component.id
+      Card.dataset.type = Component.type || 'backend'
+      Component._center = { x: X + Math.max(96, Component.size[0] * Scale) / 2, y: Y + Math.max(42, Component.size[1] * Scale) / 2 }
+    })
+    Story.connections.forEach(function (Connection) {
+      var From = Story.components.find(function (Item) { return Item.id === Connection.from })
+      var To = Story.components.find(function (Item) { return Item.id === Connection.to })
+      if (!From || !To) return
+      var Line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      Line.setAttribute('class', 'edge')
+      Line.setAttribute('x1', From._center.x)
+      Line.setAttribute('y1', From._center.y)
+      Line.setAttribute('x2', To._center.x)
+      Line.setAttribute('y2', To._center.y)
+      Line.dataset.edge = Connection.from + '>' + Connection.to
+      Svg.appendChild(Line)
+      var Label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      Label.setAttribute('class', 'edge-label')
+      Label.setAttribute('x', (From._center.x + To._center.x) / 2)
+      Label.setAttribute('y', (From._center.y + To._center.y) / 2 - 6)
+      Label.setAttribute('text-anchor', 'middle')
+      Label.textContent = Connection.label || ''
+      Label.dataset.edgeLabel = Connection.from + '>' + Connection.to
+      Svg.appendChild(Label)
+    })
+  }
+
+  function drawSequenceCue(CueIndex, Animate) {
+    var Cue = Cues[CueIndex]
+    if (Cue.kind === 'start') {
+      highlightParticipants([Story.participants[0].id])
+      var FirstPart = Stage.querySelector('[data-participant="' + Story.participants[0].id + '"]')
+      if (Animate) anim(FirstPart, [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 360 })
+      return
+    }
+    if (Cue.kind === 'end') { highlightParticipants([Story.participants[Story.participants.length - 1].id]); return }
+    var Positions = sequencePositions()
+    var X1 = Positions[Cue.from]
+    var X2 = Positions[Cue.to]
+    if (X1 == null || X2 == null) return
+    var Count = Cues.length
+    var Y = 136 + CueIndex * (320 / Math.max(1, Count - 1))
+    var Left = Math.min(X1, X2)
+    var Width = Math.abs(X2 - X1)
+    var Line = el('div', '', Left, Y, Width, null)
+    Line.classList.add('msg')
+    if (Cue.variant === 'return') Line.classList.add('return')
+    if (Cue.variant === 'security') Line.classList.add('security')
+    if (Cue.variant === 'dashed') Line.classList.add('dashed')
+    if (X2 < X1) Line.classList.add('left')
+    var Label = el('div', escapeHtml(Cue.label), Left + Width / 2, Y - 17, null, null)
+    Label.classList.add('msg-label')
+    Label.style.transform = 'translateX(-50%)'
+    if (Animate) {
+      anim(Line, [{ opacity: 0, transform: 'scaleX(0)' }, { opacity: 1, transform: 'scaleX(1)' }], { duration: 420 })
+      anim(Label, [{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: 250 })
+    }
+    highlightParticipants([Cue.from, Cue.to])
+  }
+
+  function highlightParticipants(Ids) {
+    Stage.querySelectorAll('.part').forEach(function (Card) {
+      Card.classList.toggle('active', Ids.indexOf(Card.dataset.participant) !== -1)
+    })
+  }
+
+  function queueEdge(FromId, ToId, State) {
+    var Edge = Stage.querySelector('[data-edge="' + FromId + '>' + ToId + '"]')
+    var Label = Stage.querySelector('[data-edge-label="' + FromId + '>' + ToId + '"]')
+    if (Edge) {
+      if (State === 'active') Edge.classList.add('active')
+      else Edge.classList.add('done')
+    }
+    if (Label) {
+      if (State === 'active') Label.classList.add('active')
+      else Label.classList.add('done')
+    }
+  }
+
+  function drawWorkflowCue(CueIndex, Animate) {
+    var Cue = Cues[CueIndex]
+    if (Cue.kind === 'start') {
+      var First = Stage.querySelector('[data-node="' + Story.path[0] + '"]')
+      if (First) {
+        First.classList.add('active')
+        if (Animate) anim(First, [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 360 })
+      }
+      return
+    }
+    if (Cue.kind === 'end') {
+      Story.path.forEach(function (Id) {
+        var Node = Stage.querySelector('[data-node="' + Id + '"]')
+        if (Node) Node.classList.add('done')
+      })
+      Story.edges.forEach(function (Edge) { queueEdge(Edge.from, Edge.to, 'done') })
+      return
+    }
+    if (Cue.kind === 'node') {
+      var Node = Stage.querySelector('[data-node="' + Cue.node + '"]')
+      if (Node) {
+        Node.classList.remove('active')
+        Node.classList.add('done')
+      }
+      if (Node && Animate) anim(Node, [{ transform: 'scale(1)' }, { transform: 'scale(1.03)' }, { transform: 'scale(1)' }], { duration: 280 })
+      if (CueIndex > 0 && Cues[CueIndex - 1].kind === 'edge') queueEdge(Cues[CueIndex - 1].from, Cues[CueIndex - 1].to, 'done')
+      return
+    }
+    var From = Stage.querySelector('[data-node="' + Cue.from + '"]')
+    var To = Stage.querySelector('[data-node="' + Cue.to + '"]')
+    if (!From || !To) return
+    From.classList.add('done')
+    To.classList.add('active')
+    queueEdge(Cue.from, Cue.to, Animate ? 'active' : 'done')
+    if (Animate) {
+      var A = { x: From.offsetLeft + From.offsetWidth / 2, y: From.offsetTop + From.offsetHeight / 2 }
+      var B = { x: To.offsetLeft + To.offsetWidth / 2, y: To.offsetTop + To.offsetHeight / 2 }
+      var Token = el('div', '', A.x - 4, A.y - 4, null, null)
+      Token.classList.add('token')
+      anim(Token, [{ transform: 'translate(0,0)' }, { transform: 'translate(' + (B.x - A.x) + 'px,' + (B.y - A.y) + 'px)' }], { duration: 520 })
+      anim(Token, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, delay: 520 })
+    }
+  }
+
+  function drawArchitectureCue(CueIndex, Animate) {
+    var Cue = Cues[CueIndex]
+    if (Cue.kind === 'start') {
+      var Start = Stage.querySelector('[data-component="' + Story.connections[0].from + '"]')
+      if (Start) {
+        Start.classList.add('active')
+        if (Animate) anim(Start, [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 360 })
+      }
+      return
+    }
+    if (Cue.kind === 'end') {
+      Stage.querySelectorAll('.arch').forEach(function (Item) { Item.classList.add('done') })
+      Story.connections.forEach(function (Edge) { queueEdge(Edge.from, Edge.to, 'done') })
+      return
+    }
+    if (Cue.kind === 'node') {
+      var Target = Stage.querySelector('[data-component="' + Cue.node + '"]')
+      if (Target) {
+        Target.classList.remove('active')
+        Target.classList.add('done')
+      }
+      if (Target && Animate) anim(Target, [{ transform: 'scale(1)' }, { transform: 'scale(1.03)' }, { transform: 'scale(1)' }], { duration: 280 })
+      if (CueIndex > 0 && Cues[CueIndex - 1].kind === 'edge') queueEdge(Cues[CueIndex - 1].from, Cues[CueIndex - 1].to, 'done')
+      return
+    }
+    var From = Stage.querySelector('[data-component="' + Cue.from + '"]')
+    var To = Stage.querySelector('[data-component="' + Cue.to + '"]')
+    if (!From || !To) return
+    From.classList.add('done')
+    To.classList.add('active')
+    queueEdge(Cue.from, Cue.to, Animate ? 'active' : 'done')
+    if (Animate) {
+      var A = { x: From.offsetLeft + From.offsetWidth / 2, y: From.offsetTop + From.offsetHeight / 2 }
+      var B = { x: To.offsetLeft + To.offsetWidth / 2, y: To.offsetTop + To.offsetHeight / 2 }
+      var Token = el('div', '', A.x - 4, A.y - 4, null, null)
+      Token.classList.add('token')
+      anim(Token, [{ transform: 'translate(0,0)' }, { transform: 'translate(' + (B.x - A.x) + 'px,' + (B.y - A.y) + 'px)' }], { duration: 480 })
+      anim(Token, [{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 480 })
+    }
+  }
+
+  function drawCue(CueIndex, Animate) {
+    if (Story.type === 'sequence') drawSequenceCue(CueIndex, Animate)
+    else if (Story.type === 'workflow') drawWorkflowCue(CueIndex, Animate)
+    else drawArchitectureCue(CueIndex, Animate)
+    var Caption = document.getElementById('caption')
+    Caption.innerHTML = escapeHtml(Cues[CueIndex].caption || Cues[CueIndex].label)
+    if (Animate) anim(Caption, [{ opacity: 0, transform: 'translateX(-50%) translateY(4px)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 260 })
+  }
+
+  function showCue(Target) {
+    if (!Cues.length) return
+    clearTimeout(Timer)
+    Index = Math.max(0, Math.min(Cues.length - 1, Target))
+    base()
+    for (var Cursor = 0; Cursor < Index; Cursor += 1) drawCue(Cursor, false)
+    drawCue(Index, true)
+    updateUi()
+    if (window.parent !== window) window.parent.postMessage({ type: 'cuechange', index: Index }, '*')
+    if (Mode === 'auto') {
+      if (Index >= Cues.length - 1) { Mode = 'manual'; updateUi(); return }
+      Timer = setTimeout(function () { showCue(Index + 1) }, 1500)
+    }
+  }
+
+  function updateUi() {
+    Step.textContent = (Index + 1) + ' / ' + Cues.length + ' · ' + (chaptersForCue(Index) || '全程') + ' · ' + (Cues[Index] ? Cues[Index].label : '')
+    Manual.classList.toggle('active', Mode === 'manual')
+    Auto.classList.toggle('active', Mode === 'auto')
+    Hint.textContent = Mode === 'manual' ? '点画面继续' : '自动播放'
+    document.body.classList.toggle('is-manual', Mode === 'manual')
+    Array.prototype.forEach.call(Chapters.children, function (Button, ButtonIndex) {
+      Button.classList.toggle('active', ButtonIndex === chapterIndexForCue(Index))
+    })
+    Prev.disabled = Index === 0
+    Next.disabled = Index === Cues.length - 1
+  }
+
+  function chaptersForCue(CueIndex) {
+    var Chapter = ChaptersData[chapterIndexForCue(CueIndex)]
+    return Chapter ? Chapter.label : ''
+  }
+
+  function chapterIndexForCue(CueIndex) {
+    for (var Index = ChaptersData.length - 1; Index >= 0; Index -= 1) {
+      if (CueIndex >= ChaptersData[Index].from && CueIndex <= ChaptersData[Index].to) return Index
+    }
+    return 0
+  }
+
+  function escapeHtml(Value) {
+    return String(Value == null ? '' : Value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+
+  // Chapters
+  if (ChaptersData.length > 1) {
+    Chapters.hidden = false
+    ChaptersData.forEach(function (Chapter, ChapterIndex) {
+      var Button = document.createElement('button')
+      Button.type = 'button'
+      Button.textContent = (ChapterIndex + 1) + '. ' + Chapter.label
+      Button.addEventListener('click', function () { showCue(Chapter.from) })
+      Chapters.appendChild(Button)
+    })
+  }
+
+  Step.addEventListener('click', function () {
+    if (ChaptersData.length <= 1) return
+    Chapters.hidden = !Chapters.hidden
+    Step.setAttribute('aria-expanded', String(!Chapters.hidden))
+  })
+  Prev.addEventListener('click', function () { showCue(Index - 1) })
+  Next.addEventListener('click', function () { showCue(Index + 1) })
+  Manual.addEventListener('click', function () { Mode = 'manual'; clearTimeout(Timer); showCue(Index) })
+  Auto.addEventListener('click', function () { Mode = 'auto'; clearTimeout(Timer); showCue(0) })
+  Screen.addEventListener('click', function (Event) {
+    if (Mode !== 'manual' || Event.target.closest('button')) return
+    showCue(Index + 1)
+  })
+  document.addEventListener('keydown', function (Event) {
+    if (Event.target && /INPUT|TEXTAREA|SELECT/.test(Event.target.tagName)) return
+    if (Event.key === 'ArrowLeft') { Event.preventDefault(); showCue(Index - 1) }
+    if (Event.key === 'ArrowRight') { Event.preventDefault(); showCue(Index + 1) }
+  })
+  window.addEventListener('message', function (Event) {
+    if (!Event.data) return
+    if (Event.data.type === 'cue') {
+      Mode = 'manual'
+      clearTimeout(Timer)
+      showCue(Number(Event.data.index) || 0)
+    }
+    if (Event.data.type === 'auto') {
+      Mode = 'auto'
+      clearTimeout(Timer)
+      showCue(0)
+    }
+  })
+  window.addEventListener('resize', fit)
+  requestAnimationFrame(fit)
+  if (!Story) {
+    Step.textContent = '找不到 story'
+  } else {
+    showCue(0)
+  }
+})();
+</script>
+</body>
+</html>

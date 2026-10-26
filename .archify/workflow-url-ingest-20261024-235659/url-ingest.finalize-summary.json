@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/candidate.json",
+    "sha256": "224186c1d4d70407238fb89b87fe877a0604717c0cb29e5d39b70f14562f7d1e",
+    "bytes": 4290
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/url-ingest.html",
+    "sha256": "75a0128c12e1b23b583adb8850180c91e99b39089aaea494098500ee4cf51d93",
+    "bytes": 829534
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/url-ingest.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/url-ingest.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-url-ingest-20261024-235659/url-ingest.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3152,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

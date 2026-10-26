@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 3.3 retrieve 五段与两种 sink",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.html"
+  },
+  "participants": [
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /retrieve",
+      "sublabel": "HTTP"
+    },
+    {
+      "id": "retriever",
+      "type": "backend",
+      "label": "Retriever.search",
+      "sublabel": "5 stages"
+    },
+    {
+      "id": "embed",
+      "type": "cloud",
+      "label": "Embedder",
+      "sublabel": "query vector"
+    },
+    {
+      "id": "vector",
+      "type": "database",
+      "label": "pgvector",
+      "sublabel": "HNSW"
+    },
+    {
+      "id": "lexical",
+      "type": "database",
+      "label": "BM25",
+      "sublabel": "pg_search"
+    },
+    {
+      "id": "rrf",
+      "type": "backend",
+      "label": "RRF",
+      "sublabel": "fuse"
+    },
+    {
+      "id": "sink",
+      "type": "messagebus",
+      "label": "stage sink",
+      "sublabel": "DB / Langfuse"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 290,
+      "label": "查"
+    },
+    {
+      "from": 295,
+      "to": 410,
+      "label": "融合 + 记录"
+    }
+  ],
+  "messages": [
+    {
+      "id": "search",
+      "from": "route",
+      "to": "retriever",
+      "y": 160,
+      "label": "search",
+      "variant": "emphasis"
+    },
+    {
+      "id": "embed",
+      "from": "retriever",
+      "to": "embed",
+      "y": 190,
+      "label": "embed query",
+      "variant": "default"
+    },
+    {
+      "id": "vector",
+      "from": "retriever",
+      "to": "vector",
+      "y": 220,
+      "label": "HNSW topK",
+      "variant": "default"
+    },
+    {
+      "id": "lexical",
+      "from": "retriever",
+      "to": "lexical",
+      "y": 250,
+      "label": "BM25 topK",
+      "variant": "default"
+    },
+    {
+      "id": "fuse",
+      "from": "retriever",
+      "to": "rrf",
+      "y": 280,
+      "label": "fuse",
+      "variant": "emphasis"
+    },
+    {
+      "id": "hits",
+      "from": "rrf",
+      "to": "retriever",
+      "y": 310,
+      "label": "hits",
+      "variant": "return"
+    },
+    {
+      "id": "stage",
+      "from": "retriever",
+      "to": "sink",
+      "y": 340,
+      "label": "5 stage events",
+      "variant": "dashed"
+    },
+    {
+      "id": "response",
+      "from": "retriever",
+      "to": "route",
+      "y": 370,
+      "label": "hits + counts",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "五段",
+      "items": [
+        "embed",
+        "vector",
+        "lexical",
+        "fuse",
+        "emit"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "两种 sink",
+      "items": [
+        "/retrieve 写 DB trace_stages",
+        "chat tool 写 Langfuse",
+        "embed telemetry off"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "上下文",
+      "items": [
+        "OTel 需 AsyncLocalStorageContextManager",
+        "否则 stage 变成独立根 trace",
+        "前端 /traces 抽屉显示阶段"
+      ]
+    }
+  ]
+}

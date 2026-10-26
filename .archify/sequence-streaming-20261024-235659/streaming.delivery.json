@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "46d2602a-563c-47b2-b395-f45a4944ca6c",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-streaming-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-streaming-20261024-235659/streaming.html",
+  "specification": {
+    "sha256": "1199dd79ac4b30abc3b9b3170e804298b6c2dbb37560a79caa4a50fc0e0b0254",
+    "bytes": 2528
+  },
+  "artifact": {
+    "sha256": "5cc203e8417266f587e63a99e25a57421f302f2e0f0d0ccacb7947adb56aaa7f",
+    "bytes": 815187
+  }
+}

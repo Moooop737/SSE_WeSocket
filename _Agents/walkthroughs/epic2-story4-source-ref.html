@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epic 2 · Story 2.4 原文回链 Source Ref · 带代码逐行讲解</title>
+<style>
+:root {
+  --bg: #f5f2ec;
+  --panel: #fffdf8;
+  --panel-2: #ece8df;
+  --ink: #1b232b;
+  --ink-2: #46515d;
+  --ink-3: #78838f;
+  --line: #dcd7cc;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --danger: #b91c1c;
+  --code-bg: #0f171e;
+  --code-head: #0a1117;
+  --code-ink: #d8e2eb;
+  --code-line: #1d2a35;
+  --hl: rgba(250, 204, 21, .16);
+  --shadow: 0 14px 40px rgba(27, 35, 43, .08);
+  --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html[data-theme="dark"] {
+  --bg: #0c1116;
+  --panel: #121a21;
+  --panel-2: #18222b;
+  --ink: #e7edf3;
+  --ink-2: #adb9c5;
+  --ink-3: #7d8a97;
+  --line: #263440;
+  --accent: #5eead4;
+  --accent-2: #fbbf24;
+  --danger: #fca5a5;
+  --code-bg: #090e13;
+  --code-head: #060a0e;
+  --code-ink: #d8e2eb;
+  --code-line: #18232d;
+  --hl: rgba(94, 234, 212, .14);
+  --shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: .9em; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: .08em .34em; }
+pre code { background: none; border: 0; padding: 0; }
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); z-index: 80; }
+.layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.toc {
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+  padding: 30px 18px 40px; border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.toc-brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.toc-title { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.toc-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 18px; }
+.toc nav { display: flex; flex-direction: column; gap: 2px; }
+.toc nav a { display: block; padding: 6px 10px; border-radius: 7px; color: var(--ink-2); font-size: 13px; border-left: 2px solid transparent; }
+.toc nav a:hover { background: var(--panel-2); text-decoration: none; color: var(--ink); }
+.toc nav a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); font-weight: 600; }
+.toc-actions { display: flex; gap: 8px; margin-top: 18px; }
+.toc-actions button, .copy-code {
+  font-family: var(--sans); font-size: 12px; color: var(--ink-2); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; cursor: pointer;
+}
+.toc-actions button:hover, .copy-code:hover { border-color: var(--accent); color: var(--accent); }
+.main { min-width: 0; padding: 42px 54px 100px; max-width: 1180px; }
+.hero {
+  position: relative; overflow: hidden; padding: 38px 42px;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 30px 30px; opacity: .28;
+  mask-image: radial-gradient(circle at 80% 10%, #000, transparent 68%);
+}
+.hero > * { position: relative; }
+.hero-kicker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.hero h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.18; margin: 14px 0 12px; letter-spacing: -.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 16px; color: var(--ink-2); max-width: 760px; margin: 0 0 20px; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.chip strong { color: var(--ink); font-weight: 600; }
+.trace-pill { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 8px; padding: 7px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.trace-pill b { color: var(--accent); font-weight: 600; }
+.section { margin-top: 54px; scroll-margin-top: 24px; }
+.section-head { margin-bottom: 18px; }
+.kicker { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 9px; }
+.section h2 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; letter-spacing: -.015em; }
+.section-sub { color: var(--ink-2); margin: 0; max-width: 900px; }
+.callout { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--panel)); color: var(--ink-2); }
+.callout.strong { background: color-mix(in srgb, var(--accent-2) 7%, var(--panel)); border-left-color: var(--accent-2); color: var(--ink); }
+.summary-grid, .choice-grid, .test-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.summary-card, .choice, .test-card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.summary-no, .choice-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.summary-card h3, .choice h3, .test-card h3 { font-size: 16px; margin: 6px 0 6px; }
+.summary-card p, .choice p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layer-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.layer { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.layer-31 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset; }
+.layer-tag { font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: .06em; }
+.layer h3 { margin: 7px 0 6px; font-size: 18px; }
+.layer p { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.layer code { display: inline-block; font-size: 11px; color: var(--ink-2); }
+.map-note, .journey-hint, .table-note, .test-note { color: var(--ink-3); font-size: 13px; margin-top: 12px; }
+.glossary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.gloss { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.gloss dt { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.gloss dd { margin: 0; font-size: 13px; color: var(--ink-2); }
+.journey { display: grid; gap: 8px; margin-top: 18px; }
+.journey-step { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); font-family: var(--sans); transition: border-color .15s, transform .15s; }
+.journey-step:hover { border-color: var(--accent); transform: translateX(2px); }
+.step-no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.step-text { display: flex; flex-direction: column; gap: 1px; }
+.step-text strong { font-size: 14px; }
+.step-text small { color: var(--ink-3); font-size: 12.5px; }
+.step-code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.file-table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.file-table th, .file-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.file-table th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel-2); }
+.file-table tr:last-child td { border-bottom: 0; }
+.file-table code { font-size: 11.5px; }
+.block { margin-top: 34px; scroll-margin-top: 24px; }
+.block-title { font-size: 20px; margin: 0 0 4px; }
+.block-intro { color: var(--ink-2); margin: 0 0 12px; font-size: 14px; }
+.explain { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 16px; align-items: start; }
+.code-card { background: var(--code-bg); border: 1px solid #1f2c37; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(10, 17, 23, .2); position: sticky; top: 14px; }
+.code-head { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: var(--code-head); border-bottom: 1px solid #1d2a35; color: #8fa2b3; font-size: 11.5px; }
+.traffic { display: inline-flex; gap: 4px; margin-right: 2px; }
+.traffic i { width: 8px; height: 8px; border-radius: 50%; background: #33424f; display: block; }
+.traffic i:first-child { background: #7f3c3c; }
+.traffic i:nth-child(2) { background: #7d6a3a; }
+.traffic i:nth-child(3) { background: #3f6a55; }
+.code-path { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code-lang { margin-left: auto; font-family: var(--mono); font-size: 10px; color: #7d8f9f; border: 1px solid #263744; border-radius: 4px; padding: 1px 5px; }
+.copy-code { margin-left: 6px; background: transparent; color: #9fb0c0; border-color: #2a3a47; font-size: 11px; }
+.copy-code:hover { color: #d8e2eb; border-color: #4b6274; }
+.code-scroll { max-height: 70vh; overflow: auto; overscroll-behavior: contain; }
+.code { font-family: var(--mono); font-size: 12.5px; line-height: 1.62; padding: 12px 0 16px; min-width: max-content; }
+.line { display: flex; min-height: 1.62em; }
+.line.hl { background: var(--hl); }
+.line.hl .ln { color: #c9a227; }
+.line.gap { opacity: .45; }
+.ln { flex: 0 0 3.8em; text-align: right; padding-right: 1em; color: #546675; user-select: none; }
+.lc { white-space: pre; padding-right: 20px; color: var(--code-ink); }
+.tok-k { color: #c792ea; }
+.tok-s { color: #ecc48d; }
+.tok-c { color: #6d8292; font-style: italic; }
+.tok-n { color: #f78c6c; }
+.tok-t { color: #82aaff; }
+.notes { display: flex; flex-direction: column; gap: 9px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.note:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); transform: translateY(-1px); }
+.note.active { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent) inset; border-color: var(--accent); }
+.note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note-head { display: flex; align-items: center; gap: 8px; }
+.note-num { font-family: var(--mono); font-size: 10.5px; color: var(--accent); }
+.note-title { font-weight: 700; font-size: 14px; flex: 1; }
+.note-range { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin: 2px 0 7px; }
+.note-body { font-size: 13px; color: var(--ink-2); }
+.note-body p { margin: 0 0 6px; }
+.note-body p:last-child { margin-bottom: 0; }
+.badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; border-radius: 999px; padding: 1px 6px; border: 1px solid var(--line); color: var(--ink-3); background: var(--panel-2); white-space: nowrap; }
+.b-31 { color: #0f766e; border-color: #9fd6cf; background: #e6f6f3; }
+.b-32 { color: #6d4aff; border-color: #c9baff; background: #f0ecff; }
+.b-33 { color: #a35400; border-color: #f0c48a; background: #fff4e3; }
+.b-34 { color: #a1224f; border-color: #f2b6c9; background: #ffedf3; }
+.b-pre, .b-now { color: #5b6570; }
+html[data-theme="dark"] .b-31 { background: #0f2f2b; border-color: #1f6f66; color: #7fe7d9; }
+html[data-theme="dark"] .b-32 { background: #211b3c; border-color: #4b3d89; color: #c4b5ff; }
+html[data-theme="dark"] .b-33 { background: #33230d; border-color: #7a541f; color: #f3c780; }
+html[data-theme="dark"] .b-34 { background: #351521; border-color: #7c3048; color: #f3a8c0; }
+.test-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.test-card { padding: 16px; }
+.test-card h3 { margin-top: 0; }
+.snippet { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid #1f2c37; border-radius: 9px; padding: 12px 14px; overflow: auto; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.pitfall-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.pitfall-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 13.5px; color: var(--ink-2); }
+.pitfall-list strong { color: var(--ink); }
+.next-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.next-box p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 720px; }
+.next-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.next-links a { font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--ink-2); }
+.next-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.to-top { position: fixed; right: 22px; bottom: 22px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+.to-top.show { opacity: 1; pointer-events: auto; }
+.footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
+@media (max-width: 1100px) {
+  .explain { grid-template-columns: 1fr; }
+  .code-card { position: static; }
+  .code-scroll { max-height: 55vh; }
+}
+@media (max-width: 980px) {
+  .layout { display: block; }
+  .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 20px; }
+  .toc nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 28px 20px 80px; }
+  .hero { padding: 26px 22px; }
+  .summary-grid, .layer-map, .glossary { grid-template-columns: 1fr; }
+  .choice-grid, .test-grid { grid-template-columns: 1fr; }
+  .file-table { display: block; overflow: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+.flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.flow-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.flow-card h3 { margin: 0 0 10px; font-size: 16px; }
+.flow-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.flow-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
+.flow-list li:last-child { border-bottom: 0; }
+.flow-list code { font-size: 11.5px; }
+.tree { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.tree li { position: relative; padding-left: 20px; font-size: 12.5px; }
+.tree li::before { content: ""; position: absolute; left: 4px; top: .85em; width: 9px; height: 1px; background: var(--line); }
+.tree li::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tree li:last-child::after { display: none; }
+.tree .root { padding-left: 0; font-weight: 700; }
+.tree .root::before, .tree .root::after { display: none; }
+.b-app { color: #5b6570; }
+@media (max-width: 820px) { .flow-map { grid-template-columns: 1fr; } }
+.lane .journey { margin-top: 0; }
+.lane .journey-step { grid-template-columns: 30px minmax(0, 1fr); }
+.lane .step-code { display: none; }
+.lane .step-text small { font-size: 12px; }
+
+:root { --accent: #86198f; --accent-2: #701a75; }
+html[data-theme="dark"] { --accent: #f0abfc; }
+.lane .journey { margin-top: 0; }
+</style>
+<link rel="stylesheet" href="assets/walkthrough.css?v=20261026r">
+<script src="assets/walkthrough.js?v=20261026r" defer></script>
+</head>
+<body>
+<header class="docs-topbar">
+  <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
+  <span class="docs-crumb">Story 2.4</span>
+  <span class="docs-topbar-spacer"></span>
+  <a class="docs-back" href="index.html">全部走读</a>
+</header>
+<div class="top-progress" id="progress"></div>
+<div class="layout">
+  <aside class="toc">
+    <p class="toc-brand">Epic 2 · Walkthrough</p>
+    <p class="toc-title">Story 2.4</p>
+    <p class="toc-sub">原文回链 · 快照与来源已删除</p>
+    <nav id="toc"><a href="#conclusion-and-boundary" data-toc="conclusion-and-boundary">一句话结论与 story 边界</a><a href="#story-diagram" data-toc="story-diagram">一眼看懂：点引用 → 原文抽屉</a><a href="#global-map" data-toc="global-map">全局地图：写入侧带快照，读取侧只查来源</a><a href="#glossary" data-toc="glossary">小白词典</a><a href="#journey" data-toc="journey">一次「点引用」的旅行</a><a href="#file-map" data-toc="file-map">文件地图</a><a href="#code-and-annotations" data-toc="code-and-annotations">代码逐段：从点击到抽屉</a><a href="#decisions-and-pitfalls" data-toc="decisions-and-pitfalls">关键取舍与容易踩的坑</a><a href="#verification-commands" data-toc="verification-commands">可复制的验证命令</a><a href="#story-continuity" data-toc="story-continuity">与前后 story 的衔接</a></nav>
+    <div class="toc-actions">
+      <button type="button" id="theme-toggle">深色</button>
+      <button type="button" id="expand-all">展开代码</button>
+    </div>
+  </aside>
+  <main class="main">
+<header class="hero">
+  <div class="hero-kicker"><span>EPIC 2 · STORY 2.4</span><span class="chip">FR-11</span><span class="chip">status <strong>done</strong></span><span class="chip">2026-10-21 收口</span></div>
+  <h1>点击引用，看到<em>回答当时</em>那块原文</h1>
+  <p class="hero-sub">Story 2.4 把「引用」接成一扇只读的原文窗：点右栏命中行，或点回答里的 [n]（当前轮先定位那一行，跨轮直接开），抽屉里展示消息内嵌的原文快照、块号与偏移、来源标识；来源被删时内容照常可看，只多一行「来源已删除」。</p>
+  <div class="meta-row">
+    <span class="chip">上游：<strong>2.3 [n] 映射</strong></span>
+    <span class="chip">快照：<strong>2.6 tool output</strong></span>
+    <span class="chip">持久化：<strong>2.5 message parts</strong></span>
+    <span class="chip">代码：<strong>当前工作区</strong></span>
+  </div>
+  <div class="trace-pill"><b>一句话</b> 快照来自 messages.parts，不请求已删 chunk；删除只影响标注，不影响可读性。</div>
+</header>
+
+<section class="section" id="conclusion-and-boundary">
+  <header class="section-head">
+    <span class="kicker">01 · CONCLUSION</span>
+    <h2>一句话结论与 story 边界</h2>
+    <p class="section-sub">先把「这格做了什么」钉死，再看代码。2.4 不负责编号解析，也不负责 trace 面板；它负责「点开之后看到什么」。</p>
+  </header>
+
+  <div class="callout strong"><strong>结论：</strong>2.4 把「引用」接成一扇只读的原文窗：命中行一定开抽屉，回答里的 [n] 在当前引用列表里先点亮右栏、不在列表里就直接开抽屉；抽屉里的正文来自消息内嵌快照，来源是否还在只查 Resource，不查 chunk。</div>
+
+  <div class="summary-grid">
+    <article class="summary-card"><span class="summary-no">01</span><h3>快照，不是重取</h3><p>打开抽屉时不请求 <code>GET /resources/:id/chunks</code>；<code>content</code>、<code>chunkIndex</code>、<code>startOffset</code>、<code>endOffset</code> 都从这条 assistant 消息的 <code>tool-retrieve</code> output 里读。</p></article>
+    <article class="summary-card"><span class="summary-no">02</span><h3>两个点击入口</h3><p>右栏命中行点击一定开抽屉；回答里的 [n] 在当前引用列表里时先定位/点亮那一行，属于更早一轮或不在当前列表时直接开抽屉。</p></article>
+    <article class="summary-card"><span class="summary-no">03</span><h3>删了也能看</h3><p>抽屉打开时查一次 <code>GET /resources/:id</code>；404 显示「来源已删除 · 以下为回答时的快照」，正文继续渲染。500 或网络失败不冒充「已删除」。</p></article>
+  </div>
+
+  <table class="file-table">
+    <thead><tr><th>能力</th><th>归属</th><th>本页怎么处理</th></tr></thead>
+    <tbody>
+      <tr><td>[n] 与 8 位 chunkId 的解析、编号、越界纯文本</td><td>Story 2.3</td><td>只讲点击之后的那一跳，不重讲编号规则</td></tr>
+      <tr><td><code>tool-retrieve</code> output 的完整投影</td><td>Story 2.6</td><td>抽屉、面板的数据源；代码块带 <code>2.6</code> badge</td></tr>
+      <tr><td>消息 parts 落库、历史恢复</td><td>Story 2.5</td><td>解释「为什么删了来源还能看到快照」</td></tr>
+      <tr><td>点引用/命中行开抽屉、块号/偏移/来源、已删标注</td><td><strong>Story 2.4</strong></td><td>本页主角</td></tr>
+      <tr><td><code>GET /resources/:id</code></td><td>2.4 加；Epic 3 pre-3.2 交给 hono-crud</td><td>当前读路径带 <code>3.2 前置</code> badge，历史提交用 git 命令核对</td></tr>
+      <tr><td>字符级高亮</td><td>增强项，本 Story 不强制</td><td>明确说「没做」，不把行高亮冒充字符高亮</td></tr>
+      <tr><td>3.3 的 trace 面板 / 阶段读接口</td><td>Story <span class="badge b-33">3.3</span></td><td>不在本页；抽屉里的 stage 视图不属于 2.4</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout"><strong>边界里最容易被误读的一条：</strong>2.4 的「来源已删除」判据是 <strong>Resource 级</strong>——<code>GET /resources/:id</code> 返回 404。它不是逐 chunk 探测；如果只删了一个 chunk 而 Resource 还在，抽屉不会标「来源已删除」。当前实现没有 410 分支，410 条款已在 2026-10-21 作废。</div>
+</section>
+<section class="section" id="story-diagram">
+  <header class="section-head">
+    <span class="kicker">DIAGRAM · 08</span>
+    <h2>一眼看懂：点引用 → 原文抽屉</h2>
+    <p class="section-sub">先看消息内快照，再按需补来源详情。</p>
+  </header>
+  <div class="meta-row" style="margin:12px 0 14px"><span class="chip"><strong>1</strong>份快照</span><span class="chip"><strong>2</strong>类来源标识</span><span class="chip"><strong>404</strong>降级不崩</span></div>
+  <figure style="margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)">
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <iframe src="diagrams/epic2-story4-source-ref.html?theme=light&amp;v=20261025c&amp;iframe=1" title="Story 2.4 点引用到原文抽屉" loading="lazy" style="display:block;width:100%;min-width:820px;aspect-ratio:973 / 528;border:0;background:var(--panel)"></iframe>
+  </div>
+</figure>
+  <p class="section-sub" style="margin:8px 0 0"><a href="diagrams/epic2-story4-source-ref.html" target="_blank" rel="noreferrer">打开完整交互版</a> · 点节点看语义护照；小屏可横向滑动；完整版支持缩放 / 动效 / 路由。</p>
+<script>
+(function () {
+  var Frame = document.querySelector('#story-diagram iframe');
+  if (!Frame) return;
+  function sync() {
+    var Theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    var Src = Frame.getAttribute('src') || '';
+    var Next = /theme=(light|dark)/.test(Src)
+      ? Src.replace(/theme=(light|dark)/, 'theme=' + Theme)
+      : Src + (Src.indexOf('?') === -1 ? '?' : '&') + 'theme=' + Theme;
+    if (Next !== Src) Frame.setAttribute('src', Next);
+  }
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  sync();
+})();
+</script>
+  <div class="callout" style="margin-top:14px"><strong>读图：</strong><ul style="margin:8px 0 0 18px;padding:0"><li>原文片段来自 message parts 的快照，不依赖已删 chunk 行。</li><li>来源标识优先 URL/文件名；粘贴内容用 uuid urn。</li><li>详情 404 时仍显示快照并标「来源已删除」；不返回 410。</li></ul></div>
+  <div class="callout" style="margin-top:10px"><strong>图外补充：</strong>字符级高亮是增强项，本页不强制。</div>
+</section>
+
+
+<section class="section" id="global-map">
+  <header class="section-head">
+    <span class="kicker">02 · MAP</span>
+    <h2>全局地图：写入侧带快照，读取侧只查来源</h2>
+    <p class="section-sub">一句话记住两条路：回答时把命中快照写进消息；打开抽屉时只问 Resource 还在不在，不回头取 chunk。</p>
+  </header>
+
+  <div class="flow-map">
+    <div class="flow-card">
+      <h3>写入侧 · 流里带回来</h3>
+      <ul class="flow-list">
+        <li><span>模型调 retrieve 工具</span><code>tool-retrieve</code></li>
+        <li><span>工具输出 12 个字段</span><code>RetrievedHit</code></li>
+        <li><span>UI message stream 落到 assistant 消息</span><code>parts[]</code></li>
+        <li><span>服务端把 parts 写进 messages 表</span><code>2.5</code></li>
+        <li><span>刷新/切会话时整条消息回读</span><code>GET /sessions/:id/messages</code></li>
+      </ul>
+    </div>
+    <div class="flow-card">
+      <h3>读取侧 · 点开只查一次</h3>
+      <ul class="flow-list">
+        <li><span>点 [n] 或命中行</span><code>onCite / onOpen</code></li>
+        <li><span>把命中放进 openHit</span><code>RetrievedHit</code></li>
+        <li><span>抽屉渲染快照正文</span><code>openHit.content</code></li>
+        <li><span>同时查来源是否还在</span><code>GET /resources/:id</code></li>
+        <li><span>404 只加标注，正文照旧</span><code>来源已删除</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout"><strong>不要混的两件事：</strong><code>GET /resources/:id</code> 只回答「Resource 还在不在」；<code>GET /resources/:id/chunks</code> 是资源详情抽屉的分页读，不参与命中抽屉。前者 404 只影响标注，后者 404 会让资源详情进失败态。</div>
+</section>
+
+<section class="section" id="glossary">
+  <header class="section-head">
+    <span class="kicker">03 · GLOSSARY</span>
+    <h2>小白词典</h2>
+    <p class="section-sub">这些词在本页反复出现；先用一句人话记住，再看代码。</p>
+  </header>
+
+  <div class="glossary">
+    <div class="gloss"><dt>UIMessage.parts</dt><dd>AI SDK 的消息不是一段字符串，而是 parts 数组：text、reasoning、tool-retrieve 各占一段。快照就住在 tool part 的 output 里。</dd></div>
+    <div class="gloss"><dt>tool-retrieve</dt><dd>模型自己调用的检索工具。它的 output 里有 hits（命中数组）、两路计数和 error；前端按 part 名找它，不另打 /retrieve。</dd></div>
+    <div class="gloss"><dt>快照</dt><dd>回答那一刻的命中副本：正文、块号、偏移、标题、URL 都在消息里。来源后来被删，快照本身不会消失。</dd></div>
+    <div class="gloss"><dt>chunkId / resourceId</dt><dd>chunkId 指向一个块，resourceId 指向块所属的资源。引用标记按 chunkId 找块；「来源已删除」按 resourceId 查资源。</dd></div>
+    <div class="gloss"><dt>404 / 410</dt><dd>404 = 找不到（当前用它表示资源不存在或已软删）；410 = 曾经存在、现在没了。2.4 只用 404，410 条款已作废。</dd></div>
+    <div class="gloss"><dt>软删</dt><dd>DELETE 不物理删 resources 行，只写 deleted_at；chunks 会在同一事务里物理删。GET /resources/:id 过滤 deleted_at。</dd></div>
+    <div class="gloss"><dt>抽屉 / dialog</dt><dd>从右侧滑出的浮层，语义是模态对话框。2.4 只提供内容；焦点、Esc、Tab 圈、滚动锁是共享 Drawer 的职责。</dd></div>
+    <div class="gloss"><dt>来源标识</dt><dd>URL 资源显示可点链接；粘贴内容没有 URL，用标题（Markdown 一级标题或首个非空行）加唯一 dataUri 指向唯一 Resource。</dd></div>
+    <div class="gloss"><dt>hono-crud read</dt><dd>Epic 3 起四张表的 list/read 交给 hono-crud。resources 的 read 仍按 deleted_at 软删过滤，响应信封是 <code>resource</code>。</dd></div>
+  </div>
+</section>
+<section class="section" id="journey"><header class="section-head"><span class="kicker">04 · WALK</span><h2>一次「点引用」的旅行</h2><p class="section-sub">从回答里的一个按钮，到抽屉里的一屏原文。点一步跳代码。</p></header><div class="journey"><button type="button" class="journey-step" data-goto="citation-panel-row:43-49"><span class="step-no">01</span><span class="step-text"><strong>点右栏命中行</strong><small>整行是按钮；onOpen 把命中直接交给抽屉</small></span><span class="step-code">onOpen</span></button><button type="button" class="journey-step" data-goto="chat-thread-citations:229-239"><span class="step-no">02</span><span class="step-text"><strong>点回答里的 [n]</strong><small>onCite 交给页面；页面再决定点亮还是直接开</small></span><span class="step-code">[n] → onCite</span></button><button type="button" class="journey-step" data-goto="ask-source-open:83-85"><span class="step-no">03</span><span class="step-text"><strong>页面记住开哪一条 / 点亮哪一行</strong><small>openHit 存整条快照；activeChunkId 是右栏高亮；goneHitId 只记 404 的 resourceId</small></span><span class="step-code">openHit / activeChunkId</span></button><button type="button" class="journey-step" data-goto="ask-source-open:342-351"><span class="step-no">04</span><span class="step-text"><strong>引用点击的两条路</strong><small>在当前引用列表里 → 点亮那一行；不在列表里 → 直接开抽屉</small></span><span class="step-code">revealCitation</span></button><button type="button" class="journey-step" data-goto="ask-source-drawer:549-553"><span class="step-no">05</span><span class="step-text"><strong>抽屉打开</strong><small>标题是 docTitle，副标题是块号 + 偏移区间</small></span><span class="step-code">Drawer</span></button><button type="button" class="journey-step" data-goto="ask-source-open:227-243"><span class="step-no">06</span><span class="step-text"><strong>查来源是否还在</strong><small>打开时按 resourceId 查一次；只认 404</small></span><span class="step-code">fetchResource</span></button><button type="button" class="journey-step" data-goto="ask-source-drawer:555-561"><span class="step-no">07</span><span class="step-text"><strong>已删只加一行标注</strong><small>内容继续渲染，不把抽屉变成错误页</small></span><span class="step-code">来源已删除</span></button><button type="button" class="journey-step" data-goto="ask-source-drawer:568-573"><span class="step-no">08</span><span class="step-text"><strong>看快照正文</strong><small>content 来自消息 parts；没有字符级高亮</small></span><span class="step-code">openHit.content</span></button></div><p class="journey-hint">这条旅行里没有「请求 chunk」这一步；抽屉的正文在打开之前就已经在消息里了。</p></section>
+
+<section class="section" id="file-map">
+  <header class="section-head">
+    <span class="kicker">05 · FILES</span>
+    <h2>文件地图</h2>
+    <p class="section-sub">先看谁负责哪一段，再看逐段代码。带 badge 的行是上下游或后来补丁，不是 2.4 的交付。</p>
+  </header>
+
+  <table class="file-table">
+    <thead><tr><th>文件</th><th>职责</th><th>归属</th></tr></thead>
+    <tbody>
+      <tr><td><code>app/web/src/routes/ask.tsx</code></td><td>openHit/goneHitId 状态、打开时查来源、Drawer 内容</td><td>2.4</td></tr>
+      <tr><td><code>app/web/src/components/citation-panel/citation-panel.tsx</code></td><td>右栏引用行；点行把命中交给页面</td><td>2.3 / 2.4</td></tr>
+      <tr><td><code>app/web/src/components/chat-thread/chat-thread.tsx</code></td><td>正文里的 [n] 按钮；解析、编号、跨轮提示</td><td>2.3</td></tr>
+      <tr><td><code>app/web/src/api/chat.ts</code></td><td><code>referencesOf</code> 从 tool part 取命中</td><td>2.3（web 3542214）</td></tr>
+      <tr><td><code>app/web/src/api/client.ts</code></td><td><code>RetrievedHit</code> 契约 + <code>fetchResource</code></td><td>2.6 / 2.4</td></tr>
+      <tr><td><code>app/web/src/components/drawer/drawer.tsx</code></td><td>共享抽屉壳：portal、焦点、Esc、Tab 圈、滚动锁</td><td>前置</td></tr>
+      <tr><td><code>app/server/src/agent/tool/tools/retrieve.ts</code></td><td>检索工具输出；<code>toHit</code> 把块投影成 12 个字段</td><td>2.6</td></tr>
+      <tr><td><code>app/server/src/agent/tool/contracts.ts</code></td><td>工具侧 <code>RetrievedHit</code> 形状</td><td>2.6</td></tr>
+      <tr><td><code>app/server/src/routes/crud.ts</code></td><td>当前 <code>GET /resources/:id</code> 的注册与软删配置</td><td>3.2 前置</td></tr>
+      <tr><td><code>app/server/src/adapter/repo/resource.ts</code></td><td><code>getResource</code> 的 <code>deleted_at IS NULL</code> 读法</td><td>前置</td></tr>
+      <tr><td><code>app/server/src/ingest/parse/text-parser.ts</code></td><td>粘贴内容的标题推导（一级标题 / 首个非空行）</td><td>前置</td></tr>
+      <tr><td><code>app/server/src/ingest/ingest.ts</code></td><td>建 Resource 时的 <code>source</code> 与 <code>data_uri</code></td><td>前置</td></tr>
+      <tr><td><code>app/web/src/components/resource-detail/resource-detail.tsx</code></td><td>资源管理抽屉：<code>GET /:id/chunks</code> 分页 + 搜索，不是命中抽屉</td><td><span class="badge b-now">P2</span> 补丁</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="section" id="code-and-annotations"><header class="section-head"><span class="kicker">06 · CODE</span><h2>代码逐段：从点击到抽屉</h2><p class="section-sub">每个代码块右边是逐段讲解；点一条会点亮对应行。代码都来自当前工作区，badge 标出后来 story 的补丁。</p></header><div class="callout"><strong>读法：</strong>先看左边行号，再看右边最近的一条讲解。带 <code>2.6</code> 的块是快照来源；带 <code>2.3</code> 的块是编号/点击入口；带 <code>3.2 前置</code> 的块是 Epic 3 接管后的当前读路径。</div><div class="block" id="block-ask-source-open"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/routes/ask.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="ask-source-open">复制代码</button></div><div class="code-scroll"><div class="code" data-code="ask-source-open"><div class="line" data-line="83" id="ask-source-open-L83"><span class="ln">83</span><span class="lc">  <span class="tok-k">const</span> [activeChunkId, setActiveChunkId] = useState&lt;<span class="tok-k">string</span> | <span class="tok-k">null</span>&gt;(<span class="tok-k">null</span>)</span></div><div class="line" data-line="84" id="ask-source-open-L84"><span class="ln">84</span><span class="lc">  <span class="tok-k">const</span> [openHit, setOpenHit] = useState&lt;<span class="tok-t">RetrievedHit</span> | <span class="tok-k">null</span>&gt;(<span class="tok-k">null</span>)</span></div><div class="line" data-line="85" id="ask-source-open-L85"><span class="ln">85</span><span class="lc">  <span class="tok-k">const</span> [goneHitId, setGoneHitId] = useState&lt;<span class="tok-k">string</span> | <span class="tok-k">null</span>&gt;(<span class="tok-k">null</span>)</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="227" id="ask-source-open-L227"><span class="ln">227</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c"> 打开抽屉时按 resourceId 查一次来源是否还在：快照照常可看，只在已删时标注（2026-10-21 Lynx 拍）。</span></span></div><div class="line" data-line="228" id="ask-source-open-L228"><span class="ln">228</span><span class="lc"><span class="tok-c">     500/网络失败不标「已删除」——未知状态不该冒充确定结论。 */</span></span></div><div class="line" data-line="229" id="ask-source-open-L229"><span class="ln">229</span><span class="lc">  useEffect(() =&gt; {</span></div><div class="line" data-line="230" id="ask-source-open-L230"><span class="ln">230</span><span class="lc">    <span class="tok-k">if</span> (!openHit) <span class="tok-k">return</span></span></div><div class="line" data-line="231" id="ask-source-open-L231"><span class="ln">231</span><span class="lc">    <span class="tok-k">let</span> alive = <span class="tok-k">true</span></span></div><div class="line" data-line="232" id="ask-source-open-L232"><span class="ln">232</span><span class="lc">    setGoneHitId(<span class="tok-k">null</span>)</span></div><div class="line" data-line="233" id="ask-source-open-L233"><span class="ln">233</span><span class="lc">    fetchResource(openHit.resourceId)</span></div><div class="line" data-line="234" id="ask-source-open-L234"><span class="ln">234</span><span class="lc">      .then(() =&gt; {</span></div><div class="line" data-line="235" id="ask-source-open-L235"><span class="ln">235</span><span class="lc">        <span class="tok-k">if</span> (alive) setGoneHitId(<span class="tok-k">null</span>)</span></div><div class="line" data-line="236" id="ask-source-open-L236"><span class="ln">236</span><span class="lc">      })</span></div><div class="line" data-line="237" id="ask-source-open-L237"><span class="ln">237</span><span class="lc">      .<span class="tok-k">catch</span>((err) =&gt; {</span></div><div class="line" data-line="238" id="ask-source-open-L238"><span class="ln">238</span><span class="lc">        <span class="tok-k">if</span> (alive &amp;&amp; err <span class="tok-k">instanceof</span> <span class="tok-t">ApiError</span> &amp;&amp; err.status === <span class="tok-n">404</span>) setGoneHitId(openHit.resourceId)</span></div><div class="line" data-line="239" id="ask-source-open-L239"><span class="ln">239</span><span class="lc">      })</span></div><div class="line" data-line="240" id="ask-source-open-L240"><span class="ln">240</span><span class="lc">    <span class="tok-k">return</span> () =&gt; {</span></div><div class="line" data-line="241" id="ask-source-open-L241"><span class="ln">241</span><span class="lc">      alive = <span class="tok-k">false</span></span></div><div class="line" data-line="242" id="ask-source-open-L242"><span class="ln">242</span><span class="lc">    }</span></div><div class="line" data-line="243" id="ask-source-open-L243"><span class="ln">243</span><span class="lc">  }, [openHit])</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="342" id="ask-source-open-L342"><span class="ln">342</span><span class="lc">  <span class="tok-k">function</span> revealCitation(<span class="tok-t">Hit</span>: <span class="tok-t">RetrievedHit</span>) {</span></div><div class="line" data-line="343" id="ask-source-open-L343"><span class="ln">343</span><span class="lc">    <span class="tok-k">if</span> (!cited.includes(<span class="tok-t">Hit</span>)) {</span></div><div class="line" data-line="344" id="ask-source-open-L344"><span class="ln">344</span><span class="lc">      setOpenHit(<span class="tok-t">Hit</span>)</span></div><div class="line" data-line="345" id="ask-source-open-L345"><span class="ln">345</span><span class="lc">      <span class="tok-k">return</span></span></div><div class="line" data-line="346" id="ask-source-open-L346"><span class="ln">346</span><span class="lc">    }</span></div><div class="line" data-line="347" id="ask-source-open-L347"><span class="ln">347</span><span class="lc">    setActiveChunkId(<span class="tok-t">Hit</span>.chunkId)</span></div><div class="line" data-line="348" id="ask-source-open-L348"><span class="ln">348</span><span class="lc">    <span class="tok-c">/*</span><span class="tok-c"> behavior 也归档位管：静默档与系统减动效的人点引用标号不该被平滑滚动推着一整屏走。</span></span></div><div class="line" data-line="349" id="ask-source-open-L349"><span class="ln">349</span><span class="lc"><span class="tok-c">       这是全站最后一处写死的动态，repo-guard 只扫 CSS 与 animate-* 类，看不见它。 */</span></span></div><div class="line" data-line="350" id="ask-source-open-L350"><span class="ln">350</span><span class="lc">    document.getElementById(hitAnchorId(<span class="tok-t">Hit</span>.chunkId))?.scrollIntoView({ block: <span class="tok-s">'center'</span>, behavior: reduced ? <span class="tok-s">'auto'</span> : <span class="tok-s">'smooth'</span> })</span></div><div class="line" data-line="351" id="ask-source-open-L351"><span class="ln">351</span><span class="lc">  }</span></div></div></div></div><aside class="notes" aria-label="ask-source-open 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-open" data-lines="83-85" data-note="ask-source-open-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">开哪一条、哪一条已删</span><span class="badge b-now">2.4</span></div><p class="note-range">L83–85</p><div class="note-body"><p><code>openHit</code> 存整条命中快照，不存 id：抽屉要用到标题、块号、偏移、正文。<code>activeChunkId</code> 是 2.3 的「点亮右栏哪一行」；<code>goneHitId</code> 记的是被 404 的 <code>resourceId</code>，不是布尔值——换一条命中时不会把上一条的「已删除」带过来。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-open" data-lines="227-243" data-note="ask-source-open-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">打开时按 resourceId 查一次来源</span><span class="badge b-now">2.4</span></div><p class="note-range">L227–243</p><div class="note-body"><p>依赖只有 <code>openHit</code>：每开一次抽屉查一次。先清空 <code>goneHitId</code>，再 <code>fetchResource</code>；只有 <code>ApiError</code> 且 <code>status === 404</code> 才标已删。<strong>500 或网络失败不标</strong>——未知状态不能冒充确定结论。清理函数用 <code>alive</code> 防止慢回包写进下一条命中。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-open" data-lines="342-351" data-note="ask-source-open-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">引用点击的两条路</span><span class="badge b-now">2.3/2.4</span></div><p class="note-range">L342–351</p><div class="note-body"><p>命中已经在当前右栏引用列表（<code>cited</code>）里：设 <code>activeChunkId</code> 并滚到那一行——本轮 [n] 是「先定位、再点行」两步。命中不在列表里（通常是更早一轮的引用）：直接 <code>setOpenHit</code> 开抽屉，避免点了没反应。<code>behavior</code> 跟着减动效档走，不把整屏平滑推走。</p></div></article></aside></div></div><div class="block" id="block-ask-source-drawer"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/routes/ask.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="ask-source-drawer">复制代码</button></div><div class="code-scroll"><div class="code" data-code="ask-source-drawer"><div class="line" data-line="549" id="ask-source-drawer-L549"><span class="ln">549</span><span class="lc">      &lt;<span class="tok-t">Drawer</span></span></div><div class="line" data-line="550" id="ask-source-drawer-L550"><span class="ln">550</span><span class="lc">        open={openHit !== <span class="tok-k">null</span>}</span></div><div class="line" data-line="551" id="ask-source-drawer-L551"><span class="ln">551</span><span class="lc">        onClose={() =&gt; setOpenHit(<span class="tok-k">null</span>)}</span></div><div class="line" data-line="552" id="ask-source-drawer-L552"><span class="ln">552</span><span class="lc">        <span class="tok-t">Title</span>={openHit?.docTitle ?? <span class="tok-s">''</span>}</span></div><div class="line" data-line="553" id="ask-source-drawer-L553"><span class="ln">553</span><span class="lc">        <span class="tok-t">Subtitle</span>={openHit ? <span class="tok-s">`块 ${openHit.chunkIndex} · 偏移 [${openHit.startOffset ?? '?'}, ${openHit.endOffset ?? '?'})`</span> : <span class="tok-k">undefined</span>}</span></div><div class="line" data-line="554" id="ask-source-drawer-L554"><span class="ln">554</span><span class="lc">      &gt;</span></div><div class="line" data-line="555" id="ask-source-drawer-L555"><span class="ln">555</span><span class="lc">        {openHit &amp;&amp; (</span></div><div class="line" data-line="556" id="ask-source-drawer-L556"><span class="ln">556</span><span class="lc">          &lt;div className=<span class="tok-s">"space-y-3 p-4"</span>&gt;</span></div><div class="line" data-line="557" id="ask-source-drawer-L557"><span class="ln">557</span><span class="lc">            {goneHitId === openHit.resourceId &amp;&amp; (</span></div><div class="line" data-line="558" id="ask-source-drawer-L558"><span class="ln">558</span><span class="lc">              &lt;p className=<span class="tok-s">"rounded-control border border-line bg-raised p-3 text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="559" id="ask-source-drawer-L559"><span class="ln">559</span><span class="lc">                来源已删除 · 以下为回答时的快照</span></div><div class="line" data-line="560" id="ask-source-drawer-L560"><span class="ln">560</span><span class="lc">              &lt;/p&gt;</span></div><div class="line" data-line="561" id="ask-source-drawer-L561"><span class="ln">561</span><span class="lc">            )}</span></div><div class="line" data-line="562" id="ask-source-drawer-L562"><span class="ln">562</span><span class="lc">            {openHit.source &amp;&amp; (</span></div><div class="line" data-line="563" id="ask-source-drawer-L563"><span class="ln">563</span><span class="lc">              &lt;a href={openHit.source} target=<span class="tok-s">"_blank"</span> rel=<span class="tok-s">"noopener noreferrer"</span> className=<span class="tok-s">"flex items-center gap-1 text-control text-accent hover:underline"</span>&gt;</span></div><div class="line" data-line="564" id="ask-source-drawer-L564"><span class="ln">564</span><span class="lc">                {openHit.source}</span></div><div class="line" data-line="565" id="ask-source-drawer-L565"><span class="ln">565</span><span class="lc">                &lt;<span class="tok-t">Icon</span> name=<span class="tok-s">"external"</span> className=<span class="tok-s">"size-3"</span> /&gt;</span></div><div class="line" data-line="566" id="ask-source-drawer-L566"><span class="ln">566</span><span class="lc">              &lt;/a&gt;</span></div><div class="line" data-line="567" id="ask-source-drawer-L567"><span class="ln">567</span><span class="lc">            )}</span></div><div class="line" data-line="568" id="ask-source-drawer-L568"><span class="ln">568</span><span class="lc">            &lt;p className=<span class="tok-s">"text-caption text-ink-muted"</span>&gt;{scoreLine(openHit)}&lt;/p&gt;</span></div><div class="line" data-line="569" id="ask-source-drawer-L569"><span class="ln">569</span><span class="lc">            {<span class="tok-c">/*</span><span class="tok-c"> 正文不再自封一层 max-h + 内滚：抽屉那层已经在滚（drawer.tsx 的 min-h-0 flex-1），</span></span></div><div class="line" data-line="570" id="ask-source-drawer-L570"><span class="ln">570</span><span class="lc"><span class="tok-c">                两层嵌套滚动条既难用，又会在长文下面留出一截空白。 */</span>}</span></div><div class="line" data-line="571" id="ask-source-drawer-L571"><span class="ln">571</span><span class="lc">            &lt;pre className=<span class="tok-s">"whitespace-pre-wrap break-words rounded-control border border-line bg-raised p-3 font-mono text-control leading-relaxed text-ink-secondary"</span>&gt;</span></div><div class="line" data-line="572" id="ask-source-drawer-L572"><span class="ln">572</span><span class="lc">              {openHit.content}</span></div><div class="line" data-line="573" id="ask-source-drawer-L573"><span class="ln">573</span><span class="lc">            &lt;/pre&gt;</span></div><div class="line" data-line="574" id="ask-source-drawer-L574"><span class="ln">574</span><span class="lc">          &lt;/div&gt;</span></div><div class="line" data-line="575" id="ask-source-drawer-L575"><span class="ln">575</span><span class="lc">        )}</span></div><div class="line" data-line="576" id="ask-source-drawer-L576"><span class="ln">576</span><span class="lc">      &lt;/<span class="tok-t">Drawer</span>&gt;</span></div></div></div></div><aside class="notes" aria-label="ask-source-drawer 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-drawer" data-lines="549-553" data-note="ask-source-drawer-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">Drawer 的四个入参</span><span class="badge b-now">2.4</span></div><p class="note-range">L549–553</p><div class="note-body"><p><code>open</code> 由 <code>openHit !== null</code> 决定；<code>Title</code> 用 <code>docTitle</code>；<code>Subtitle</code> 拼「块号 · 偏移 [start, end)」。偏移可能为 null，显示成 <code>?</code>，不编造 0。抽屉壳本身负责焦点与 Esc，见后面的 drawer 块。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-drawer" data-lines="555-561" data-note="ask-source-drawer-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">已删标注：只加一行，不挡内容</span><span class="badge b-now">2.4</span></div><p class="note-range">L555–561</p><div class="note-body"><p>只有 <code>goneHitId === openHit.resourceId</code> 才出现。文案固定「来源已删除 · 以下为回答时的快照」；它下面就是原文，没有按钮、没有重试、没有 410 错误页。2026-10-21 Lynx 拍：可看优先，不禁止点击。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-drawer" data-lines="562-567" data-note="ask-source-drawer-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">来源链接只在有 URL 时出现</span><span class="badge b-now">2.4</span></div><p class="note-range">L562–567</p><div class="note-body"><p><code>openHit.source</code> 是 URL 资源的地址；粘贴内容这里是 <code>null</code>，整段链接不渲染。也就是说 <strong>/ask 抽屉对粘贴内容只显示标题</strong>，不显示 <code>urn:kc:paste:...</code> 的 dataUri；<code>/recall</code> 抽屉才显示「粘贴正文 · dataUri」。这是当前口径的残差，不是本页的笔误。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask-source-drawer" data-lines="568-573" data-note="ask-source-drawer-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">分数行 + 快照正文</span><span class="badge b-now">2.6</span></div><p class="note-range">L568–573</p><div class="note-body"><p><code>scoreLine</code> 显示 rrf / cos / bm25 三路分数，字段来自 2.6 的工具输出；正文直接渲染 <code>openHit.content</code>，<strong>不请求 chunks</strong>。这里没有字符级高亮——2.4 的 AC 把字符级高亮列为增强项，本 Story 不强制。</p></div></article></aside></div></div><div class="block" id="block-client-source-contract"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/api/client.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="client-source-contract">复制代码</button></div><div class="code-scroll"><div class="code" data-code="client-source-contract"><div class="line" data-line="266" id="client-source-contract-L266"><span class="ln">266</span><span class="lc"><span class="tok-k">interface</span> <span class="tok-t">RetrievedHit</span> {</span></div><div class="line" data-line="267" id="client-source-contract-L267"><span class="ln">267</span><span class="lc">  chunkId: <span class="tok-k">string</span></span></div><div class="line" data-line="268" id="client-source-contract-L268"><span class="ln">268</span><span class="lc">  resourceId: <span class="tok-k">string</span></span></div><div class="line" data-line="269" id="client-source-contract-L269"><span class="ln">269</span><span class="lc">  chunkIndex: <span class="tok-k">number</span></span></div><div class="line" data-line="270" id="client-source-contract-L270"><span class="ln">270</span><span class="lc">  startOffset: <span class="tok-k">number</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="271" id="client-source-contract-L271"><span class="ln">271</span><span class="lc">  endOffset: <span class="tok-k">number</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="272" id="client-source-contract-L272"><span class="ln">272</span><span class="lc">  docTitle: <span class="tok-k">string</span></span></div><div class="line" data-line="273" id="client-source-contract-L273"><span class="ln">273</span><span class="lc">  source: <span class="tok-k">string</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="274" id="client-source-contract-L274"><span class="ln">274</span><span class="lc">  dataUri: <span class="tok-k">string</span></span></div><div class="line" data-line="275" id="client-source-contract-L275"><span class="ln">275</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c">* RRF 合成分，量纲是 1/(k+rank) 级别的小数，别当成相关性百分比显示 */</span></span></div><div class="line" data-line="276" id="client-source-contract-L276"><span class="ln">276</span><span class="lc">  score: <span class="tok-k">number</span></span></div><div class="line" data-line="277" id="client-source-contract-L277"><span class="ln">277</span><span class="lc">  similarity: <span class="tok-k">number</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="278" id="client-source-contract-L278"><span class="ln">278</span><span class="lc">  lexicalScore: <span class="tok-k">number</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="279" id="client-source-contract-L279"><span class="ln">279</span><span class="lc">  content: <span class="tok-k">string</span></span></div><div class="line" data-line="280" id="client-source-contract-L280"><span class="ln">280</span><span class="lc">}</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="301" id="client-source-contract-L301"><span class="ln">301</span><span class="lc"><span class="tok-k">class</span> <span class="tok-t">ApiError</span> <span class="tok-k">extends</span> <span class="tok-t">Error</span> {</span></div><div class="line" data-line="302" id="client-source-contract-L302"><span class="ln">302</span><span class="lc">  <span class="tok-k">readonly</span> status: <span class="tok-k">number</span></span></div><div class="line" data-line="303" id="client-source-contract-L303"><span class="ln">303</span><span class="lc">  <span class="tok-k">readonly</span> code: <span class="tok-k">string</span></span></div><div class="line" data-line="304" id="client-source-contract-L304"><span class="ln">304</span><span class="lc">  <span class="tok-k">readonly</span> resource?: <span class="tok-t">Resource</span></span></div><div class="line" data-line="305" id="client-source-contract-L305"><span class="ln">305</span><span class="lc"> </span></div><div class="line" data-line="306" id="client-source-contract-L306"><span class="ln">306</span><span class="lc">  constructor(<span class="tok-t">Status</span>: <span class="tok-k">number</span>, <span class="tok-t">Body</span>: <span class="tok-t">ErrorBody</span>) {</span></div><div class="line" data-line="307" id="client-source-contract-L307"><span class="ln">307</span><span class="lc">    super(<span class="tok-t">Body</span>.message ?? <span class="tok-s">`请求失败（${Status}）`</span>)</span></div><div class="line" data-line="308" id="client-source-contract-L308"><span class="ln">308</span><span class="lc">    <span class="tok-k">this</span>.name = <span class="tok-s">'ApiError'</span></span></div><div class="line" data-line="309" id="client-source-contract-L309"><span class="ln">309</span><span class="lc">    <span class="tok-k">this</span>.status = <span class="tok-t">Status</span></span></div><div class="line" data-line="310" id="client-source-contract-L310"><span class="ln">310</span><span class="lc">    <span class="tok-k">this</span>.code = <span class="tok-t">Body</span>.code ?? <span class="tok-s">'E_UNKNOWN'</span></span></div><div class="line" data-line="311" id="client-source-contract-L311"><span class="ln">311</span><span class="lc">    <span class="tok-k">this</span>.resource = <span class="tok-t">Body</span>.resource</span></div><div class="line" data-line="312" id="client-source-contract-L312"><span class="ln">312</span><span class="lc">  }</span></div><div class="line" data-line="313" id="client-source-contract-L313"><span class="ln">313</span><span class="lc">}</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="428" id="client-source-contract-L428"><span class="ln">428</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* GET /resources/:id —— 404（不存在或已软删）抛 ApiError，调用方按 status 判「来源已删除」 */</span></span></div><div class="line" data-line="429" id="client-source-contract-L429"><span class="ln">429</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> fetchResource(<span class="tok-t">ResourceId</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">Resource</span>&gt; {</span></div><div class="line" data-line="430" id="client-source-contract-L430"><span class="ln">430</span><span class="lc">  <span class="tok-k">const</span> body = <span class="tok-k">await</span> requestJson&lt;{ resource?: <span class="tok-t">Resource</span> }&gt;(<span class="tok-s">`/resources/${ResourceId}`</span>, { signal: <span class="tok-t">AbortSignal</span>.timeout(<span class="tok-n">5000</span>) })</span></div><div class="line" data-line="431" id="client-source-contract-L431"><span class="ln">431</span><span class="lc">  <span class="tok-k">if</span> (!body.resource) <span class="tok-k">throw</span> <span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">'resource 响应形状不符合契约'</span>)</span></div><div class="line" data-line="432" id="client-source-contract-L432"><span class="ln">432</span><span class="lc">  <span class="tok-k">return</span> body.resource</span></div></div></div></div><aside class="notes" aria-label="client-source-contract 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="client-source-contract" data-lines="266-280" data-note="client-source-contract-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">抽屉要的字段，全在这份契约里</span><span class="badge b-now">2.6</span></div><p class="note-range">L266–280</p><div class="note-body"><p><code>chunkId</code> 用于引用定位；<code>resourceId</code> 用于查来源是否已删；<code>chunkIndex</code> / <code>startOffset</code> / <code>endOffset</code> 进副标题；<code>docTitle</code> / <code>source</code> / <code>dataUri</code> 是来源标识；<code>content</code> 是快照正文。注意它和 <code>agent/tool/contracts.ts</code> 是两份手工副本，改字段要两边一起改。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="client-source-contract" data-lines="301-313" data-note="client-source-contract-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">ApiError 把 HTTP 状态带上来</span><span class="badge b-now">2.4</span></div><p class="note-range">L301–313</p><div class="note-body"><p><code>status</code> 是页面唯一用来判「已删除」的信号；<code>code</code> 和 <code>message</code> 只用于提示。没有 410 专用分支：410 不会被当成已删除（当前后端也只发 404）。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="client-source-contract" data-lines="428-432" data-note="client-source-contract-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">fetchResource：只认 { resource } 信封</span><span class="badge b-now">2.4</span></div><p class="note-range">L428–432</p><div class="note-body"><p>GET <code>/resources/:id</code> 返回 <code>{ resource }</code>；404 由 <code>requestJson</code> 抛 <code>ApiError</code>。形状不对（没有 <code>resource</code>）抛普通 Error，页面不会把它当成「已删除」——这正是 500/形状错误不误标的原因。</p></div></article></aside></div></div><div class="block" id="block-chat-references"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/api/chat.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="chat-references">复制代码</button></div><div class="code-scroll"><div class="code" data-code="chat-references"><div class="line" data-line="98" id="chat-references-L98"><span class="ln">98</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* 取**最后一条** assistant 消息里的检索工具结果：多步（stopWhen 2）里模型可能调两次，面板该显示最新那次。 */</span></span></div><div class="line" data-line="99" id="chat-references-L99"><span class="ln">99</span><span class="lc"><span class="tok-k">function</span> referencesOf(<span class="tok-t">Message</span>: <span class="tok-t">UIMessage</span> | <span class="tok-k">undefined</span>): <span class="tok-t">References</span> | <span class="tok-k">null</span> {</span></div><div class="line" data-line="100" id="chat-references-L100"><span class="ln">100</span><span class="lc">  <span class="tok-k">if</span> (!<span class="tok-t">Message</span> || <span class="tok-t">Message</span>.role !== <span class="tok-s">'assistant'</span>) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="101" id="chat-references-L101"><span class="ln">101</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Parts</span> = <span class="tok-t">Message</span>.parts.filter((P) =&gt; P.<span class="tok-k">type</span> === <span class="tok-s">`tool-${RETRIEVE_TOOL}`</span>) <span class="tok-k">as</span> <span class="tok-t">ToolPart</span>[]</span></div><div class="line" data-line="102" id="chat-references-L102"><span class="ln">102</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Part</span> = <span class="tok-t">Parts</span>.at(-<span class="tok-n">1</span>)</span></div><div class="line" data-line="103" id="chat-references-L103"><span class="ln">103</span><span class="lc">  <span class="tok-k">if</span> (!<span class="tok-t">Part</span>) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="104" id="chat-references-L104"><span class="ln">104</span><span class="lc">  <span class="tok-k">const</span> allHits = collectHits(<span class="tok-t">Parts</span>)</span></div><div class="line" data-line="105" id="chat-references-L105"><span class="ln">105</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Part</span>.state === <span class="tok-s">'input-streaming'</span> || <span class="tok-t">Part</span>.state === <span class="tok-s">'input-available'</span>) {</span></div><div class="line" data-line="106" id="chat-references-L106"><span class="ln">106</span><span class="lc">    <span class="tok-k">return</span> { state: <span class="tok-s">'running'</span>, hits: [], allHits, vectorCount: <span class="tok-n">0</span>, lexicalCount: <span class="tok-n">0</span>, error: <span class="tok-k">null</span> }</span></div><div class="line" data-line="107" id="chat-references-L107"><span class="ln">107</span><span class="lc">  }</span></div><div class="line" data-line="108" id="chat-references-L108"><span class="ln">108</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Part</span>.state === <span class="tok-s">'output-error'</span>) {</span></div><div class="line" data-line="109" id="chat-references-L109"><span class="ln">109</span><span class="lc">    <span class="tok-k">return</span> { state: <span class="tok-s">'failed'</span>, hits: [], allHits, vectorCount: <span class="tok-n">0</span>, lexicalCount: <span class="tok-n">0</span>, error: <span class="tok-t">Part</span>.errorText || <span class="tok-s">'检索工具执行失败'</span> }</span></div><div class="line" data-line="110" id="chat-references-L110"><span class="ln">110</span><span class="lc">  }</span></div><div class="line" data-line="111" id="chat-references-L111"><span class="ln">111</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Out</span> = <span class="tok-t">Part</span>.output <span class="tok-k">as</span> <span class="tok-t">ToolOutput</span> | <span class="tok-k">undefined</span></span></div><div class="line" data-line="112" id="chat-references-L112"><span class="ln">112</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c"> 形状校验放在这道边界上：面板拿到的必须是数组，否则 CitationPanel 的 map 会把整页抛掉。</span></span></div><div class="line" data-line="113" id="chat-references-L113"><span class="ln">113</span><span class="lc"><span class="tok-c">     error 非空是工具**主动**报的检索失败（RetrieverError 被 catch 成结构化 error，见 tool/contracts.ts）。 */</span></span></div><div class="line" data-line="114" id="chat-references-L114"><span class="ln">114</span><span class="lc">  <span class="tok-k">if</span> (!<span class="tok-t">Out</span> || !<span class="tok-t">Array</span>.isArray(<span class="tok-t">Out</span>.hits)) {</span></div><div class="line" data-line="115" id="chat-references-L115"><span class="ln">115</span><span class="lc">    <span class="tok-k">return</span> { state: <span class="tok-s">'failed'</span>, hits: [], allHits, vectorCount: <span class="tok-n">0</span>, lexicalCount: <span class="tok-n">0</span>, error: <span class="tok-s">'检索结果形状不符合契约'</span> }</span></div><div class="line" data-line="116" id="chat-references-L116"><span class="ln">116</span><span class="lc">  }</span></div><div class="line" data-line="117" id="chat-references-L117"><span class="ln">117</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Out</span>.error) <span class="tok-k">return</span> { state: <span class="tok-s">'failed'</span>, hits: [], allHits, vectorCount: <span class="tok-n">0</span>, lexicalCount: <span class="tok-n">0</span>, error: <span class="tok-t">Out</span>.error.message }</span></div><div class="line" data-line="118" id="chat-references-L118"><span class="ln">118</span><span class="lc">  <span class="tok-k">return</span> { state: <span class="tok-s">'ready'</span>, hits: <span class="tok-t">Out</span>.hits, allHits, vectorCount: <span class="tok-t">Out</span>.vectorCount, lexicalCount: <span class="tok-t">Out</span>.lexicalCount, error: <span class="tok-k">null</span> }</span></div><div class="line" data-line="119" id="chat-references-L119"><span class="ln">119</span><span class="lc">}</span></div><div class="line" data-line="120" id="chat-references-L120"><span class="ln">120</span><span class="lc"> </span></div><div class="line" data-line="121" id="chat-references-L121"><span class="ln">121</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* 同一轮里可能重查 1–4 次：每次的输出都在模型的上下文里，引用可以落在其中任何一次。按 chunkId 去重。</span></span></div><div class="line" data-line="122" id="chat-references-L122"><span class="ln">122</span><span class="lc"><span class="tok-c"> *  重复召回时留**最后一次**的那份：分数/名次要和「面板显示最新战果」的口径一致。</span></span></div><div class="line" data-line="123" id="chat-references-L123"><span class="ln">123</span><span class="lc"><span class="tok-c"> *  Map 的插入顺序仍是首次出现，所以引用列表的顺序不受影响。 */</span></span></div><div class="line" data-line="124" id="chat-references-L124"><span class="ln">124</span><span class="lc"><span class="tok-k">function</span> collectHits(<span class="tok-t">Parts</span>: <span class="tok-t">ToolPart</span>[]): <span class="tok-t">RetrievedHit</span>[] {</span></div><div class="line" data-line="125" id="chat-references-L125"><span class="ln">125</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Seen</span> = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">string</span>, <span class="tok-t">RetrievedHit</span>&gt;()</span></div><div class="line" data-line="126" id="chat-references-L126"><span class="ln">126</span><span class="lc">  <span class="tok-k">for</span> (<span class="tok-k">const</span> <span class="tok-t">Part</span> <span class="tok-k">of</span> <span class="tok-t">Parts</span>) {</span></div><div class="line" data-line="127" id="chat-references-L127"><span class="ln">127</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Part</span>.state !== <span class="tok-s">'output-available'</span>) <span class="tok-k">continue</span></span></div><div class="line" data-line="128" id="chat-references-L128"><span class="ln">128</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Out</span> = <span class="tok-t">Part</span>.output <span class="tok-k">as</span> <span class="tok-t">ToolOutput</span> | <span class="tok-k">undefined</span></span></div><div class="line" data-line="129" id="chat-references-L129"><span class="ln">129</span><span class="lc">    <span class="tok-k">if</span> (!<span class="tok-t">Out</span> || !<span class="tok-t">Array</span>.isArray(<span class="tok-t">Out</span>.hits) || <span class="tok-t">Out</span>.error) <span class="tok-k">continue</span></span></div><div class="line" data-line="130" id="chat-references-L130"><span class="ln">130</span><span class="lc">    <span class="tok-k">for</span> (<span class="tok-k">const</span> <span class="tok-t">Hit</span> <span class="tok-k">of</span> <span class="tok-t">Out</span>.hits) <span class="tok-t">Seen</span>.<span class="tok-k">set</span>(<span class="tok-t">Hit</span>.chunkId, <span class="tok-t">Hit</span>)</span></div><div class="line" data-line="131" id="chat-references-L131"><span class="ln">131</span><span class="lc">  }</span></div><div class="line" data-line="132" id="chat-references-L132"><span class="ln">132</span><span class="lc">  <span class="tok-k">return</span> [...<span class="tok-t">Seen</span>.values()]</span></div><div class="line" data-line="133" id="chat-references-L133"><span class="ln">133</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="chat-references 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chat-references" data-lines="98-119" data-note="chat-references-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">referencesOf：从 tool part 取快照</span><span class="badge b-now">2.3</span></div><p class="note-range">L98–119</p><div class="note-body"><p>只看 assistant 消息里最后一条 <code>tool-retrieve</code> part：进行中 / 工具抛错 / 有 output 三态。output 形状不对或 <code>error</code> 非空都归为 failed，面板不会拿半个对象去 <code>map</code> 而整页崩。这个 output 就是抽屉快照的来源。</p><p>提交落在 web build 5 <code>3542214</code>；消费侧归 2.3。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chat-references" data-lines="121-133" data-note="chat-references-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">collectHits：同轮多次重查的去重</span><span class="badge b-now">2.3</span></div><p class="note-range">L121–133</p><div class="note-body"><p>一条回答里可能调 1–4 次 retrieve。这里把所有 <code>output-available</code> 的 part 按 <code>chunkId</code> 合并，重复召回留最后一次（分数/名次和「面板显示最新战果」一致）。2.5 把这些 parts 原样落库，所以刷新后同一份快照还在。</p><p>提交落在 web build 5 <code>3542214</code>；消费侧归 2.3。</p></div></article></aside></div></div><div class="block" id="block-chat-thread-citations"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/chat-thread/chat-thread.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="chat-thread-citations">复制代码</button></div><div class="code-scroll"><div class="code" data-code="chat-thread-citations"><div class="line" data-line="198" id="chat-thread-citations-L198"><span class="ln">198</span><span class="lc"><span class="tok-k">function</span> citedHits(<span class="tok-t">Text</span>: <span class="tok-k">string</span>, <span class="tok-t">Hits</span>: <span class="tok-t">RetrievedHit</span>[], <span class="tok-t">Known</span>: <span class="tok-t">RetrievedHit</span>[] = [], <span class="tok-t">AllHits</span>: <span class="tok-t">RetrievedHit</span>[] = <span class="tok-t">Hits</span>): <span class="tok-t">RetrievedHit</span>[] {</span></div><div class="line" data-line="199" id="chat-thread-citations-L199"><span class="ln">199</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Seen</span> = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">string</span>, <span class="tok-t">RetrievedHit</span>&gt;()</span></div><div class="line" data-line="200" id="chat-thread-citations-L200"><span class="ln">200</span><span class="lc">  <span class="tok-k">for</span> (<span class="tok-k">const</span> M <span class="tok-k">of</span> plain(<span class="tok-t">Text</span>).matchAll(MARKER)) {</span></div><div class="line" data-line="201" id="chat-thread-citations-L201"><span class="ln">201</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Hit</span> = hitFor(M[<span class="tok-n">1</span>]!, <span class="tok-t">Hits</span>, <span class="tok-t">Known</span>, <span class="tok-t">AllHits</span>)</span></div><div class="line" data-line="202" id="chat-thread-citations-L202"><span class="ln">202</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Hit</span> &amp;&amp; !<span class="tok-t">Seen</span>.has(<span class="tok-t">Hit</span>.chunkId)) <span class="tok-t">Seen</span>.<span class="tok-k">set</span>(<span class="tok-t">Hit</span>.chunkId, <span class="tok-t">Hit</span>)</span></div><div class="line" data-line="203" id="chat-thread-citations-L203"><span class="ln">203</span><span class="lc">  }</span></div><div class="line" data-line="204" id="chat-thread-citations-L204"><span class="ln">204</span><span class="lc">  <span class="tok-k">return</span> [...<span class="tok-t">Seen</span>.values()]</span></div><div class="line" data-line="205" id="chat-thread-citations-L205"><span class="ln">205</span><span class="lc">}</span></div><div class="line" data-line="206" id="chat-thread-citations-L206"><span class="ln">206</span><span class="lc"> </span></div><div class="line" data-line="207" id="chat-thread-citations-L207"><span class="ln">207</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* 把一行里的标号抠成按钮；本条回答没有这批命中、或标号对不上时原样输出，不硬造一个假按钮 */</span></span></div><div class="line" data-line="208" id="chat-thread-citations-L208"><span class="ln">208</span><span class="lc"><span class="tok-k">function</span> withCitations(</span></div><div class="line" data-line="209" id="chat-thread-citations-L209"><span class="ln">209</span><span class="lc">  <span class="tok-t">Line</span>: <span class="tok-k">string</span>,</span></div><div class="line" data-line="210" id="chat-thread-citations-L210"><span class="ln">210</span><span class="lc">  <span class="tok-t">Hits</span>: <span class="tok-t">RetrievedHit</span>[],</span></div><div class="line" data-line="211" id="chat-thread-citations-L211"><span class="ln">211</span><span class="lc">  <span class="tok-t">KnownHits</span>: <span class="tok-t">RetrievedHit</span>[],</span></div><div class="line" data-line="212" id="chat-thread-citations-L212"><span class="ln">212</span><span class="lc">  <span class="tok-t">AllHits</span>: <span class="tok-t">RetrievedHit</span>[],</span></div><div class="line" data-line="213" id="chat-thread-citations-L213"><span class="ln">213</span><span class="lc">  <span class="tok-t">Cited</span>: <span class="tok-t">RetrievedHit</span>[],</span></div><div class="line" data-line="214" id="chat-thread-citations-L214"><span class="ln">214</span><span class="lc">  onCite: (<span class="tok-t">Hit</span>: <span class="tok-t">RetrievedHit</span>) =&gt; <span class="tok-k">void</span>,</span></div><div class="line" data-line="215" id="chat-thread-citations-L215"><span class="ln">215</span><span class="lc">) {</span></div><div class="line" data-line="216" id="chat-thread-citations-L216"><span class="ln">216</span><span class="lc">  <span class="tok-k">const</span> parts = <span class="tok-t">Line</span>.split(/(\[(?:\d{<span class="tok-n">1</span>,<span class="tok-n">2</span>}|[<span class="tok-n">0</span>-<span class="tok-n">9a</span>-fA-F]{<span class="tok-n">6</span>,<span class="tok-n">8</span>})\])/g)</span></div><div class="line" data-line="217" id="chat-thread-citations-L217"><span class="ln">217</span><span class="lc">  <span class="tok-k">if</span> (parts.length === <span class="tok-n">1</span>) <span class="tok-k">return</span> <span class="tok-t">Line</span></span></div><div class="line" data-line="218" id="chat-thread-citations-L218"><span class="ln">218</span><span class="lc">  <span class="tok-k">return</span> parts.map((part, i) =&gt; {</span></div><div class="line" data-line="219" id="chat-thread-citations-L219"><span class="ln">219</span><span class="lc">    <span class="tok-k">const</span> matched = /^\[(\d{<span class="tok-n">1</span>,<span class="tok-n">2</span>}|[<span class="tok-n">0</span>-<span class="tok-n">9a</span>-fA-F]{<span class="tok-n">6</span>,<span class="tok-n">8</span>})\]$/.exec(part)</span></div><div class="line" data-line="220" id="chat-thread-citations-L220"><span class="ln">220</span><span class="lc">    <span class="tok-k">if</span> (!matched) <span class="tok-k">return</span> part</span></div><div class="line" data-line="221" id="chat-thread-citations-L221"><span class="ln">221</span><span class="lc">    <span class="tok-k">const</span> hit = hitFor(matched[<span class="tok-n">1</span>]!, <span class="tok-t">Hits</span>, <span class="tok-t">KnownHits</span>, <span class="tok-t">AllHits</span>)</span></div><div class="line" data-line="222" id="chat-thread-citations-L222"><span class="ln">222</span><span class="lc">    <span class="tok-k">if</span> (!hit) <span class="tok-k">return</span> part</span></div><div class="line" data-line="223" id="chat-thread-citations-L223"><span class="ln">223</span><span class="lc">    <span class="tok-k">const</span> label = <span class="tok-t">String</span>(<span class="tok-t">Cited</span>.findIndex((H) =&gt; H.chunkId === hit.chunkId) + <span class="tok-n">1</span>)</span></div><div class="line" data-line="224" id="chat-thread-citations-L224"><span class="ln">224</span><span class="lc">    <span class="tok-c">/*</span><span class="tok-c"> 编号只在本条回答内有意义；跨轮引用不在本轮命中里，就把来历说清，别让读屏用户以为它在右栏第 N 行 */</span></span></div><div class="line" data-line="225" id="chat-thread-citations-L225"><span class="ln">225</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">FromHistory</span> = !<span class="tok-t">AllHits</span>.some((H) =&gt; H.chunkId === hit.chunkId)</span></div><div class="line" data-line="226" id="chat-thread-citations-L226"><span class="ln">226</span><span class="lc">    <span class="tok-c">/*</span><span class="tok-c"> 方块 size-3.5 且用 transform 抬起，不用 align-super：16px 的方块挂在基线上会把行盒顶高约 5px，</span></span></div><div class="line" data-line="227" id="chat-thread-citations-L227"><span class="ln">227</span><span class="lc"><span class="tok-c">       含标号的那一行与相邻行行距不一致（模型答得越密越明显）。</span></span></div><div class="line" data-line="228" id="chat-thread-citations-L228"><span class="ln">228</span><span class="lc"><span class="tok-c">       文字走 accent-ink 而不是裸 accent：-soft 底配 #0070f7 在 11px 上不到 AA。 */</span></span></div><div class="line" data-line="229" id="chat-thread-citations-L229"><span class="ln">229</span><span class="lc">    <span class="tok-k">return</span> (</span></div><div class="line" data-line="230" id="chat-thread-citations-L230"><span class="ln">230</span><span class="lc">      &lt;button</span></div><div class="line" data-line="231" id="chat-thread-citations-L231"><span class="ln">231</span><span class="lc">        key={i}</span></div><div class="line" data-line="232" id="chat-thread-citations-L232"><span class="ln">232</span><span class="lc">        <span class="tok-k">type</span>=<span class="tok-s">"button"</span></span></div><div class="line" data-line="233" id="chat-thread-citations-L233"><span class="ln">233</span><span class="lc">        onClick={() =&gt; onCite(hit)}</span></div><div class="line" data-line="234" id="chat-thread-citations-L234"><span class="ln">234</span><span class="lc">        title={<span class="tok-t">FromHistory</span> ? <span class="tok-s">`${hit.docTitle}（前文检索）`</span> : hit.docTitle}</span></div><div class="line" data-line="235" id="chat-thread-citations-L235"><span class="ln">235</span><span class="lc">        aria-label={<span class="tok-t">FromHistory</span> ? <span class="tok-s">`引用（前文检索）：${hit.docTitle}`</span> : <span class="tok-s">`本条回答第 ${label} 条引用：${hit.docTitle}`</span>}</span></div><div class="line" data-line="236" id="chat-thread-citations-L236"><span class="ln">236</span><span class="lc">        className=<span class="tok-s">"mx-0.5 inline-flex size-3.5 -translate-y-0.5 items-center justify-center rounded-control-sm bg-accent-soft font-mono text-micro text-accent-ink transition-colors hover:bg-accent hover:text-canvas"</span></span></div><div class="line" data-line="237" id="chat-thread-citations-L237"><span class="ln">237</span><span class="lc">      &gt;</span></div><div class="line" data-line="238" id="chat-thread-citations-L238"><span class="ln">238</span><span class="lc">        {label}</span></div><div class="line" data-line="239" id="chat-thread-citations-L239"><span class="ln">239</span><span class="lc">      &lt;/button&gt;</span></div><div class="line" data-line="240" id="chat-thread-citations-L240"><span class="ln">240</span><span class="lc">    )</span></div><div class="line" data-line="241" id="chat-thread-citations-L241"><span class="ln">241</span><span class="lc">  })</span></div><div class="line" data-line="242" id="chat-thread-citations-L242"><span class="ln">242</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="chat-thread-citations 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chat-thread-citations" data-lines="198-205" data-note="chat-thread-citations-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">citedHits：引用编号 1..N 的来源</span><span class="badge b-now">2.3</span></div><p class="note-range">L198–205</p><div class="note-body"><p>按正文里 <strong>首次出现顺序</strong> 去重，得到这一条回答的引用列表。正文按钮的号、右栏行号都读这一份；不跟召回名次走，所以不会出现 2、3、6、8 这种跳号。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chat-thread-citations" data-lines="207-223" data-note="chat-thread-citations-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">withCitations：对不上的标号留成文字</span><span class="badge b-now">2.3</span></div><p class="note-range">L207–223</p><div class="note-body"><p>把一行拆成普通文字与 <code>[n]</code> / <code>[6-8 位十六进制]</code> 标记。解析不到命中时原样返回文字，不硬造按钮——这就是 2.3 的「越界索引不报错、渲染为纯文本」。2.4 只在解析成功时接住 <code>onCite</code>。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="chat-thread-citations" data-lines="224-241" data-note="chat-thread-citations-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">按钮把命中交出去</span><span class="badge b-now">2.3</span></div><p class="note-range">L224–241</p><div class="note-body"><p><code>onClick={() => onCite(hit)}</code> 把整条命中交给页面（也就是 2.4 的入口）。<code>title</code> 与 <code>aria-label</code> 会区分「本条回答第 N 条引用」和「前文检索」；后者提示这条命中来自更早几轮。</p></div></article></aside></div></div><div class="block" id="block-citation-panel-row"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/citation-panel/citation-panel.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="citation-panel-row">复制代码</button></div><div class="code-scroll"><div class="code" data-code="citation-panel-row"><div class="line" data-line="37" id="citation-panel-row-L37"><span class="ln">37</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">CitationPanel</span>(<span class="tok-t">Props</span>: { <span class="tok-t">Hits</span>: <span class="tok-t">RetrievedHit</span>[]; <span class="tok-t">ActiveChunkId</span>?: <span class="tok-k">string</span> | <span class="tok-k">null</span>; onOpen: (<span class="tok-t">Hit</span>: <span class="tok-t">RetrievedHit</span>) =&gt; <span class="tok-k">void</span> }) {</span></div><div class="line" data-line="38" id="citation-panel-row-L38"><span class="ln">38</span><span class="lc">  <span class="tok-k">const</span> { <span class="tok-t">Hits</span>, <span class="tok-t">ActiveChunkId</span> = <span class="tok-k">null</span>, onOpen } = <span class="tok-t">Props</span></span></div><div class="line" data-line="39" id="citation-panel-row-L39"><span class="ln">39</span><span class="lc">  <span class="tok-k">return</span> (</span></div><div class="line" data-line="40" id="citation-panel-row-L40"><span class="ln">40</span><span class="lc">    &lt;ul className=<span class="tok-s">"divide-y divide-line"</span>&gt;</span></div><div class="line" data-line="41" id="citation-panel-row-L41"><span class="ln">41</span><span class="lc">      {<span class="tok-t">Hits</span>.map((hit, i) =&gt; (</span></div><div class="line" data-line="42" id="citation-panel-row-L42"><span class="ln">42</span><span class="lc">        &lt;li key={hit.chunkId} id={hitAnchorId(hit.chunkId)} className=<span class="tok-s">"relative"</span>&gt;</span></div><div class="line" data-line="43" id="citation-panel-row-L43"><span class="ln">43</span><span class="lc">          &lt;button</span></div><div class="line" data-line="44" id="citation-panel-row-L44"><span class="ln">44</span><span class="lc">            <span class="tok-k">type</span>=<span class="tok-s">"button"</span></span></div><div class="line" data-line="45" id="citation-panel-row-L45"><span class="ln">45</span><span class="lc">            onClick={() =&gt; onOpen(hit)}</span></div><div class="line" data-line="46" id="citation-panel-row-L46"><span class="ln">46</span><span class="lc">            className={<span class="tok-s">`group flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors hover:bg-fill active:opacity-70 ${</span></span></div><div class="line" data-line="47" id="citation-panel-row-L47"><span class="ln">47</span><span class="lc">              <span class="tok-t">ActiveChunkId</span> === hit.chunkId ? <span class="tok-s">'bg-accent-soft'</span> : <span class="tok-s">''</span></span></div><div class="line" data-line="48" id="citation-panel-row-L48"><span class="ln">48</span><span class="lc">            }<span class="tok-s">`}</span></span></div><div class="line" data-line="49" id="citation-panel-row-L49"><span class="ln">49</span><span class="lc">          &gt;</span></div><div class="line" data-line="50" id="citation-panel-row-L50"><span class="ln">50</span><span class="lc">            {<span class="tok-c">/*</span><span class="tok-c"> 点 [n] 定位到的那条要有颜色之外的线索：accent-soft 与 hover 的 fill 太接近，读屏也拿不到"这是第 2 条的来源" */</span>}</span></div><div class="line" data-line="51" id="citation-panel-row-L51"><span class="ln">51</span><span class="lc">            {<span class="tok-t">ActiveChunkId</span> === hit.chunkId &amp;&amp; &lt;span aria-hidden className=<span class="tok-s">"absolute inset-y-0 left-0 w-0.5 bg-accent"</span> /&gt;}</span></div><div class="line" data-line="52" id="citation-panel-row-L52"><span class="ln">52</span><span class="lc">            &lt;span className=<span class="tok-s">"flex min-w-0 items-center gap-2"</span>&gt;</span></div><div class="line" data-line="53" id="citation-panel-row-L53"><span class="ln">53</span><span class="lc">              &lt;span className=<span class="tok-s">"flex size-4 shrink-0 items-center justify-center rounded-control-sm bg-fill font-mono text-micro text-ink-muted group-hover:bg-canvas"</span>&gt;</span></div><div class="line" data-line="54" id="citation-panel-row-L54"><span class="ln">54</span><span class="lc">                {i + <span class="tok-n">1</span>}</span></div><div class="line" data-line="55" id="citation-panel-row-L55"><span class="ln">55</span><span class="lc">              &lt;/span&gt;</span></div><div class="line" data-line="56" id="citation-panel-row-L56"><span class="ln">56</span><span class="lc">              &lt;span className=<span class="tok-s">"min-w-0 flex-1 truncate text-control text-ink"</span>&gt;{hit.docTitle}&lt;/span&gt;</span></div><div class="line" data-line="57" id="citation-panel-row-L57"><span class="ln">57</span><span class="lc">              &lt;<span class="tok-t">Icon</span> name=<span class="tok-s">"external"</span> className=<span class="tok-s">"size-3 shrink-0 text-ink-faint"</span> /&gt;</span></div><div class="line" data-line="58" id="citation-panel-row-L58"><span class="ln">58</span><span class="lc">            &lt;/span&gt;</span></div><div class="line" data-line="59" id="citation-panel-row-L59"><span class="ln">59</span><span class="lc">            {<span class="tok-c">/*</span><span class="tok-c"> 顺序是"先验内容、再看分数"：这一行的用途是判断"这块到底是不是答案的来源"，</span></span></div><div class="line" data-line="60" id="citation-panel-row-L60"><span class="ln">60</span><span class="lc"><span class="tok-c">                原文在标题下面一眼就到；分数是排序的旁证，不该排在正文前面（上一版三路分数夹在标题与正文中间，</span></span></div><div class="line" data-line="61" id="citation-panel-row-L61"><span class="ln">61</span><span class="lc"><span class="tok-c">                读一行要跳两次视线）。 */</span>}</span></div><div class="line" data-line="62" id="citation-panel-row-L62"><span class="ln">62</span><span class="lc">            &lt;span className=<span class="tok-s">"line-clamp-2 pl-6 text-control leading-snug text-ink-secondary"</span>&gt;{(hit.content ?? <span class="tok-s">''</span>).replace(/\s+/g, <span class="tok-s">' '</span>)}&lt;/span&gt;</span></div><div class="line" data-line="63" id="citation-panel-row-L63"><span class="ln">63</span><span class="lc">            {<span class="tok-c">/*</span><span class="tok-c"> 这行含汉字（「块」），所以走 caption 而不是 micro：本轮提字号的理由就是汉字 11px 以下笔画粘连，</span></span></div><div class="line" data-line="64" id="citation-panel-row-L64"><span class="ln">64</span><span class="lc"><span class="tok-c">                把中文挪进 micro 等于在最需要它的地方没生效。gap-y 留着：折行时两行不能贴在一起。 */</span>}</span></div><div class="line" data-line="65" id="citation-panel-row-L65"><span class="ln">65</span><span class="lc">            &lt;span className=<span class="tok-s">"flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pl-6 font-mono text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="66" id="citation-panel-row-L66"><span class="ln">66</span><span class="lc">              &lt;span&gt;块 {hit.chunkIndex}&lt;/span&gt;</span></div><div class="line" data-line="67" id="citation-panel-row-L67"><span class="ln">67</span><span class="lc">              &lt;span&gt;rrf {formatNum(hit.score, <span class="tok-n">3</span>)}&lt;/span&gt;</span></div><div class="line" data-line="68" id="citation-panel-row-L68"><span class="ln">68</span><span class="lc">              &lt;span&gt;cos {formatNum(hit.similarity, <span class="tok-n">2</span>)}&lt;/span&gt;</span></div><div class="line" data-line="69" id="citation-panel-row-L69"><span class="ln">69</span><span class="lc">              &lt;span&gt;bm25 {formatNum(hit.lexicalScore, <span class="tok-n">1</span>)}&lt;/span&gt;</span></div><div class="line" data-line="70" id="citation-panel-row-L70"><span class="ln">70</span><span class="lc">            &lt;/span&gt;</span></div><div class="line" data-line="71" id="citation-panel-row-L71"><span class="ln">71</span><span class="lc">          &lt;/button&gt;</span></div><div class="line" data-line="72" id="citation-panel-row-L72"><span class="ln">72</span><span class="lc">        &lt;/li&gt;</span></div><div class="line" data-line="73" id="citation-panel-row-L73"><span class="ln">73</span><span class="lc">      ))}</span></div><div class="line" data-line="74" id="citation-panel-row-L74"><span class="ln">74</span><span class="lc">    &lt;/ul&gt;</span></div><div class="line" data-line="75" id="citation-panel-row-L75"><span class="ln">75</span><span class="lc">  )</span></div><div class="line" data-line="76" id="citation-panel-row-L76"><span class="ln">76</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="citation-panel-row 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="citation-panel-row" data-lines="37-49" data-note="citation-panel-row-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">命中行就是 2.4 的第二个入口</span><span class="badge b-now">2.3/2.4</span></div><p class="note-range">L37–49</p><div class="note-body"><p>整行是一个 <code>button</code>，<code>onClick</code> 调 <code>onOpen(hit)</code>；<code>li</code> 上的 <code>hitAnchorId(chunkId)</code> 给 2.3 的 [n] 定位用。<code>ActiveChunkId</code> 相等时加底色和左侧竖线，表示「从正文跳过来的那一行」。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="citation-panel-row" data-lines="50-58" data-note="citation-panel-row-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">高亮不只靠颜色</span><span class="badge b-now">2.3</span></div><p class="note-range">L50–58</p><div class="note-body"><p>激活行除了 <code>bg-accent-soft</code> 还有一条 <code>aria-hidden</code> 的竖线；读屏拿不到颜色，但拿得到行号与标题。行号是这份列表里的 1..N，不是召回名次。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="citation-panel-row" data-lines="60-70" data-note="citation-panel-row-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">块号、三路分数、正文摘要</span><span class="badge b-now">2.6</span></div><p class="note-range">L60–70</p><div class="note-body"><p>块号与三路分数都来自 2.6 的完整投影；<code>content</code> 是快照正文的前两行。面板只做防御性显示：<code>null</code> 显示成 <code>—</code>，不会把纯向量命中的 <code>lexicalScore=null</code> 说成 0 分。</p></div></article></aside></div></div><div class="block" id="block-server-tool-hit"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/server/src/agent/tool/tools/retrieve.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="server-tool-hit">复制代码</button></div><div class="code-scroll"><div class="code" data-code="server-tool-hit"><div class="line" data-line="43" id="server-tool-hit-L43"><span class="ln">43</span><span class="lc"><span class="tok-k">function</span> toOutput(<span class="tok-t">Result</span>: <span class="tok-t">RetrievalResult</span>): <span class="tok-t">RetrieveToolOutput</span> {</span></div><div class="line" data-line="44" id="server-tool-hit-L44"><span class="ln">44</span><span class="lc">  <span class="tok-k">return</span> { hits: <span class="tok-t">Result</span>.hits.map(toHit), vectorCount: <span class="tok-t">Result</span>.vectorCount, lexicalCount: <span class="tok-t">Result</span>.lexicalCount, error: <span class="tok-k">null</span> }</span></div><div class="line" data-line="45" id="server-tool-hit-L45"><span class="ln">45</span><span class="lc">}</span></div><div class="line" data-line="46" id="server-tool-hit-L46"><span class="ln">46</span><span class="lc"> </span></div><div class="line" data-line="47" id="server-tool-hit-L47"><span class="ln">47</span><span class="lc"><span class="tok-k">function</span> toHit(<span class="tok-t">Hit</span>: <span class="tok-t">RetrievedChunk</span>): <span class="tok-t">RetrievedHit</span> {</span></div><div class="line" data-line="48" id="server-tool-hit-L48"><span class="ln">48</span><span class="lc">  <span class="tok-k">return</span> {</span></div><div class="line" data-line="49" id="server-tool-hit-L49"><span class="ln">49</span><span class="lc">    chunkId: <span class="tok-t">Hit</span>.chunk.id,</span></div><div class="line" data-line="50" id="server-tool-hit-L50"><span class="ln">50</span><span class="lc">    resourceId: <span class="tok-t">Hit</span>.chunk.resource_id,</span></div><div class="line" data-line="51" id="server-tool-hit-L51"><span class="ln">51</span><span class="lc">    chunkIndex: <span class="tok-t">Hit</span>.chunk.chunk_index,</span></div><div class="line" data-line="52" id="server-tool-hit-L52"><span class="ln">52</span><span class="lc">    startOffset: <span class="tok-t">Hit</span>.chunk.start_offset,</span></div><div class="line" data-line="53" id="server-tool-hit-L53"><span class="ln">53</span><span class="lc">    endOffset: <span class="tok-t">Hit</span>.chunk.end_offset,</span></div><div class="line" data-line="54" id="server-tool-hit-L54"><span class="ln">54</span><span class="lc">    docTitle: <span class="tok-t">Hit</span>.docTitle,</span></div><div class="line" data-line="55" id="server-tool-hit-L55"><span class="ln">55</span><span class="lc">    source: <span class="tok-t">Hit</span>.source,</span></div><div class="line" data-line="56" id="server-tool-hit-L56"><span class="ln">56</span><span class="lc">    dataUri: <span class="tok-t">Hit</span>.dataUri,</span></div><div class="line" data-line="57" id="server-tool-hit-L57"><span class="ln">57</span><span class="lc">    content: <span class="tok-t">Hit</span>.chunk.content,</span></div><div class="line" data-line="58" id="server-tool-hit-L58"><span class="ln">58</span><span class="lc">    score: <span class="tok-t">Hit</span>.score,</span></div><div class="line" data-line="59" id="server-tool-hit-L59"><span class="ln">59</span><span class="lc">    similarity: <span class="tok-t">Hit</span>.similarity,</span></div><div class="line" data-line="60" id="server-tool-hit-L60"><span class="ln">60</span><span class="lc">    lexicalScore: <span class="tok-t">Hit</span>.lexicalScore,</span></div><div class="line" data-line="61" id="server-tool-hit-L61"><span class="ln">61</span><span class="lc">  }</span></div><div class="line" data-line="62" id="server-tool-hit-L62"><span class="ln">62</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="server-tool-hit 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="server-tool-hit" data-lines="43-45" data-note="server-tool-hit-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">toOutput：一次检索的完整回包</span><span class="badge b-now">2.6</span></div><p class="note-range">L43–45</p><div class="note-body"><p><code>hits</code> 是投影后的命中数组，<code>vectorCount</code> / <code>lexicalCount</code> 是两路候选计数，<code>error</code> 成功时为 null。这个对象随 UI message stream 回到前端，落在 assistant 消息的 tool part 里。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="server-tool-hit" data-lines="47-62" data-note="server-tool-hit-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">toHit：12 个字段一个不少</span><span class="badge b-now">2.6</span></div><p class="note-range">L47–62</p><div class="note-body"><p>块号、偏移、标题、来源、dataUri、正文、三路分数全部带回来。为什么不让前端再打一次 <code>/retrieve</code>：那样会出现两批命中，彼此不担保；一份快照跟着消息走，历史回答才能复现当时的出处。</p></div></article></aside></div></div><div class="block" id="block-server-crud-read"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/server/src/routes/crud.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="server-crud-read">复制代码</button></div><div class="code-scroll"><div class="code" data-code="server-crud-read"><div class="line" data-line="28" id="server-crud-read-L28"><span class="ln">28</span><span class="lc"><span class="tok-k">const</span> <span class="tok-t">Tables</span>: <span class="tok-t">TableEntry</span>[] = [</span></div><div class="line" data-line="29" id="server-crud-read-L29"><span class="ln">29</span><span class="lc">  {</span></div><div class="line" data-line="30" id="server-crud-read-L30"><span class="ln">30</span><span class="lc">    table: resources,</span></div><div class="line" data-line="31" id="server-crud-read-L31"><span class="ln">31</span><span class="lc">    path: <span class="tok-s">'/resources'</span>,</span></div><div class="line" data-line="32" id="server-crud-read-L32"><span class="ln">32</span><span class="lc">    tag: <span class="tok-s">'Resources'</span>,</span></div><div class="line" data-line="33" id="server-crud-read-L33"><span class="ln">33</span><span class="lc">    endpoints: {</span></div><div class="line" data-line="34" id="server-crud-read-L34"><span class="ln">34</span><span class="lc">      list: {</span></div><div class="line" data-line="35" id="server-crud-read-L35"><span class="ln">35</span><span class="lc">        filtering: { fields: [<span class="tok-s">'status'</span>, <span class="tok-s">'content_type'</span>, <span class="tok-s">'created_at'</span>, <span class="tok-s">'updated_at'</span>] },</span></div><div class="line" data-line="36" id="server-crud-read-L36"><span class="ln">36</span><span class="lc">        search: { fields: [<span class="tok-s">'title'</span>, <span class="tok-s">'source'</span>] },</span></div><div class="line" data-line="37" id="server-crud-read-L37"><span class="ln">37</span><span class="lc">        sorting: { fields: [<span class="tok-s">'created_at'</span>, <span class="tok-s">'updated_at'</span>, <span class="tok-s">'title'</span>, <span class="tok-s">'status'</span>], <span class="tok-k">default</span>: <span class="tok-s">'created_at'</span>, defaultOrder: <span class="tok-s">'desc'</span> },</span></div><div class="line" data-line="38" id="server-crud-read-L38"><span class="ln">38</span><span class="lc">        pagination: { defaultPerPage: <span class="tok-n">1000</span>, maxPerPage: <span class="tok-n">1000</span> },</span></div><div class="line" data-line="39" id="server-crud-read-L39"><span class="ln">39</span><span class="lc">      },</span></div><div class="line" data-line="40" id="server-crud-read-L40"><span class="ln">40</span><span class="lc">      read: {},</span></div><div class="line" data-line="41" id="server-crud-read-L41"><span class="ln">41</span><span class="lc">    },</span></div><div class="line" data-line="42" id="server-crud-read-L42"><span class="ln">42</span><span class="lc">    envelope: { listKey: <span class="tok-s">'resources'</span>, itemKey: <span class="tok-s">'resource'</span> },</span></div><div class="line" data-line="43" id="server-crud-read-L43"><span class="ln">43</span><span class="lc">  },</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="144" id="server-crud-read-L144"><span class="ln">144</span><span class="lc"><span class="tok-k">function</span> modelOf(<span class="tok-t">Table</span>: <span class="tok-k">any</span>, <span class="tok-t">Tag</span>: <span class="tok-k">string</span>) {</span></div><div class="line" data-line="145" id="server-crud-read-L145"><span class="ln">145</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Config</span> = getTableConfig(<span class="tok-t">Table</span>)</span></div><div class="line" data-line="146" id="server-crud-read-L146"><span class="ln">146</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Columns</span>: <span class="tok-k">string</span>[] = <span class="tok-t">Config</span>.columns.map((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.name)</span></div><div class="line" data-line="147" id="server-crud-read-L147"><span class="ln">147</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">PrimaryKeys</span>: <span class="tok-k">string</span>[] = <span class="tok-t">Config</span>.columns.filter((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.primary).map((<span class="tok-t">Column</span>: <span class="tok-k">any</span>) =&gt; <span class="tok-t">Column</span>.name)</span></div><div class="line" data-line="148" id="server-crud-read-L148"><span class="ln">148</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">PrimaryKeys</span>.length === <span class="tok-n">0</span>) <span class="tok-k">throw</span> <span class="tok-k">new</span> <span class="tok-t">Error</span>(<span class="tok-s">`表 ${Config.name} 没有主键，hono-crud 需要 primaryKeys`</span>)</span></div><div class="line" data-line="149" id="server-crud-read-L149"><span class="ln">149</span><span class="lc"> </span></div><div class="line" data-line="150" id="server-crud-read-L150"><span class="ln">150</span><span class="lc">  <span class="tok-k">return</span> {</span></div><div class="line" data-line="151" id="server-crud-read-L151"><span class="ln">151</span><span class="lc">    tableName: getTableName(<span class="tok-t">Table</span>),</span></div><div class="line" data-line="152" id="server-crud-read-L152"><span class="ln">152</span><span class="lc">    table: <span class="tok-t">Table</span>,</span></div><div class="line" data-line="153" id="server-crud-read-L153"><span class="ln">153</span><span class="lc">    schema: createSelectSchema(<span class="tok-t">Table</span>),</span></div><div class="line" data-line="154" id="server-crud-read-L154"><span class="ln">154</span><span class="lc">    primaryKeys: <span class="tok-t">PrimaryKeys</span>,</span></div><div class="line" data-line="155" id="server-crud-read-L155"><span class="ln">155</span><span class="lc">    tag: <span class="tok-t">Tag</span>,</span></div><div class="line" data-line="156" id="server-crud-read-L156"><span class="ln">156</span><span class="lc">    ...(<span class="tok-t">Columns</span>.includes(<span class="tok-s">'deleted_at'</span>) ? { softDelete: { field: <span class="tok-s">'deleted_at'</span> } } : {}),</span></div><div class="line" data-line="157" id="server-crud-read-L157"><span class="ln">157</span><span class="lc">    ...(<span class="tok-t">Columns</span>.includes(<span class="tok-s">'created_at'</span>) &amp;&amp; <span class="tok-t">Columns</span>.includes(<span class="tok-s">'updated_at'</span>)</span></div><div class="line" data-line="158" id="server-crud-read-L158"><span class="ln">158</span><span class="lc">      ? { timestamps: { createdAt: <span class="tok-s">'created_at'</span>, updatedAt: <span class="tok-s">'updated_at'</span> } }</span></div><div class="line" data-line="159" id="server-crud-read-L159"><span class="ln">159</span><span class="lc">      : { timestamps: <span class="tok-k">false</span> }),</span></div><div class="line" data-line="160" id="server-crud-read-L160"><span class="ln">160</span><span class="lc">  }</span></div></div></div></div><aside class="notes" aria-label="server-crud-read 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="server-crud-read" data-lines="28-43" data-note="server-crud-read-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">当前 GET /resources/:id 由 read 注册</span><span class="badge b-now">3.2 前置</span></div><p class="note-range">L28–43</p><div class="note-body"><p>resources 表只开 <code>list</code> 与 <code>read</code>；<code>itemKey: resource</code> 决定响应是 <code>{ resource }</code> 信封，正好对上 <code>fetchResource</code>。2.4 当时是在 <code>routes/resources/resources.ts</code> 手写的 <code>app.get(/:id)</code>，Epic 3 pre-3.2 的 CRUD 重构把它删掉，语义交给这里。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="server-crud-read" data-lines="144-160" data-note="server-crud-read-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">softDelete 让 read 过滤 deleted_at</span><span class="badge b-now">3.2 前置</span></div><p class="note-range">L144–160</p><div class="note-body"><p><code>modelOf</code> 发现表里有 <code>deleted_at</code> 列就登记 <code>softDelete</code>；hono-crud 的 read/list 会按它过滤。因此软删后的资源在 <code>GET /resources/:id</code> 上表现为找不到。这里是库约定 + 第三方适配器行为，本轮没有真跑；历史 2.4 路由的 404 是手写分支。</p></div></article></aside></div></div><div class="block" id="block-server-repo-get"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/server/src/adapter/repo/resource.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="server-repo-get">复制代码</button></div><div class="code-scroll"><div class="code" data-code="server-repo-get"><div class="line" data-line="63" id="server-repo-get-L63"><span class="ln">63</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> getResource(<span class="tok-t">Db</span>: <span class="tok-t">Orm</span>, <span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">Resource</span> | <span class="tok-k">null</span>&gt; {</span></div><div class="line" data-line="64" id="server-repo-get-L64"><span class="ln">64</span><span class="lc">  <span class="tok-k">const</span> rows = <span class="tok-k">await</span> <span class="tok-t">Db</span>.select()</span></div><div class="line" data-line="65" id="server-repo-get-L65"><span class="ln">65</span><span class="lc">    .<span class="tok-k">from</span>(resources)</span></div><div class="line" data-line="66" id="server-repo-get-L66"><span class="ln">66</span><span class="lc">    .where(and(eq(resources.id, <span class="tok-t">Id</span>), isNull(resources.deleted_at)))</span></div><div class="line" data-line="67" id="server-repo-get-L67"><span class="ln">67</span><span class="lc">    .limit(<span class="tok-n">1</span>)</span></div><div class="line" data-line="68" id="server-repo-get-L68"><span class="ln">68</span><span class="lc">  <span class="tok-k">return</span> rows[<span class="tok-n">0</span>] ? rowToResource(rows[<span class="tok-n">0</span>]) : <span class="tok-k">null</span></span></div><div class="line" data-line="69" id="server-repo-get-L69"><span class="ln">69</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="server-repo-get 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="server-repo-get" data-lines="63-69" data-note="server-repo-get-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">getResource：同一条软删判据的另一处</span><span class="badge b-pre">前置</span></div><p class="note-range">L63–69</p><div class="note-body"><p>Drizzle 查询同时带 <code>id</code> 与 <code>deleted_at IS NULL</code>，找不到返回 null。它今天服务 DELETE、abort 与 chunks 读；CRUD read 走自己的 softDelete 配置，但判据是同一个：软删行当不存在。</p></div></article></aside></div></div><div class="block" id="block-drawer-shell"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/drawer/drawer.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="drawer-shell">复制代码</button></div><div class="code-scroll"><div class="code" data-code="drawer-shell"><div class="line" data-line="103" id="drawer-shell-L103"><span class="ln">103</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">Drawer</span>(<span class="tok-t">Props</span>: { open: <span class="tok-k">boolean</span>; onClose: () =&gt; <span class="tok-k">void</span>; <span class="tok-t">Title</span>: <span class="tok-t">ReactNode</span>; <span class="tok-t">Subtitle</span>?: <span class="tok-t">ReactNode</span>; children: <span class="tok-t">ReactNode</span>; <span class="tok-t">Footer</span>?: <span class="tok-t">ReactNode</span>; <span class="tok-t">Variant</span>?: <span class="tok-s">'side'</span> | <span class="tok-s">'center'</span> }) {</span></div><div class="line" data-line="104" id="drawer-shell-L104"><span class="ln">104</span><span class="lc">  <span class="tok-k">const</span> { open, onClose, <span class="tok-t">Title</span>, <span class="tok-t">Subtitle</span>, children, <span class="tok-t">Footer</span>, <span class="tok-t">Variant</span> = <span class="tok-s">'side'</span> } = <span class="tok-t">Props</span></span></div><div class="line" data-line="105" id="drawer-shell-L105"><span class="ln">105</span><span class="lc">  <span class="tok-k">const</span> centered = <span class="tok-t">Variant</span> === <span class="tok-s">'center'</span></span></div><div class="line" data-line="106" id="drawer-shell-L106"><span class="ln">106</span><span class="lc">  <span class="tok-k">const</span> panelRef = useRef&lt;<span class="tok-t">HTMLDivElement</span>&gt;(<span class="tok-k">null</span>)</span></div><div class="line" data-line="107" id="drawer-shell-L107"><span class="ln">107</span><span class="lc">  <span class="tok-k">const</span> onCloseRef = useRef(onClose)</span></div><div class="line" data-line="108" id="drawer-shell-L108"><span class="ln">108</span><span class="lc">  onCloseRef.current = onClose</span></div><div class="line" data-line="109" id="drawer-shell-L109"><span class="ln">109</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c"> 可及名指向的 id 必须是这层自己的：写死 'drawer-title' 时两个抽屉同时在 DOM 里，</span></span></div><div class="line" data-line="110" id="drawer-shell-L110"><span class="ln">110</span><span class="lc"><span class="tok-c">     aria-labelledby 只会解析到第一个同名元素，第二个就被念成别人的标题。 */</span></span></div><div class="line" data-line="111" id="drawer-shell-L111"><span class="ln">111</span><span class="lc">  <span class="tok-k">const</span> titleId = useId()</span></div><div class="line" data-line="112" id="drawer-shell-L112"><span class="ln">112</span><span class="lc"> </span></div><div class="line" data-line="113" id="drawer-shell-L113"><span class="ln">113</span><span class="lc">  useEffect(() =&gt; {</span></div><div class="line" data-line="114" id="drawer-shell-L114"><span class="ln">114</span><span class="lc">    <span class="tok-k">if</span> (!open) <span class="tok-k">return</span></span></div><div class="line" data-line="115" id="drawer-shell-L115"><span class="ln">115</span><span class="lc">    <span class="tok-k">const</span> opener = document.activeElement <span class="tok-k">instanceof</span> <span class="tok-t">HTMLElement</span> ? document.activeElement : <span class="tok-k">null</span></span></div><div class="line" data-line="116" id="drawer-shell-L116"><span class="ln">116</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Panel</span> = panelRef.current</span></div><div class="line" data-line="117" id="drawer-shell-L117"><span class="ln">117</span><span class="lc">    lockScroll()</span></div><div class="line" data-line="118" id="drawer-shell-L118"><span class="ln">118</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Panel</span>) {</span></div><div class="line" data-line="119" id="drawer-shell-L119"><span class="ln">119</span><span class="lc">      openPanels.push(<span class="tok-t">Panel</span>)</span></div><div class="line" data-line="120" id="drawer-shell-L120"><span class="ln">120</span><span class="lc">      markTopmost()</span></div><div class="line" data-line="121" id="drawer-shell-L121"><span class="ln">121</span><span class="lc">    }</span></div><div class="line" data-line="122" id="drawer-shell-L122"><span class="ln">122</span><span class="lc">    <span class="tok-c">/*</span><span class="tok-c"> focus 必须排在 markTopmost 之后：AnimatePresence 在退场未完时重开同一层会**复用那枚带着 inert 的节点**，</span></span></div><div class="line" data-line="123" id="drawer-shell-L123"><span class="ln">123</span><span class="lc"><span class="tok-c">       先 focus 就是往不可交互的元素上要焦点 —— 静默失败，焦点掉回 body。 */</span></span></div><div class="line" data-line="124" id="drawer-shell-L124"><span class="ln">124</span><span class="lc">    <span class="tok-t">Panel</span>?.focus()</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="214" id="drawer-shell-L214"><span class="ln">214</span><span class="lc">          &lt;motion.div</span></div><div class="line" data-line="215" id="drawer-shell-L215"><span class="ln">215</span><span class="lc">            key=<span class="tok-s">"panel"</span></span></div><div class="line" data-line="216" id="drawer-shell-L216"><span class="ln">216</span><span class="lc">            ref={panelRef}</span></div><div class="line" data-line="217" id="drawer-shell-L217"><span class="ln">217</span><span class="lc">            role=<span class="tok-s">"dialog"</span></span></div><div class="line" data-line="218" id="drawer-shell-L218"><span class="ln">218</span><span class="lc">            aria-modal=<span class="tok-s">"true"</span></span></div><div class="line" data-line="219" id="drawer-shell-L219"><span class="ln">219</span><span class="lc">            aria-labelledby={titleId}</span></div><div class="line" data-line="220" id="drawer-shell-L220"><span class="ln">220</span><span class="lc">            tabIndex={-<span class="tok-n">1</span>}</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="231" id="drawer-shell-L231"><span class="ln">231</span><span class="lc">            &lt;header className=<span class="tok-s">"flex h-header shrink-0 items-center gap-3 border-b border-line px-4"</span>&gt;</span></div><div class="line" data-line="232" id="drawer-shell-L232"><span class="ln">232</span><span class="lc">              &lt;div className=<span class="tok-s">"min-w-0"</span>&gt;</span></div></div></div></div><aside class="notes" aria-label="drawer-shell 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="drawer-shell" data-lines="103-112" data-note="drawer-shell-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">共享抽屉壳，不是 2.4 的交付</span><span class="badge b-pre">前置</span></div><p class="note-range">L103–112</p><div class="note-body"><p><code>Drawer</code> 被资源详情、命中详情、trace 详情共用。2.4 只传 <code>open</code> / <code>Title</code> / <code>Subtitle</code> / children；焦点、Esc、Tab 圈、滚动锁都在这一层。这里的 <code>useId</code> 保证同屏两只抽屉各有自己的可及名。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="drawer-shell" data-lines="113-124" data-note="drawer-shell-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">打开时：记触发元素、锁滚动、抢焦点</span><span class="badge b-pre">前置</span></div><p class="note-range">L113–124</p><div class="note-body"><p>先记 <code>document.activeElement</code> 作为关闭后的归还点；<code>lockScroll</code> 按层计数；再把自己推进 <code>openPanels</code> 栈顶，<code>markTopmost</code> 之后才 <code>focus</code>。顺序不能反：退场重开时节点可能还带着 <code>inert</code>，先 focus 会静默失败。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="drawer-shell" data-lines="214-220" data-note="drawer-shell-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">dialog 语义四件套</span><span class="badge b-pre">前置</span></div><p class="note-range">L214–220</p><div class="note-body"><p><code>role="dialog"</code>、<code>aria-modal="true"</code>、<code>aria-labelledby</code> 指向本层 <code>useId</code>、<code>tabIndex={-1}</code> 让面板本身可聚焦。少一件读屏就会把抽屉念成普通内容。外层还 <code>createPortal</code> 到 <code>document.body</code>，避免被侧栏的层叠上下文压住。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="drawer-shell" data-lines="231-232" data-note="drawer-shell-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">标题就是可及名</span><span class="badge b-pre">前置</span></div><p class="note-range">L231–232</p><div class="note-body"><p><code>h2 id={titleId}</code> 是 <code>aria-labelledby</code> 的目标；2.4 传进来的 <code>docTitle</code> 因此成为抽屉的可及名。副标题（块号/偏移）不进可及名，但视觉上紧贴标题。</p></div></article></aside></div></div><div class="block" id="block-paste-title"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/server/src/ingest/parse/text-parser.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="paste-title">复制代码</button></div><div class="code-scroll"><div class="code" data-code="paste-title"><div class="line" data-line="11" id="paste-title-L11"><span class="ln">11</span><span class="lc">  run(ctx: <span class="tok-t">IngestContext</span>): <span class="tok-k">void</span> {</span></div><div class="line" data-line="12" id="paste-title-L12"><span class="ln">12</span><span class="lc">    <span class="tok-k">const</span> raw = ctx.data.content ?? <span class="tok-s">''</span></span></div><div class="line" data-line="13" id="paste-title-L13"><span class="ln">13</span><span class="lc">    <span class="tok-k">const</span> title = ctx.data.title?.trim() || deriveTitle(raw)</span></div><div class="line" data-line="14" id="paste-title-L14"><span class="ln">14</span><span class="lc">    ctx.parsed = { title, text: raw }</span></div><div class="line" data-line="15" id="paste-title-L15"><span class="ln">15</span><span class="lc">  }</span></div><div class="line" data-line="16" id="paste-title-L16"><span class="ln">16</span><span class="lc">}</span></div><div class="line" data-line="17" id="paste-title-L17"><span class="ln">17</span><span class="lc"> </span></div><div class="line" data-line="18" id="paste-title-L18"><span class="ln">18</span><span class="lc"><span class="tok-k">function</span> deriveTitle(text: <span class="tok-k">string</span>): <span class="tok-k">string</span> {</span></div><div class="line" data-line="19" id="paste-title-L19"><span class="ln">19</span><span class="lc">  <span class="tok-k">const</span> h1 = text.match(/^[ \t]{<span class="tok-n">0</span>,<span class="tok-n">3</span>}#\s+(.+?)[ \t]*#*[ \t]*$/m)</span></div><div class="line" data-line="20" id="paste-title-L20"><span class="ln">20</span><span class="lc">  <span class="tok-k">if</span> (h1?.[<span class="tok-n">1</span>]) <span class="tok-k">return</span> truncate(h1[<span class="tok-n">1</span>].trim())</span></div><div class="line" data-line="21" id="paste-title-L21"><span class="ln">21</span><span class="lc"> </span></div><div class="line" data-line="22" id="paste-title-L22"><span class="ln">22</span><span class="lc">  <span class="tok-k">for</span> (<span class="tok-k">const</span> line <span class="tok-k">of</span> text.split(<span class="tok-s">'\n'</span>)) {</span></div><div class="line" data-line="23" id="paste-title-L23"><span class="ln">23</span><span class="lc">    <span class="tok-k">const</span> t = line.trim()</span></div><div class="line" data-line="24" id="paste-title-L24"><span class="ln">24</span><span class="lc">    <span class="tok-k">if</span> (t !== <span class="tok-s">''</span>) <span class="tok-k">return</span> truncate(t.replace(/^[#&gt;*\-\s]+/, <span class="tok-s">''</span>))</span></div><div class="line" data-line="25" id="paste-title-L25"><span class="ln">25</span><span class="lc">  }</span></div><div class="line" data-line="26" id="paste-title-L26"><span class="ln">26</span><span class="lc">  <span class="tok-k">return</span> <span class="tok-s">'未命名资源'</span></span></div><div class="line" data-line="27" id="paste-title-L27"><span class="ln">27</span><span class="lc">}</span></div><div class="line" data-line="28" id="paste-title-L28"><span class="ln">28</span><span class="lc"> </span></div><div class="line" data-line="29" id="paste-title-L29"><span class="ln">29</span><span class="lc"><span class="tok-k">function</span> truncate(s: <span class="tok-k">string</span>): <span class="tok-k">string</span> {</span></div><div class="line" data-line="30" id="paste-title-L30"><span class="ln">30</span><span class="lc">  <span class="tok-k">return</span> s.length &gt; <span class="tok-n">60</span> ? s.slice(<span class="tok-n">0</span>, <span class="tok-n">60</span>) + <span class="tok-s">'…'</span> : s</span></div><div class="line" data-line="31" id="paste-title-L31"><span class="ln">31</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="paste-title 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="paste-title" data-lines="11-15" data-note="paste-title-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">粘贴内容的标题优先级</span><span class="badge b-pre">前置</span></div><p class="note-range">L11–15</p><div class="note-body"><p><code>ctx.data.title</code>（用户在前端填的标题）优先；没填就 <code>deriveTitle(raw)</code>。所以粘贴内容不是永远叫「未命名」：正文的一级标题或首个非空行会成为 Resource 标题，也就是抽屉的 <code>docTitle</code>。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="paste-title" data-lines="18-31" data-note="paste-title-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">deriveTitle：内容指纹式的命名</span><span class="badge b-pre">前置</span></div><p class="note-range">L18–31</p><div class="note-body"><p>先找 Markdown 一级标题；没有就取首个非空行，去掉列表/引用/标题符号，最长 60 字；再没有才「未命名资源」。这是 AC 里「命名 + 内容指纹」的命名半边；时间戳没有进标题。</p></div></article></aside></div></div><div class="block" id="block-paste-uri"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/server/src/ingest/ingest.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="paste-uri">复制代码</button></div><div class="code-scroll"><div class="code" data-code="paste-uri"><div class="line" data-line="63" id="paste-uri-L63"><span class="ln">63</span><span class="lc">      <span class="tok-k">const</span> givenTitle = <span class="tok-t">Data</span>.title?.trim() ?? <span class="tok-s">''</span></span></div><div class="line" data-line="64" id="paste-uri-L64"><span class="ln">64</span><span class="lc">      <span class="tok-k">const</span> resource = <span class="tok-k">await</span> repo.createResource({</span></div><div class="line" data-line="65" id="paste-uri-L65"><span class="ln">65</span><span class="lc">        title: givenTitle || (isUrl ? hostnameOf(<span class="tok-t">Data</span>.url!) : <span class="tok-s">'未命名'</span>),</span></div><div class="line" data-line="66" id="paste-uri-L66"><span class="ln">66</span><span class="lc">        source: isUrl ? <span class="tok-t">Data</span>.url! : <span class="tok-k">null</span>,</span></div><div class="line" data-line="67" id="paste-uri-L67"><span class="ln">67</span><span class="lc">        data_uri: isUrl ? <span class="tok-t">Data</span>.url! : <span class="tok-s">`urn:kc:paste:${globalThis.crypto.randomUUID()}`</span>,</span></div><div class="line" data-line="68" id="paste-uri-L68"><span class="ln">68</span><span class="lc">        content_type: <span class="tok-t">Data</span>.content_type,</span></div><div class="line" data-line="69" id="paste-uri-L69"><span class="ln">69</span><span class="lc">        status: <span class="tok-s">'processing'</span>,</span></div><div class="line" data-line="70" id="paste-uri-L70"><span class="ln">70</span><span class="lc">      })</span></div></div></div></div><aside class="notes" aria-label="paste-uri 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="paste-uri" data-lines="63-70" data-note="paste-uri-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">source 为 null，data_uri 给唯一指针</span><span class="badge b-pre">前置</span></div><p class="note-range">L63–70</p><div class="note-body"><p>URL 资源 <code>source = url</code>；粘贴内容 <code>source = null</code>，所以 2.4 抽屉不渲染链接。<code>data_uri</code> 用 <code>urn:kc:paste:&lt;uuid&gt;</code> 保证每条粘贴内容有唯一指针；唯一性由 <code>resourceId</code> / <code>dataUri</code> 保证，而不是靠一个可能重名的标题。</p></div></article></aside></div></div></section>
+
+<section class="section" id="decisions-and-pitfalls">
+  <header class="section-head">
+    <span class="kicker">07 · DECISIONS</span>
+    <h2>关键取舍与容易踩的坑</h2>
+    <p class="section-sub">这一节回答「为什么这么做、否掉了什么、哪里会静默失效」。先看四张取舍卡，再看坑清单。</p>
+  </header>
+
+  <div class="choice-grid">
+    <article class="choice"><span class="choice-no">01</span><h3>快照 vs 重新取 chunk</h3><p>重取会得到「现在」的块，不是「回答当时」的块；来源删了还会 404/500。快照跟着消息走，历史回答可复现，也不需要额外网络请求。代价是快照占消息体积，且旧块不会跟随后续编辑。</p></article>
+    <article class="choice"><span class="choice-no">02</span><h3>404 只标不拦</h3><p>2026-10-21 Lynx 拍：可看优先。抽屉继续渲染快照，只加一行「来源已删除」；不把引用变成不可点纯文本，也不返回 410。原 AC 的两条已被这次决定改写。</p></article>
+    <article class="choice"><span class="choice-no">03</span><h3>本轮 [n] 两步，跨轮一步</h3><p>当前轮 [n] 先点亮右栏那一行，让用户看到「引用和命中是同一套编号」；跨轮引用不在右栏列表里，直接开抽屉，避免点了没反应。这是 2.3/2.4 交界处的交互取舍。</p></article>
+    <article class="choice"><span class="choice-no">04</span><h3>Resource 级删除判据</h3><p>只查 <code>GET /resources/:id</code>，不逐 chunk 探测。实现简单、请求少，也符合「来源」的产品语义；代价是「只删了 chunk、资源还在」不会标已删除，这是当前边界。</p></article>
+  </div>
+
+  <ul class="pitfall-list">
+    <li><strong>别把 500 当已删除：</strong>页面只认 <code>ApiError</code> 且 <code>status === 404</code>。后端挂了、代理返回 HTML、响应形状不对，都不会出现「来源已删除」；内容仍然可读，但标注保持沉默。</li>
+    <li><strong>别把 410 写回来：</strong>410 条款已在 2026-10-21 作废。当前后端没有 410 分支；如果以后加，前端也要把它归到「来源不在了」，而不是单独报错。</li>
+    <li><strong>粘贴内容的抽屉没有 dataUri：</strong><code>/ask</code> 只在 <code>source</code> 非空时渲染链接；粘贴内容的 <code>source</code> 是 null，所以只显示 <code>docTitle</code>。唯一指针在 <code>resourceId</code> / <code>dataUri</code> 里，<code>/recall</code> 抽屉会显示，<code>/ask</code> 不显示——这是 AC「自动来源标识」的残差，不是代码笔误。</li>
+    <li><strong>抽屉的 a11y 不是 2.4 的功劳：</strong>portal、焦点归还、Esc、Tab 圈、滚动锁都在共享 <code>Drawer</code> 里；2.4 只负责内容和 open 状态。后来还有 2026-10-21 build5 的 a11y 补丁，不要把那些细节算进本 Story。</li>
+    <li><strong>字符级高亮没做：</strong><code>activeChunkId</code> 只让右栏整行加底色和竖线；正文里不会把命中的那句话涂黄。2.4 的 AC 把字符级高亮列为增强项，当前不欠账。</li>
+    <li><strong>GET 路由已经换人：</strong>2.4 当时是 <code>routes/resources/resources.ts</code> 手写 <code>GET /:id</code>，Epic 3 pre-3.2 换成 hono-crud read。今天如果改响应信封（不再是 <code>{ resource }</code>），<code>fetchResource</code> 会抛形状错误，抽屉的「已删除」判断会静默失效。</li>
+  </ul>
+</section>
+
+<section class="section" id="verification-commands">
+  <header class="section-head">
+    <span class="kicker">08 · VERIFY</span>
+    <h2>可复制的验证命令</h2>
+    <p class="section-sub">每条都标了「本轮真跑 / 历史真跑 / 本轮未跑」。不要把「代码路径存在」当成「已经跑过」。</p>
+  </header>
+
+  <div class="test-grid">
+    <article class="test-card">
+      <h3>1. 看 2.4 当时的路由提交 <span class="badge b-now">本轮真跑</span></h3>
+      <pre class="snippet">git -C app/server show 2b19bea -- src/routes/resources/resources.ts</pre>
+      <p class="table-note">期望看到 <code>app.get('/:id')</code> 这一段：<code>repo.getResource</code> → 有值返回 <code>{ resource }</code>，没有返回 404 <code>E_NOT_FOUND</code>，异常 500 <code>E_READ</code>。该文件在提交里共 22 行变更。</p>
+    </article>
+    <article class="test-card">
+      <h3>2. 当前 GET /resources/:id <span class="badge b-now">本轮未跑</span></h3>
+      <pre class="snippet">curl -s http://127.0.0.1:3000/resources/&lt;id&gt; | jq .</pre>
+      <p class="table-note">期望 200 + <code>resource</code> 对象；不存在或已软删 404。当前由 hono-crud read 提供，404 的 body 形状由它的错误信封决定；前端只看 status。</p>
+    </article>
+    <article class="test-card">
+      <h3>3. 删除后回查（用一次性资源） <span class="badge b-now">本轮未跑</span></h3>
+      <pre class="snippet">curl -s -o /dev/null -w '%{http_code}\n' -X DELETE http://127.0.0.1:3000/resources/&lt;id&gt;
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/resources/&lt;id&gt;</pre>
+      <p class="table-note">期望先 204、再 404。然后回 <code>/ask</code> 打开历史回答里的引用，抽屉应出现「来源已删除 · 以下为回答时的快照」，正文仍可读。删除是破坏性操作，别拿正在用的资源试。</p>
+    </article>
+    <article class="test-card">
+      <h3>4. chunks 分页是另一条路 <span class="badge b-pre">历史真跑</span></h3>
+      <pre class="snippet">curl -s 'http://127.0.0.1:3000/resources/&lt;id&gt;/chunks?page=1&amp;per_page=2' | jq '{n: (.chunks|length), page: .pagination.page, total: .pagination.total_count}'</pre>
+      <p class="table-note">2026-10-23 真跑过分页（<code>page=99</code> 会收敛到末页，<code>search</code> 是字面量匹配）。这条属于资源详情抽屉，不是 2.4 的命中抽屉；列在这里是为了区分两条读路径。</p>
+    </article>
+    <article class="test-card">
+      <h3>5. 抽屉/引用组件测试 <span class="badge b-pre">历史真跑</span></h3>
+      <pre class="snippet">cd app/web &amp;&amp; npx vitest run src/components/drawer/drawer.test.tsx src/components/chat-thread/chat-thread.test.tsx</pre>
+      <p class="table-note">2026-10-21 全量是 317/318，唯一红是 <code>sessions-hydrate-empty.test.ts</code> 的既有规则变化，与 2.4 无关。本轮没有重跑测试，只做静态构建校验。</p>
+    </article>
+    <article class="test-card">
+      <h3>6. 类型检查 + 浏览器手测 <span class="badge b-pre">历史真跑 / 归 Lynx</span></h3>
+      <pre class="snippet">cd app/web &amp;&amp; npx tsc --noEmit
+cd app/server &amp;&amp; npx tsc --noEmit</pre>
+      <p class="table-note">2026-10-21 / 2026-10-23 两次都记录为 0 错；本轮未重跑。浏览器手测：问一句 → 点 [n] / 命中行 → 看块号与偏移 → 删一条被引用的资源 → 回历史回答重开抽屉。视觉与真实点击归 Lynx。</p>
+    </article>
+  </div>
+
+  <div class="callout"><strong>本轮实际做过的验证：</strong>只读代码、<code>git log/show</code>、<code>git diff</code>，以及本页的 <code>build.mjs</code> + <code>validate.mjs</code>。没有开浏览器、没有跑前后端测试、没有启动服务。</div>
+</section>
+
+<section class="section" id="story-continuity">
+  <header class="section-head">
+    <span class="kicker">09 · CONTINUITY</span>
+    <h2>与前后 story 的衔接</h2>
+    <p class="section-sub">2.4 不是从零长出来的：它接 2.3 的编号、2.6 的快照、2.5 的持久化；后来又被 Epic 3 的 CRUD 重构换掉一段读路径。</p>
+  </header>
+
+  <table class="file-table">
+    <thead><tr><th>时点</th><th>交接内容</th><th>对 2.4 的影响</th></tr></thead>
+    <tbody>
+      <tr><td>2.3 → 2.4</td><td>[n] / 8 位 chunkId 解析、首次出现编号、越界纯文本、右栏命中行</td><td>2.4 只接「点击后开抽屉」，不重做编号</td></tr>
+      <tr><td>2.5</td><td>messages 表以 parts 为真源；历史按会话回读</td><td>刷新/切会话后快照还在，已删来源的降级才有意义</td></tr>
+      <tr><td>2.6</td><td>检索工具化；tool output 换成完整 12 字段投影</td><td>抽屉的 content / chunkIndex / offsets / source 全部来自这里</td></tr>
+      <tr><td>Epic 3 pre-3.2</td><td>Drizzle + hono-crud 接管四表 CRUD；删除手写 GET /:id</td><td>当前 <code>GET /resources/:id</code> 由 read + softDelete 提供，响应仍是 <code>{ resource }</code></td></tr>
+      <tr><td>3.3 / 3.4</td><td>retrieve / ingest 的阶段轨迹与 trace 面板</td><td>不属于本页；抽屉里没有 stage 视图</td></tr>
+      <tr><td>P2 · 2026-10-23</td><td>资源详情 chunks 分页 + 搜索</td><td>只改资源管理抽屉；命中抽屉仍读快照，不请求 chunks</td></tr>
+    </tbody>
+  </table>
+
+  <div class="choice-grid">
+    <article class="choice"><span class="choice-no">NOW</span><h3>2.4 的完成状态</h3><p>sprint-status 标 done：2026-10-20 对账「点引用/命中行开抽屉、content + 块号/偏移 + source 已落」；2026-10-21 收口「chunkId 不存在不再要求 410，按快照可看 + 标注处理」。</p></article>
+    <article class="choice"><span class="choice-no">NEXT</span><h3>下一格会怎么用它</h3><p>Epic 4 的资源画像、Markdown/表格渲染不依赖这扇抽屉；如果以后要做字符级高亮或 chunk 级删除探测，入口都在 <code>openHit</code> 与 <code>fetchResource</code> 这一层。</p></article>
+  </div>
+
+  <div class="callout strong"><strong>留给下一轮的未核实项：</strong>
+    <ul>
+      <li>Lynx 浏览器手测仍未做：删一条被引用过的 Resource，回看历史回答、打开抽屉，确认提示出现且内容可读（deferred-work 已记）。</li>
+      <li>粘贴内容在 <code>/ask</code> 抽屉只显示标题，不显示 <code>urn:kc:paste:...</code>；AC 的「命名 + 时间/内容指纹」目前落在标题与唯一 dataUri 上，没有可见时间戳。</li>
+      <li>「来源已删除」只探测 Resource，不探测单个 chunk；chunk 单独消失不会触发标注。</li>
+      <li>字符级高亮未实现；当前只有右栏整行高亮。</li>
+      <li>当前 <code>GET /resources/:id</code>（hono-crud read）本轮没有真跑；2.4 当时的手写路由已用 git show 核对。</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Story 2.4 走读页 · 代码来自当前工作区（2026-10-24 读取）· 静态校验通过后由 Lynx 浏览器复核。</p>
+  <p>相关工件：<code>_Agents/walkthroughs/.runs/epic2-story4/walkthrough.config.mjs</code>、<code>.memlog.md</code>、<code>validation.txt</code>。</p>
+</footer></main>
+</div>
+<button type="button" class="to-top" id="to-top" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var progress = document.getElementById('progress');
+  var toTop = document.getElementById('to-top');
+  var themeToggle = document.getElementById('theme-toggle');
+  var expandAll = document.getElementById('expand-all');
+  var expanded = false;
+
+  function readTheme() {
+    try {
+      var saved = localStorage.getItem('story-walkthrough-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
+    try { localStorage.setItem('story-walkthrough-theme', theme); } catch (e) {}
+  }
+
+  applyTheme(readTheme());
+
+  themeToggle.addEventListener('click', function () {
+    applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  function onScroll() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = max > 0 ? window.scrollY / max : 0;
+    progress.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+    toTop.classList.toggle('show', window.scrollY > 600);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function codeOf(id) {
+    return document.querySelector('.code[data-code="' + id + '"]');
+  }
+
+  function clearHighlights(id) {
+    var code = codeOf(id);
+    if (!code) return;
+    code.querySelectorAll('.line.hl').forEach(function (line) { line.classList.remove('hl'); });
+  }
+
+  function parseLines(spec) {
+    var set = new Set();
+    spec.split(',').forEach(function (part) {
+      var bits = part.trim().split('-').map(Number);
+      if (bits.length === 2 && isFinite(bits[0]) && isFinite(bits[1])) {
+        for (var i = bits[0]; i <= bits[1]; i += 1) set.add(i);
+      } else if (bits.length === 1 && isFinite(bits[0])) {
+        set.add(bits[0]);
+      }
+    });
+    return set;
+  }
+
+  function highlight(id, spec, scroll) {
+    var code = codeOf(id);
+    if (!code) return;
+    clearHighlights(id);
+    var numbers = parseLines(spec);
+    var first = null;
+    numbers.forEach(function (n) {
+      var line = code.querySelector('.line[data-line="' + n + '"]');
+      if (line) {
+        line.classList.add('hl');
+        if (first === null) first = line;
+      }
+    });
+    if (first && scroll !== false) {
+      var scroller = code.closest('.code-scroll');
+      if (scroller) {
+        var top = first.offsetTop - Math.round(scroller.clientHeight * 0.28);
+        scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+  }
+
+  document.querySelectorAll('.note').forEach(function (note) {
+    function activate() {
+      var id = note.getAttribute('data-code');
+      var lines = note.getAttribute('data-lines');
+      document.querySelectorAll('.note.active').forEach(function (n) { n.classList.remove('active'); n.setAttribute('aria-pressed', 'false'); });
+      note.classList.add('active');
+      note.setAttribute('aria-pressed', 'true');
+      highlight(id, lines, true);
+    }
+    note.addEventListener('click', activate);
+    note.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        activate();
+      }
+    });
+  });
+
+  document.querySelectorAll('.journey-step').forEach(function (step) {
+    step.addEventListener('click', function () {
+      var target = step.getAttribute('data-goto');
+      var bits = target.split(':');
+      var id = bits[0];
+      var lines = bits[1];
+      var code = codeOf(id);
+      if (!code) return;
+      var section = code.closest('.section');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(function () { highlight(id, lines, true); }, 260);
+    });
+  });
+
+  document.querySelectorAll('.copy-code').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var id = button.getAttribute('data-copy');
+      var code = codeOf(id);
+      if (!code) return;
+      var text = Array.from(code.querySelectorAll('.line[data-line] .lc')).map(function (line) {
+        return line.textContent;
+      }).join('\n');
+      var done = function () {
+        var old = button.textContent;
+        button.textContent = '已复制';
+        window.setTimeout(function () { button.textContent = old; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        });
+      } else {
+        try {
+          var area = document.createElement('textarea');
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          document.body.removeChild(area);
+          done();
+        } catch (e) {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        }
+      }
+    });
+  });
+
+  expandAll.addEventListener('click', function () {
+    expanded = !expanded;
+    document.querySelectorAll('.code-scroll').forEach(function (scroller) {
+      scroller.style.maxHeight = expanded ? 'none' : '';
+    });
+    expandAll.textContent = expanded ? '收起代码' : '展开代码';
+  });
+
+  var tocLinks = Array.from(document.querySelectorAll('#toc a'));
+  var sections = tocLinks.map(function (link) {
+    return document.getElementById(link.getAttribute('data-toc'));
+  }).filter(Boolean);
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(function (link) {
+          var active = link.getAttribute('data-toc') === entry.target.id;
+          link.classList.toggle('active', active);
+        });
+      });
+    }, { rootMargin: '-18% 0px -70% 0px', threshold: 0.01 });
+    sections.forEach(function (section) { observer.observe(section); });
+  }
+})();
+</script>
+<script src="anim/story-link.js?v=20261026p" defer></script>
+<script src="anim/stories.js?v=20261026s"></script>
+<script src="anim/story-guide.js?v=20261026s"></script>
+</body>
+</html>

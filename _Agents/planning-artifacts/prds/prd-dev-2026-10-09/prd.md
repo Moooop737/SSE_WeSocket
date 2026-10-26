@@ -97,7 +97,7 @@ Knowledge Copilot 是一个**对话式的个人知识库助手**：你把自己�
 用户可粘贴或导入 Markdown / 纯文本内容，系统将其作为一个 Resource 入库。实现 UJ-2。
 **Consequences (testable):**
 - 导入后 Resource 出现在知识库列表并可用于检索。
-- 内容为空、编码异常或不可读时拒绝入库并提示（不创建 Resource）。
+- 内容为空（后端 `E_EMPTY_CONTENT`）或前端无法解码、判定为非文本时拒绝入库并提示（不创建 Resource）。后端不做编码/可读性启发式检测——类型判定归前端（2026-10-13 Story 1.3 定）。
 
 #### FR-3: 解析与分块
 系统从入库的 Resource 中解析出正文，并切分为一到多个 Chunk。实现 UJ-1, UJ-2。
@@ -116,7 +116,7 @@ Knowledge Copilot 是一个**对话式的个人知识库助手**：你把自己�
 用户可查看当前知识库中的 Resource 列表及其状态，并删除某个 Resource。实现 UJ-1。
 **Consequences (testable):**
 - 删除 Resource 后，其 Chunk 不再出现在后续检索结果中。
-- 删除后，历史 Answer 中指向该 Resource 的 Citation 降级为不可点的纯文本并标注"来源已删除"（不产生悬空/404 引用）。实现 UJ-1, UJ-2。
+- 删除后，历史 Answer 中指向该 Resource 的 Citation **仍可打开回答时的快照**，只在抽屉/引用处标注"来源已删除"；不改为不可点、不请求已删 Chunk（2026-10-21 Lynx 拍，推翻原"降级为不可点纯文本"）。实现 UJ-1, UJ-2。
 - 删除处于 `处理中` 的 Resource 时，取消其后端入库任务并清理已产生的部分 Chunk（不留孤儿向量）。
 
 **Notes:** `[NOTE FOR PM] 分块粒度（chunk 大小 / 重叠窗口）与 Embedding 写入成功的判定阈值属实现层，PRD 不写死，由架构阶段决定。`
@@ -131,7 +131,7 @@ Knowledge Copilot 是一个**对话式的个人知识库助手**：你把自己�
 用户提问后，系统检索相关 Chunk 并据此生成 Answer。实现 UJ-1, UJ-2。
 **Consequences (testable):**
 - 对知识库中有依据的问题，Answer 内容可对应到被检索的 Chunk。
-- 检索未命中、或最高相关性低于下限（阈值由架构定）时，视同"知识库中未找到相关内容"并如实说明，不得把低相关噪音当依据作答。
+- 检索 0 命中时，视同"知识库中未找到相关内容"并如实说明；有命中时由模型判断资料是否足够，相似度阈值只兜字符噪声（当前 `RETRIEVAL_MIN_SIMILARITY=0.42`、BM25 只去 0 分；2026-10-14 Lynx 拍，阈值不承担语义判据），不得把低相关噪声当依据作答。
 - 知识库为空时，给出区别于"未找到相关内容"的提示（"尚未添加任何资料"）。
 - 空/纯空白提问被拒绝并提示。
 
@@ -139,8 +139,8 @@ Knowledge Copilot 是一个**对话式的个人知识库助手**：你把自己�
 系统在同一 Session 内保持上下文，允许用户基于前一轮继续追问。实现 UJ-1, UJ-2。
 **Consequences (testable):**
 - 追问中的指代（如"第二个结论展开讲讲"）能结合上一轮 Answer 正确理解。
-- 基于历史轮次的追问，系统需重新检索（先做指代消解/查询改写），而非直接复述上一轮生成文本作为依据。（查询改写策略属实现层。）
-`[ASSUMPTION: P1 支持单个活跃 Session 的多轮；不做多会话历史列表管理。]`
+- 基于历史轮次的追问，系统需重新检索（把历史交给模型、由模型把追问展开成独立检索词；2026-10-21 Lynx 拍：不另设改写调用），而非直接复述上一轮生成文本作为依据。（改写策略属实现层。）
+`[DECISION 2026-10-21: P1 支持多会话历史列表（后端 GET /sessions；前端列表在 Story 2.5 Build 3 接入）；FR-7 的多轮上下文仍按单会话内处理。]`
 
 **Notes:** `[NOTE FOR PM] 检索 top-K / 相似度阈值等参数属实现层，由架构阶段决定；PRD 只约束"只依据检索到的内容作答、无依据时如实说明"。`
 
@@ -172,7 +172,7 @@ Answer 中标注其依据来源的 Citation，指向具体 Resource/Chunk。实�
 **Consequences (testable):**
 - 有依据的 Answer 至少包含一个可解析的 Citation。
 - 每个 Citation 必须映射到**本轮真实检索命中的具体 Chunk**（非仅 Resource 级）；模型自造的索引视为无效。
-- 删除某 Resource 后，历史 Answer 中指向它的 Citation 按 FR-5 降级为不可点的纯文本。
+- 删除某 Resource 后，历史 Answer 中指向它的 Citation 按 FR-5 处理：快照仍可看，抽屉/引用处标注"来源已删除"。
 
 #### FR-11: 引用可回链原文
 用户可从 Citation 发起 Source Ref 跳转，查看对应的原始内容（URL 定位或笔记段落）。实现 UJ-1, UJ-2。
@@ -210,10 +210,11 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 ### 6.1 In Scope
 - P1 = §4 的 FR-1 至 FR-12 全部（入库、检索问答、流式、引用溯源、本地安全边界）。
 - 单人自用的极简 Web 界面：一个入库/知识库区 + 一个问答区。
+- 多会话历史列表已提前到 P1（2026-10-21，后端 `GET /sessions`，前端 Story 2.5 Build 3 接入）。
 - 默认经 AI SDK 接入：Embedding=本地 Ollama Qwen3；对话=DeepSeek / 百炼（可切换；见 §9 OQ#2）。
 
 ### 6.2 Out of Scope for MVP（仅列 MVP 特有延后项）
-- 多会话历史管理、持久化用户数据 → 视需要 P2+。
+- 持久化用户数据（账号等）→ 最后再做（P2 不排；见 §7）。
 - "字符级高亮的原文回链"（FR-11 增强项）→ 延后。
 - 多格式解析（PDF 等）/多模态/结构化输出/Agent/Generative UI/MCP/部署 → 见 §7 阶段划分（不在 MVP）。
 - 账号系统、协作、计费 → 非目标（见 §5）。
@@ -224,14 +225,16 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 
 > 本产品定义的扩展性内核。P1 之后，产品沿下列阶段持续长大；每阶段绑定一类 Vercel AI SDK 能力。此处仅记录愿景，各阶段 FR 在对应阶段更新本 PRD 时展开。技术映射细节见 `addendum.md` C。
 
-- **P1（本文档范围）** RAG 检索问答 + 流式 + 引用 —— `streamText` / embed。
-- **P2** 多轮会话管理 + 结构化输出 —— 会话状态、`generateObject`。
-- **P3** 检索/联网升级为"工具"，引入 Agent loop —— tool calling、agents。
+- **P1（本文档范围；2026-10-24 已收口）** RAG 检索问答 + 流式 + 引用 —— `streamText` / embed。P1 期间已提前交付：多会话历史（Story 2.5）、检索工具化（Story 2.6，原属 P3 的一格）、观测 trace（Epic 3，P1.x 工程支线）。
+- **P2（2026-10-24 定）** 结构化输出与渲染 + 文件与存储 —— `generateText + Output.object`（`generateObject` 已弃用）、GFM/CSV 客户端渲染、MinIO 原始文件归档与 `.md/.txt`/ZIP 上传。落点见 `_Agents/planning-artifacts/epics.md` Epic 4/5。原路线图的「多轮会话管理」已在 P1 交付，不再计入 P2。
+- **P3** 联网工具 + Agent loop —— tool calling、agents。检索工具化已由 P1 Story 2.6 提前交付，P3 只剩联网工具与多步 Agent 编排。
   - **P3 工程项（与能力主线并行，不占同一轮）**：**批量入库 + 后台队列 + 跨进程取消**。多文件一次提交；入库从"占着 HTTP 请求跑完"改成交给后台队列（**Redis 在此引入**，作队列存储，参照 WeKnora 的 asynq 用法——它自己的 Redis 就是队列不是取消信箱）；任务带超时/重试/死信；取消信号跨进程可达，取代 P1 的进程内 `InflightRegistry`。练的是并发、队列与幂等，**不是 AI SDK 能力**，故不挤占 P3 主线那一轮。P1 已留好接口位：`Pipeline.batch(KBData[])` 已实现但没有任何端点调用它。
 - **P4** 回答内渲染图表 / 交互卡片 —— `streamUI`、React Server Components（简历亮点；对前端选型有约束，见 `addendum.md` A）。
 - **P5** MCP 集成 + 多模态输入（图片/音频入库）+ 部署上线 —— MCP client、multimodal、生产部署。
 
 设计意图（而非硬约束）：P1 实现时应避免把检索策略硬编码进生成路径，以便 P3 能将其工具化；具体解耦与接口方式由架构阶段决定。
+
+> **2026-10-24 路线图对账**：P2 的边界、逐格方向与未决项见 `epics.md` Epic 4/5；「P2 不碰」的清单以 `epics.md` 文末「P2 · 未决项」与 `AGENTS.md` §五 为准。本文只保留阶段级口径，不重复列故事。
 
 ## 8. Success Metrics
 
@@ -271,7 +274,7 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 > 仅列真正未经确认的推断；已定案项（OpenAI / ParadeDB / 前端）见 §9 决议，不在此重复。
 
 - §4.1 — P1 不做文件批量上传，URL 与 Markdown/纯文本逐个/少量添加即可。
-- §4.2 FR-7 — P1 支持单个活跃 Session 的多轮，不做多会话历史列表管理。
+- §4.2 FR-7 — P1 支持多轮上下文与多会话历史列表（2026-10-21 扩展；后端 GET /sessions，前端 Build 3 接）。
 - §4.4 FR-11 — "回链"最低门槛为展示 Chunk 原文片段 + 来源标识；字符级高亮为增强项。
 - §4.5 FR-12 — P1 不做多用户隔离/权限分级，仅靠本地监听与只读演示保障。
 - §9 OQ#2 — Provider 已于架构阶段定为本地 Ollama（Qwen embedding）+ DeepSeek/百炼（对话），取代原"默认 OpenAI"假设。

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3cff212c-af77-4e5b-b101-4ff783284147",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.html",
+  "specification": {
+    "sha256": "119420a81b34e130c68dae40e7622dee4a3359e4f1814bdb2b24bf4c7e77b4ce",
+    "bytes": 4037
+  },
+  "artifact": {
+    "sha256": "1d27323919aaa9b83c993e77ed6a6d62af3e7234a504358c3cdf6c27b9f4327d",
+    "bytes": 820615
+  }
+}

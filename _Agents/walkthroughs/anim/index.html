@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Copilot · 动画目录</title>
+<link rel="stylesheet" href="../assets/walkthrough.css?v=20261026d">
+<style>
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+a { color: inherit; }
+.shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 64px; }
+.top { display: flex; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.brand { color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
+.brand span { color: var(--ink-3); font-weight: 400; }
+.top nav { margin-left: auto; display: flex; gap: 8px; }
+.top nav a, .theme { display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink-2); font-size: 12px; text-decoration: none; cursor: pointer; }
+.top nav a:hover, .theme:hover { border-color: var(--accent); color: var(--accent); }
+.hero { padding: 44px 0 30px; }
+.hero .kicker { color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; }
+.hero h1 { margin: 10px 0 10px; font-size: clamp(32px, 5vw, 52px); line-height: 1.05; letter-spacing: -.04em; }
+.hero h1 em { color: var(--accent); font-style: normal; }
+.hero p { max-width: 680px; margin: 0; color: var(--ink-3); font-size: 14px; line-height: 1.7; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.meta span { padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink-3); font-family: var(--mono); font-size: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; min-height: 230px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--raised); text-decoration: none; }
+.card:hover { border-color: var(--accent); }
+.card.feature { grid-column: span 2; background: var(--bg); }
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card-kicker { color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: .06em; }
+.card-duration { color: var(--ink-3); font-family: var(--mono); font-size: 10px; }
+.card h2 { margin: 16px 0 8px; font-size: 22px; line-height: 1.2; letter-spacing: -.02em; }
+.card p { margin: 0; color: var(--ink-3); font-size: 12px; line-height: 1.65; }
+.card-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 18px; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.card-tags span { padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-3); font-family: var(--mono); font-size: 9px; }
+.open { color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.note { margin-top: 22px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink-3); font-size: 11px; line-height: 1.6; }
+.variants { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.variants a { padding: 3px 7px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); font-family: var(--mono); font-size: 10px; text-decoration: none; }
+.variants a:hover { border-color: var(--accent); color: var(--accent); }
+.story-films { grid-column: 1 / -1; margin-top: 38px; }
+.story-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.story-head h2 { margin: 6px 0 4px; font-size: 24px; letter-spacing: -.02em; }
+.story-head p { margin: 0; color: var(--ink-3); font-size: 12px; }
+.card.small { min-height: 172px; }
+.card.small h2 { margin-top: 12px; font-size: 17px; }
+.card.small .card-foot { padding-top: 12px; }
+@media (max-width: 760px) {
+  .card.feature { grid-column: span 1; }
+  .hero { padding-top: 30px; }
+  .top nav a { padding: 0 8px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <a class="brand" href="../index.html">Knowledge Copilot <span>· 动画目录</span></a>
+    <nav>
+      <a href="../index.html">走读目录</a>
+      <a href="../epic1-story2-url-ingest.html">Story 1.2</a>
+      <button class="theme" type="button" id="theme">深色</button>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="kicker">ANIMATION INDEX</div>
+    <h1>把一条链路，<br><em>看成一件事</em></h1>
+    <p>完整片用来顺着看；片段插在代码旁边，只讲一个动作。所有画面都是示意数据，不是一次真实运行的回放。</p>
+    <div class="meta"><span>14 条完整片</span><span>5 个片段</span><span>动作级停靠</span><span>无进度条</span></div>
+  </section>
+
+  <main class="grid">
+    <a class="card feature" data-anim href="ingest-film.html?film=success&theme=light" target="_blank" rel="noreferrer">
+      <div class="card-top"><span class="card-kicker">FULL FILM · STORY 1.2</span><span class="card-duration">21 个动作 · 自动约 49 秒</span></div>
+      <h2>URL 入库：从一条 URL 到三张表</h2>
+      <p>查重 → fetch → parse → 切片 → 向量 → 事务写入。默认手动逐动作：同一部片按 21 个动作停靠，点画面走一步；旁边可切自动连续播放。</p>
+      <div class="card-foot"><div class="card-tags"><span>成功链</span><span>分段动画</span><span>自动播放</span></div><span class="open">打开完整片 →</span></div>
+    </a>
+
+    <a class="card" data-anim href="ingest-film.html?clip=slice&theme=light&embed=1" target="_blank" rel="noreferrer">
+      <div class="card-top"><span class="card-kicker">CLIP · SLICE</span><span class="card-duration">约 12 秒</span></div>
+      <h2>切片逻辑</h2>
+      <p>刀片按标题边界扫过，代码块整段保护，chunk 带序号与偏移。</p>
+      <div class="card-foot"><div class="card-tags"><span>chunk_index</span><span>offset</span></div><span class="open">播放 →</span></div>
+    </a>
+
+    <a class="card" data-anim href="ingest-film.html?clip=vectors&theme=light&embed=1" target="_blank" rel="noreferrer">
+      <div class="card-top"><span class="card-kicker">CLIP · EMBED</span><span class="card-duration">约 9 秒</span></div>
+      <h2>向量化</h2>
+      <p>16 个 chunk 一次 embedMany，返回 16 条 1024 维向量，条数必须对齐。</p>
+      <div class="card-foot"><div class="card-tags"><span>embedMany</span><span>1024 dims</span></div><span class="open">播放 →</span></div>
+    </a>
+
+    <a class="card" data-anim href="ingest-film.html?clip=commit&theme=light&embed=1" target="_blank" rel="noreferrer">
+      <div class="card-top"><span class="card-kicker">CLIP · WRITE</span><span class="card-duration">约 9 秒</span></div>
+      <h2>事务写入</h2>
+      <p>chunk、向量、ready 在同一事务里提交；任一步失败整笔回滚。</p>
+      <div class="card-foot"><div class="card-tags"><span>BEGIN</span><span>COMMIT</span></div><span class="open">播放 →</span></div>
+    </a>
+
+    <div class="card">
+      <div class="card-top"><span class="card-kicker">CLIP · FAIL</span><span class="card-duration">约 8 秒</span></div>
+      <h2>失败清理</h2>
+      <p>embed 失败时删除已写 chunk、级联清向量；同一行标 failed。按失败阶段切换。</p>
+      <div class="variants">
+        <a data-anim href="ingest-film.html?clip=failure&stage=fetch&reason=fetch_error&theme=light&embed=1" target="_blank" rel="noreferrer">fetch</a>
+        <a data-anim href="ingest-film.html?clip=failure&stage=parse&reason=%E5%86%85%E5%AE%B9%E4%B8%BA%E7%A9%BA&theme=light&embed=1" target="_blank" rel="noreferrer">parse</a>
+        <a data-anim href="ingest-film.html?clip=failure&stage=cancel&reason=cancelled&theme=light&embed=1" target="_blank" rel="noreferrer">cancel</a>
+      </div>
+      <div class="card-foot"><div class="card-tags"><span>fail()</span><span>no orphans</span></div><a class="open" data-anim href="ingest-film.html?clip=failure&stage=embed&reason=embedding_error&theme=light&embed=1" target="_blank" rel="noreferrer">播放 →</a></div>
+    </div>
+
+    <a class="card" data-anim href="ingest-film.html?clip=reject&theme=light&embed=1" target="_blank" rel="noreferrer">
+      <div class="card-top"><span class="card-kicker">CLIP · DEDUP</span><span class="card-duration">约 6 秒</span></div>
+      <h2>幂等拒绝</h2>
+      <p>同 URL 已有 ready/processing，直接 409；不建新行，原资源不受影响。</p>
+      <div class="card-foot"><div class="card-tags"><span>409</span><span>E_DUPLICATE</span></div><span class="open">播放 →</span></div>
+    </a>
+    <section class="story-films">
+      <div class="story-head">
+        <div>
+          <span class="card-kicker">ALL STORIES</span>
+          <h2>其余 13 个 story</h2>
+          <p>每条动画从该 story 自己的架构 / 流程 / 时序图生成；手动按动作走，自动连续播。</p>
+        </div>
+      </div>
+      <div class="grid" id="story-grid"></div>
+    </section>
+  </main>
+
+  <p class="note">Story 1.2 是专属连续片：16 块、1024 维、8,421 字符来自历史记录，不随当前语料实时变化；失败链、幂等链目前是片段。其余 13 条由各自的架构 / 流程 / 时序图生成，手动逐步、自动连续，画面也是示意。</p>
+</div>
+<script src="stories.js?v=20261026s"></script>
+<script>
+(function () {
+  var Grid = document.getElementById('story-grid')
+  if (!Grid || !window.STORY_FILMS) return
+  var TypeLabel = { architecture: '架构图', workflow: '流程图', sequence: '时序图' }
+  Object.keys(window.STORY_FILMS).forEach(function (Id) {
+    var Story = window.STORY_FILMS[Id]
+    var Card = document.createElement('a')
+    Card.className = 'card small'
+    Card.target = '_blank'
+    Card.rel = 'noreferrer'
+    Card.setAttribute('data-anim', '')
+    Card.href = 'story-film.html?story=' + Id + '&theme=light'
+    Card.innerHTML = '<div class="card-top"><span class="card-kicker">STORY ' + Id + ' · ' + (TypeLabel[Story.type] || Story.type) + '</span><span class="card-duration">' + Story.cues.length + ' 步</span></div><h2>' + Story.title + '</h2><p>' + (Story.description || Story.subtitle || '按故事链路生成的分步动画。') + '</p><div class="card-foot"><div class="card-tags"><span>' + (TypeLabel[Story.type] || Story.type) + '</span><span>手动 / 自动</span></div><span class="open">打开 →</span></div>'
+    Grid.appendChild(Card)
+  })
+})();
+</script>
+<script>
+(function () {
+  var Root = document.documentElement
+  var Theme = document.getElementById('theme')
+  var Key = 'kc-animation-theme'
+  function apply(Value) {
+    Root.setAttribute('data-theme', Value)
+    Theme.textContent = Value === 'dark' ? '浅色' : '深色'
+    try { localStorage.setItem(Key, Value) } catch (Error) {}
+    document.querySelectorAll('a[data-anim]').forEach(function (Link) {
+      var Url = new URL(Link.getAttribute('href'), location.href)
+      Url.searchParams.set('theme', Value)
+      Link.setAttribute('href', Url.pathname.split('/').pop() + Url.search)
+    })
+  }
+  Theme.addEventListener('click', function () {
+    apply(Root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+  })
+  apply(localStorage.getItem(Key) === 'dark' ? 'dark' : 'light')
+})();
+</script>
+</body>
+</html>

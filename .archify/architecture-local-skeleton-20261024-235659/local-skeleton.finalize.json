@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-24T15:57:13.816Z",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/candidate.json",
+    "sha256": "c43a3905d9eab809239961250f7d3d39f7669008a963148dcabe6b79126a3f32",
+    "bytes": 2471
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+    "sha256": "855a51fbabda2343c20ce7408ee73636db032eebf13b99955522aa2dd080b0da",
+    "bytes": 819828
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/Users/lynx/.nvm/versions/node/v26.10.0/bin/node",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/candidate.json",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "c43a3905d9eab809239961250f7d3d39f7669008a963148dcabe6b79126a3f32",
+          "bytes": 2471
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 274,
+      "command": [
+        "/Users/lynx/.nvm/versions/node/v26.10.0/bin/node",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/candidate.json",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "0ba27239-075c-49a2-a412-793c67f63834",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/candidate.json",
+        "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "specification": {
+          "sha256": "c43a3905d9eab809239961250f7d3d39f7669008a963148dcabe6b79126a3f32",
+          "bytes": 2471
+        },
+        "artifact": {
+          "sha256": "855a51fbabda2343c20ce7408ee73636db032eebf13b99955522aa2dd080b0da",
+          "bytes": 819828
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 116,
+      "command": [
+        "/Users/lynx/.nvm/versions/node/v26.10.0/bin/node",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "artifact": {
+          "sha256": "855a51fbabda2343c20ce7408ee73636db032eebf13b99955522aa2dd080b0da",
+          "bytes": 819828
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 21,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.75,
+            "maxBends": 1,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 14,
+            "minInteriorSegmentPx": null,
+            "shortSegmentCount": 1,
+            "shortEndpointSegmentCount": 1,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 70,
+            "emptyTopRatio": 0.101,
+            "occupiedTop": 70,
+            "viewBoxTop": 0,
+            "canvasHeight": 692,
+            "typicalNodeHeight": 64,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "browser-web",
+              "from": "browser",
+              "to": "web"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.75,
+            "semanticTextCount": 21
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "0ba27239-075c-49a2-a412-793c67f63834"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 18,
+      "command": [
+        "/Users/lynx/.nvm/versions/node/v26.10.0/bin/node",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "0ba27239-075c-49a2-a412-793c67f63834",
+        "artifact": {
+          "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html",
+          "sha256": "855a51fbabda2343c20ce7408ee73636db032eebf13b99955522aa2dd080b0da",
+          "bytes": 819828
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "local-skeleton.browser-check.json",
+          "files": []
+        },
+        "error": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-local-skeleton-20261024-235659/local-skeleton.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-24T15:57:14.344Z",
+  "durationMs": 527,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

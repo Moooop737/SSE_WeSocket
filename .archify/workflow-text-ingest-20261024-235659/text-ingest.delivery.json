@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4a1840c2-5f45-4918-aae7-bca143df3f01",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-text-ingest-20261024-235659/text-ingest.html",
+  "specification": {
+    "sha256": "9b0b995ed37e23c15b5f0852e79036eea8b840942f4bce183e9c55b9e7a9d55a",
+    "bytes": 4485
+  },
+  "artifact": {
+    "sha256": "1e598e5712a730184cc01f0965185412740e7e83c5e9e624d2b4302138e8cb62",
+    "bytes": 823796
+  }
+}

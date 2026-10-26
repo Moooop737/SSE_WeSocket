@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f64982a0-6e3f-496b-811c-d624ec0c5da0",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-hybrid-retrieval-20261024-235659/hybrid-retrieval.html",
+  "specification": {
+    "sha256": "1a2d8a72b82abfdcd8aa48e1db55d62737ca67163468efaa2bf2607854c693e9",
+    "bytes": 4031
+  },
+  "artifact": {
+    "sha256": "b6a41975e76f7d5bab8caa3c896374c2c8f9cbbcf10654e55e51c5a76b453af1",
+    "bytes": 821664
+  }
+}

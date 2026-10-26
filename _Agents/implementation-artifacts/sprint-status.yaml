@@ -29,54 +29,122 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-09-2026 14:30
-last_updated: 10-13-2026 15:36
+last_updated: 10-25-2026 20:40
+# Sprint focus (2026-10-24)：P1 已结束（Epic 1–3 全 done；Epic 3 review findings 见 review-2026-10-24-epic3.md）；P2 已拆 9 格（Epic 4/5），全部 backlog，待 OQ 拍板后开工。
+# 2026-10-25 前端工程项（非 Epic 4/5）：PWA 主屏入口 A 案已落 —— manifest + iOS meta + 不缓存的空 SW；只做 standalone，不含 display:fullscreen / viewport-fit / safe-area。交付与验证见 app/web/Agent/summary/summary-2026-10-25-pwa-standalone.md。
 project: Knowledge Copilot
 project_key: NOKEY
 tracking_system: file-system
 story_location: _Agents/implementation-artifacts
 development_status:
-  epic-1: in-progress
+  epic-1: done
   1-1-本地骨架-基础设施-安全边界: done
-  # 1-2 done @2026-10-13: build3 code review 后由 Lynx 判定收口。已知非阻塞后续项（详见 review-2026-10-13-epic1-story2-build3-findings.md）= 非 HTML 类型前置拒绝、warning 的前端展示、HTTP 边界与 embeddings 的断言守护；app/server 工作区仍未提交。
+  # 1-2 done @2026-10-13: build3 code review 后由 Lynx 判定收口。已知非阻塞后续项（详见 _Agents/legacy/reviews/review-2026-10-13-epic1-story2-build3-findings.md）= 非 HTML 类型前置拒绝、warning 的前端展示、HTTP 边界与 embeddings 的断言守护。
   1-2-添加网页-url-入库: done
   # 1-3 done @2026-10-13: 无需新实现 —— 主干由 build3 的 content 分支交付（passthrough + text-parser + 复用 chunk/embed/写），空内容拒绝由 resources.ts 的 E_EMPTY_CONTENT 落地。同日拍板：不做不可读/编码启发式（类型判定归前端后缀名 + 粘贴自选 md/plaintext），粘贴不去重（data_uri 保持 uuid urn，语义属 FR-11）。
   1-3-导入-markdown-纯文本: done
-  # 1-4 done @2026-10-13: 后端三条 AC 全部落码并实测（真库+Ollama+真 URL）。build1 = softDeleteResource（resources 留痕 + chunks 物理删 + embeddings 经 FK CASCADE 带走，实测全库孤儿向量 0）+ DELETE /resources/:id。build2 = 取消信号改服务端持有（src/pipeline/inflight.ts 进程级 Map）、POST /resources/:id/abort（取消但不删，202）、DELETE 遇 processing 先 abort 再软删、writeChunksWithEmbeddings 加 `AND deleted_at IS NULL` 写守卫、客户端断连不再取消入库。build3 = 三 lens review（review-2026-10-13-epic1-story4-build2-findings.md）：C1 取消落在写入期会提交成 ready —— 已修并复现；C2 死锁断言经 200 轮实测否证；一致性账（E_CANCELLED/E_TIMEOUT/E_RESOURCE_GONE 专属码、chunks 端点 400/404 口径、软删行不再被改写、一行结构化日志）已清。前端两个按钮 + 列表轮询按 Lynx 定案整体挂起 → frontend-deferred.md（Epic 2 动界面时一起接），故本 story 的验收口径 = 后端能力 + API，界面项不计入。
+  # 1-4 done @2026-10-13: 后端三条 AC 全部落码并实测（真库+Ollama+真 URL）。build1 = softDeleteResource（resources 留痕 + chunks 物理删 + embeddings 经 FK CASCADE 带走，实测全库孤儿向量 0）+ DELETE /resources/:id。build2 = 取消信号改服务端持有（src/pipeline/inflight.ts 进程级 Map）、POST /resources/:id/abort（取消但不删，202）、DELETE 遇 processing 先 abort 再软删、writeChunksWithEmbeddings 加 `AND deleted_at IS NULL` 写守卫、客户端断连不再取消入库。build3 = 三 lens review（_Agents/legacy/reviews/review-2026-10-13-epic1-story4-build2-findings.md）：C1 取消落在写入期会提交成 ready —— 已修并复现；C2 死锁断言经 200 轮实测否证；一致性账（E_CANCELLED/E_TIMEOUT/E_RESOURCE_GONE 专属码、chunks 端点 400/404 口径、软删行不再被改写、一行结构化日志）已清。前端两个按钮 + 列表轮询按 Lynx 定案整体挂起 → frontend-deferred.md（Epic 2 动界面时一起接），故本 story 的验收口径 = 后端能力 + API，界面项不计入。
   1-4-知识库查看与删除: done
   epic-1-retrospective: done
 
-  epic-2: backlog
-  2-1-混合检索问答-基础: backlog
-  2-2-流式输出与-loading: backlog
-  2-3-引用标记与映射: backlog
-  2-4-原文回链-source-ref: backlog
-  2-5-会话内多轮: backlog
+  epic-2: done
+  # 2-1 done @2026-10-14: 四层 code review（blind/edge/verification/acceptance）跑完，6 条 decision 全拍、9 条 patch 全修、3 条 defer 记账，Lynx 判「收口吧」。
+  # 交付=检索这一半：向量 topK + BM25(paradedb.match_disjunction, score>0) + RRF 名次融合；Retriever 工厂化组装（注册表签名吃 Deps{pool,config}，与 pipeline 同构但形状不同）；
+  # 维度校验分两处（装配期恒等自检只抓注册表错误 / search 期按启动体检三态 vectorDimensions 判，体检未跑成 ⇒ 409 E_DIMENSION_UNKNOWN，绝不退回 BM25-only）；2026-10-20 DI 改造后已退役：维度每请求现查，库不可达冒 500；
+  # 空提问 400、空库与全无 ready 与 0 命中一律 200 答案体（useChat 会把非 2xx 走成错误通道）；`/retrieve` 已被前端 /ask 当真接口用。
+  # 验收口径变更两条由 Lynx 定：①「未找到」的判据交给模型、阈值只兜字符噪声（实测分数区分不了库里有没有主题）②AC 的「知识库为空」含「全部已删除」，不另设第三种话术。
+  # 生成侧已由 2.6 接上；sessions/messages 落库按 Lynx 2026-10-15 D1 推到 2.5（表形状换成 SDK UIMessage parts 的迁移也在那一刀）。
+  # 层名 orchestration 已废除（SPINE 改用 agent/ + retrieve/）；`ai@7` 与 `@ai-sdk/openai-compatible@3` 已装且实测可加载，src 内零使用。
+  2-1-混合检索问答-基础: done
+  2-2-流式输出与-loading: done
+  # 2026-10-20 对账：流式主体/前端接线已提交（7895c31）；超时三旋钮按 Lynx 2026-10-15 定案推后，AC 的 firstChunk/chunk/total 条款记 deferred-work。
+  # 2026-10-21 收口：Epic 2 review 后按 Lynx 判定标 done，超时仍为已接受的 deferred。
+  2-3-引用标记与映射: done
+  # 2026-10-20 对账：前端已接 tool-retrieve output（[n] 顺序映射、越界纯文本、面板/抽屉同源）；原 sources data part 方案由 2.6 取代。
+  # 2026-10-21 收口：来源删除改为「快照仍可看 + 抽屉标注来源已删除」（Lynx 拍，GET /resources/:id 已加）。
+  2-4-原文回链-source-ref: done
+  # 2026-10-20 对账：点引用/命中开抽屉、显示 content + 块号/偏移 + source 已落。
+  # 2026-10-21 收口：chunkId 不存在不再要求 410，按快照可看 + 标注处理。
+  2-5-会话内多轮: done
+  # 2026-10-20 Build 1：sessions/messages 已迁移（session_id/message_id/sequence/parts；删 user_id/sources；role=user/assistant；索引 (session_id, sequence)）；Repo 四方法+listSessions+updateSessionTitle+类型+session-repo 测试已落；/sessions 的 POST/GET/PATCH 已落。2026-10-21 P1 正式扩为多会话历史列表，标题可改。
+  # 2026-10-21 收口：/chat 收 {query, sessionId}，服务端按会话读库历史（只回灌 text parts、最近 6 轮）交给 streamText；user/assistant 消息落库（parts 真源）；前端切会话从 GET /sessions/:id/messages 恢复历史。真跑两轮：第二问「那 ef_construction 呢」由模型自己展开成完整检索词（不另设查询改写，Lynx 拍）。
+  # 2-6 立格 @2026-10-16（Lynx 拍）：把 PRD §7 的 P3「检索/联网升级为工具」提前一格；AGENTS.md §五 已写成「一处有期限的例外」，理由见 epics.md Story 2.6 的范围变更注。
+  # 实证前提：routes/chat/chat.ts:37-39 装配了 retriever 却没用，agent/chat/chat.ts:15 只把原始提问喂给 streamText ⇒ /chat 今天的回答不依据库。
+  # 同属 P3 的 Agent loop（多步循环）与 src/agent/{skill,persona,mcp}、src/trace 那些空盒不进这一格 → deferred-work.md。
+  2-6-检索工具化-模型自调: done
+  # 附带一刀 · 装配面换 DI @2026-10-20（不是 story，Lynx 主导，status=review）：`src/bootstrap.ts`(149 行 / `interface Deps` 9 格) 整删，改 8 个 `@singleton()` 类自我注册 + 三条路由 `@injectable()` 类的零参 `build()`；tsyringe，类本身当 token，全项目零 `registerInstance`、零 token 表。env fail-fast 内移进 `AppConfig`（构造里抛自定义错会被 tsyringe 重包、`exit(1)` 失效），`assertChatModel` 与 `agent/chat/chat.ts` 的 `!` 随之删；`RetrieverConfig` 删除（`RetrieverDeps.config` 就是整份 `AppConfig`）；库中向量维度改每请求现查（实测 56.29ms/请求）⇒ `E_DIMENSION_UNKNOWN` 整条退役、库不可达时 `/retrieve` 改冒 500。三笔提交在内层 git（`589c404`/`e35c7c3`/`d5dee62`）。详见 handoff-2026-10-20-epic2-di-build1-tsyringe-assembly.md。
+  # 2026-10-20 对账：工具已接真检索，instructions/tool-retrieve/onError/E_ASSEMBLY 已落；本轮 review 修复空提问 400、instructions、工具名、错误日志、启动 catch；active tests 25/25；docs 已对账；待 Lynx 收口/提交（当前 src 2 条仅 resource.ts WIP）。
+  # 2026-10-21 收口：stopWhen 上限按 Lynx 拍保留 5（最多 4 次有界重查，文档已同步 epics/spec/deferred/AGENTS）；resource.ts 改为可编译空函数，server tsc 0 错、vitest 25/25。
   epic-2-retrospective: optional
+
+  epic-3: done
+  # 2026-10-21 立格（Lynx 拍）：观测工程支线，不新增产品 FR；endpoint 优先。
+  # 顺序：3.1 通用 endpoint 壳（Sentinel 式）→ 3.2 chat 专属 → 3.3 retrieve 专属 → 3.4 ingest 专属。
+  # 2026-10-21 DB 形状已落：app/server/db/migrations/20261021150000_create_observation_tables.sql（traces + trace_stages）；Lynx 已执行 dbmate up。
+  # 2026-10-22 结构变更：Drizzle + hono-crud 接管四表 CRUD（trace_stages 的 HTTP CRUD 已删，表和 schema 保留）；traces 增加 payloads jsonb。
+  # 3-1 done @2026-10-22：全局 endpoint 壳、X-Trace-Id、/traces 读接口、pino 日志（ALS 自动带 trace_id）、payloads 规则（失败 request/response；成功白名单只记 request；3KB；header 白名单；chat/retrieve 不记；列表不返回 payloads）。tsc 0、vitest 26/26、真跑验收。
+  3-1-通用端点轨迹: done
+  # 2026-10-24 收口：四镜头 code review 完成（blind/edge/verification/acceptance）；findings 见 review-2026-10-24-epic3.md；按 Lynx「仅 review」不修代码，按已知问题收口。
+  # 3-2 实现+验收完成 @2026-10-22，2026-10-24 review 收口：Langfuse 三件套装配（缺失只打 I_TRACE_EXPORT_DISABLED）、telemetry functionId='chat'、自定义 SpanProcessor 经 ALS 关联 session/trace_id（根 span onStart 写 session.id/traceName/tags/metadata）、onEnd 覆盖整条流耗时/状态（ok/error/cancelled）、session_id 早写、bridge 隔离 OTel（测试 import 不加载）。
+  # 真跑：完整流 2.8s/3.7s/5.8s 落 langfuse_trace_id；中断流覆盖 cancelled；禁用 Langfuse 时 chat 正常且外链 null；Langfuse v2 observations 看到 invoke_agent(root, sessionId 已填)→step→generation→retrieve tool 树。
+  3-2-chat-端点轨迹: done
+  # 3-3 实现+验收完成 @2026-10-23，2026-10-24 review 收口：Retriever.search 5 段 runner；/retrieve 走 DB sink（trace_stages、embed telemetry off），chat tool 走 Langfuse sink（retrieve TOOL 下 5 个 child spans、telemetry on）；/traces/:id 自定义读 {trace, stages}；前端 /traces 抽屉显示阶段。
+  # 关键坑：只注册 TracerProvider 不够，必须 AsyncLocalStorageContextManager，否则 stage span 变成独立根 trace；已加 @opentelemetry/context-async-hooks。
+  # 真跑：/retrieve 5 行 stage；chat 本地 0 行、Langfuse 13 个节点（含 5 stage + embed 子 span）；tsc 0；后端 31/31、前端 423/423。
+  3-3-retrieve-端点轨迹: done
+  # 3-4 实现+验收完成 @2026-10-23，2026-10-24 review 收口：Ingest.run 接 sink；/resources 走 DB sink（fetch/parse/chunk/embed/write 五段）；embedChunks telemetry:false；创建 Resource 后回填 traces.resource_id。
+  # 真跑：内容入库 5 段、URL 入库 fetch 带 final_url/http_status/content_type、fetch 失败只写 1 行 error stage（后续不写）；Langfuse embedding 根 trace 0；后端 31/31、前端 423/423。
+  3-4-ingest-端点轨迹: done
+  # 2026-10-24 Lynx 决定跳过 Epic 3 retro；要补时另开，不阻塞收口。
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  # 2026-10-24 追加：P2 主线（方向级，详见 epics.md Epic 4）。未开工；先等 Epic 3 收口。
+  # 两轨：画像 4.1 → 4.2 → 4.3；渲染 4.4 → 4.5（互不依赖）。每格开工前补 AC + 收口 OQ-4.x-n。
+  4-1-资源画像-数据形状-归一化: backlog
+  4-2-资源画像-生成端点: backlog
+  4-3-资源画像-展示: backlog
+  4-4-聊天-markdown-渲染: backlog
+  4-5-表格渲染-csv下载: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  # 2026-10-24 追加：P2 工程支线（MinIO 文件管理）；代码分析/代码 RAG 不在本 Epic。
+  # 两轨：资源文件 5.1 → 5.2 → 5.3；代码库 ZIP 5.1 → 5.4。开工前先拍 OQ-5.1-1（ObjectStore 归属 AD-2 第六类 vs 能力片）。
+  5-1-minio-适配器-配置: backlog
+  5-2-资源原始归档-下载: backlog
+  5-3-markdown-纯文本-上传: backlog
+  5-4-代码库-zip-上传: backlog
+  epic-5-retrospective: optional
+
 action_items:
   - id: "epic-1-retro-1-health-gate"
     epic: 1
-    action: "定去留：degraded 是否拦入库 —— 实现 readiness 门，或改 epics.md:105-106 那句 AC"
+    action: "定去留：degraded 是否拦入库 —— 实现 readiness 门，或改 epics.md › Story 1.1 › Acceptance Criteria 的“健康检查返回 degraded/error 状态”那句"
     owner: "Lynx"
     status: open
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-2-cleanup-port"
     epic: 1
-    action: "启动清扫收进 Repository 端口（填 findResourcesByStatus），并用一次真崩溃端到端验证"
+    action: "启动清扫收进 Repository 端口，并用一次真崩溃端到端验证"
     owner: "agent（待放行）"
     status: open
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-3-spine-ad1"
     epic: 1
-    action: "补 ARCHITECTURE-SPINE AD-1 的入库路径箭头 + StageRegistry 唯一 new 位，撤掉 deferred-work
-      第 8 行"
+    action: "补 ARCHITECTURE-SPINE AD-1 的入库路径箭头 + StageRegistry 唯一 new 位"
     owner: "Lynx"
-    status: open
+    status: done
+    resolution: "v1 SPINE 已归档；2026-10-15 版 SPINE 的 AD-1/AD-6 已覆盖该意图，不再回补 v1 箭头。"
+    resolved: "2026-10-24"
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-4-ux-scope"
     epic: 1
-    action: "界面口径对账：更新 epics.md:57 承认已落地的设计系统，或反向收敛"
+    action: "界面口径对账：更新 epics.md 承认已落地的设计系统，或反向收敛"
     owner: "Lynx"
-    status: open
+    status: done
+    resolution: "epics.md 的 UX Design Requirements 已改为承认 Geist 设计系统；不再写“不设视觉/token 体系”。"
+    resolved: "2026-10-24"
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-5-tanstack-cached"
     epic: 1
@@ -101,7 +169,9 @@ action_items:
     epic: 1
     action: "Story 2.2 动界面时一并接上 frontend-deferred.md 四条（两个函数 + 两个按钮 + 列表轮询）"
     owner: "Lynx"
-    status: open
+    status: done
+    resolution: "2026-10-14 界面轮已逐条闭合（deleteResource / abortIngest / 两处取消按钮 / use-resources 轮询）；frontend-deferred.md 有记录。"
+    resolved: "2026-10-24"
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-9-nonhtml"
     epic: 1
@@ -113,7 +183,9 @@ action_items:
     epic: 1
     action: "Epic 2 开工前设显式约束：不再重构入库地基（证据：story1.2 一次整条 rewrite、story1.4 一天内换取消触发源）"
     owner: "Lynx"
-    status: open
+    status: done
+    resolution: "约束已随 Epic 2 执行并在 Epic 2 收口后失效；Epic 3/4 不再引用这条冻结。"
+    resolved: "2026-10-24"
     ref: "_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md"
   - id: "epic-1-retro-11-story-artifacts"
     epic: 1

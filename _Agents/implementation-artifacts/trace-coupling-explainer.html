@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trace 耦合关系 — 编译期与运行期</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --paper: #ffffff;
+    --ink: #0a0a0a;
+    --muted: #666;
+    --faint: #999;
+    --line: #eaeaea;
+    --line-strong: #d4d4d4;
+    --code-bg: #f5f5f5;
+    --accent: #0a0a0a;
+    --warn-bg: #fff8e6;
+    --warn-line: #f0d9a8;
+    --radius: 10px;
+    --mono: "Geist Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.hero { padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 14px;
+  }
+  h1 { font-size: 34px; letter-spacing: -0.02em; margin: 0 0 12px; font-weight: 600; }
+  .lede { margin: 0; max-width: 780px; color: var(--muted); font-size: 16px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .legend {
+    margin-top: 26px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .legend-item {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .legend-item .k {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+  .legend-item .v { color: var(--muted); font-size: 13px; }
+
+  section { margin-top: 56px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .section-no {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--faint);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 2px 9px;
+  }
+  h2 { font-size: 24px; letter-spacing: -0.01em; margin: 0; font-weight: 600; }
+  .section-note { color: var(--muted); margin: 6px 0 22px; max-width: 860px; }
+
+  .diagram {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 18px;
+    overflow-x: auto;
+    margin-bottom: 26px;
+  }
+  .diagram .mermaid { display: flex; justify-content: center; }
+  .diagram figcaption {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    color: var(--faint);
+    font-size: 12.5px;
+    text-align: center;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .card.full { grid-column: 1 / -1; }
+  .card h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .card h3 code { font-size: 13px; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-weight: 400;
+  }
+  .card p { margin: 6px 0; color: #333; }
+  .card ul { margin: 8px 0 0; padding-left: 18px; color: #333; }
+  .card li { margin: 4px 0; }
+  .card .muted { color: var(--muted); }
+  code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+    word-break: break-word;
+  }
+  .ref { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; background: #fcfcfc; }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 12px; }
+  .yes { color: #166534; font-weight: 600; }
+  .no { color: #991b1b; font-weight: 600; }
+  .partial { color: #92400e; font-weight: 600; }
+
+  .callout {
+    margin-top: 18px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .callout p { margin: 0; color: #4a3a12; }
+
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+  a { color: inherit; }
+
+  @media (max-width: 860px) {
+    .legend, .grid { grid-template-columns: 1fr; }
+    .wrap { padding: 32px 16px 64px; }
+    h1 { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Knowledge Copilot · trace / coupling</div>
+  <h1>Trace 耦合关系：编译期与运行期</h1>
+  <p class="lede">
+    结论：<strong>业务模块只 import bridge，不 import OTel；运行期靠 5 个进程级全局状态 + 2 个 Map + 两套 ALS 关联到一起。</strong>
+    下面两张图分别说明「谁依赖谁」和「请求期间数据怎么流动」，每个块后面有逐条解释。
+  </p>
+
+  <div class="legend">
+    <div class="legend-item">
+      <span class="k">local_trace_id · UUID</span>
+      <span class="v">端点壳生成，写 <code>traces.id</code>、pino 日志、<code>X-Trace-Id</code>。覆盖所有请求，包括非 LLM 路由。</span>
+    </div>
+    <div class="legend-item">
+      <span class="k">OTel / Langfuse trace_id</span>
+      <span class="v">span 创建后才存在，最后由 <code>takeChatTraceId</code> 回填到 <code>traces.langfuse_trace_id</code>。只有 LLM 调用才有。</span>
+    </div>
+    <div class="legend-item">
+      <span class="k">sessionId</span>
+      <span class="v">业务会话 id，映射到 Langfuse 的 <code>session.id</code>，用于把多轮对话归到同一个 session 下。</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="section-head">
+    <span class="section-no">01</span>
+    <h2>编译期依赖：业务只认 bridge，不认 OTel</h2>
+  </div>
+  <p class="section-note">实线是 <code>import</code>，虚线是运行期调用。关键点：业务模块的 import 链里没有 <code>langfuse.ts</code>，更没有 <code>@opentelemetry/*</code>。</p>
+
+  <figure class="diagram">
+    <pre class="mermaid">
+flowchart LR
+  subgraph BIZ["业务模块（无 OTel import）"]
+    RT["routes/chat.ts"]
+    CS["agent/chat/chat.ts"]
+    TL["agent/tool/tools/retrieve.ts"]
+    TST["test/chat-tool-flow.test.ts"]
+  end
+
+  BR["trace/llmtrace/bridge.ts<br/>LlmtraceBridge 接口<br/>+ 模块级 let bridge"]
+  LF["trace/llmtrace/langfuse.ts<br/>setupLangfuse / ChatSpanProcessor"]
+  OTEL["@opentelemetry/api<br/>@opentelemetry/sdk-trace<br/>@opentelemetry/context-async-hooks"]
+  LFG["@langfuse/otel<br/>@langfuse/vercel-ai-sdk<br/>@langfuse/tracing"]
+  IDX["src/index.ts<br/>启动装配"]
+  LOG["trace/systemtrace/log.ts<br/>pino + ALS"]
+
+  TST --> RT
+  RT --> CS
+  CS --> BR
+  TL --> BR
+  IDX --> LF
+  LF --> OTEL
+  LF --> LFG
+  LF -.->|"setLlmtraceBridge 注入实现"| BR
+  CS -.->|"运行期 getLlmtraceBridge"| BR
+  TL -.->|"运行期 getLlmtraceBridge"| BR
+  LF -.->|"ChatSpanProcessor 读 currentTraceId"| LOG
+    </pre>
+    <figcaption>图 1 · 编译期依赖图。OTel 只出现在 langfuse.ts 与 index.ts 一侧。</figcaption>
+  </figure>
+
+  <div class="grid">
+
+    <div class="card">
+      <h3><code>routes/chat.ts</code> <span class="tag">route</span></h3>
+      <p>薄路由：校验 body、确认会话存在，把提问交给 <code>ChatService.ask</code>。</p>
+      <p class="muted">它不碰任何 trace 包，只有出错时 <code>logError</code>。路由层完全不知道 OTel 的存在。</p>
+      <p class="ref">src/routes/chat.ts:37-59</p>
+    </div>
+
+    <div class="card">
+      <h3><code>agent/chat/chat.ts</code> <span class="tag">业务编排</span></h3>
+      <p>唯一同时接触「本地 trace」和「LLM 调用」的业务文件：</p>
+      <ul>
+        <li><code>currentTraceId()</code> 拿本地 UUID；</li>
+        <li><code>Bridge?.beginChat({ sessionId, localTraceId })</code> 把 sessionId 交给桥；</li>
+        <li><code>streamText({ telemetry: { functionId: CHAT_FUNCTION_ID } })</code> 打标；</li>
+        <li><code>toUIMessageStream.onEnd</code> 里用 <code>withTrace</code> 回到 pino ALS，<code>takeChatTraceId</code> 取 OTel id，落 <code>finishTrace</code>、存消息。</li>
+      </ul>
+      <p class="ref">src/agent/chat/chat.ts:40-138</p>
+    </div>
+
+    <div class="card">
+      <h3><code>agent/tool/tools/retrieve.ts</code> <span class="tag">tool</span></h3>
+      <p>工具执行层。需要 per-request 的 stage sink，把检索各阶段记成 Langfuse span。</p>
+      <p class="muted">拿法是 <code>getLlmtraceBridge()?.createStageSink()</code>。同样只认 bridge、不认 OTel。</p>
+      <p class="ref">src/agent/tool/tools/retrieve.ts:28-39</p>
+    </div>
+
+    <div class="card">
+      <h3><code>test/chat-tool-flow.test.ts</code> <span class="tag">test</span></h3>
+      <p>import <code>ChatRoute</code> → <code>ChatService</code> → <code>bridge.ts</code>。整条链没有 <code>langfuse.ts</code>。</p>
+      <p class="muted">所以测试进程不会 evaluate <code>@opentelemetry/*</code>、<code>@langfuse/*</code>，也不会碰全局 TracerProvider。收益不是省几个字节，而是测试进程里没有那套全局状态。</p>
+      <p class="ref">test/chat-tool-flow.test.ts:10-15</p>
+    </div>
+
+    <div class="card">
+      <h3><code>trace/llmtrace/bridge.ts</code> <span class="tag">端口</span></h3>
+      <p>六七十行，干三件事：定义 <code>LlmtraceBridge</code> 接口、持有模块级 <code>let bridge: LlmtraceBridge | null</code>、提供 <code>get/set</code>。</p>
+      <p>三个方法对应三个点：<code>beginChat</code>（入口关联）、<code>takeChatTraceId</code>（出口回填）、<code>createStageSink</code>（工具侧追踪）。</p>
+      <p class="muted"><code>CHAT_FUNCTION_ID = 'chat'</code> 也放这里——它是 chat 和 SpanProcessor 共同遵守的契约键。</p>
+      <p class="ref">src/trace/llmtrace/bridge.ts:9-32</p>
+    </div>
+
+    <div class="card">
+      <h3><code>trace/llmtrace/langfuse.ts</code> <span class="tag">适配器</span></h3>
+      <p>唯一 import OTel/Langfuse 的文件：</p>
+      <ul>
+        <li><code>setupLangfuse()</code> 幂等，检查三个 env，缺了只打一行禁用日志；</li>
+        <li>装全局 ContextManager、全局 TracerProvider（两个 processor）；</li>
+        <li><code>registerTelemetry</code> 注册 AI SDK integration；</li>
+        <li>把 <code>beginChat / takeChatTraceId / createStageSink</code> 塞进 bridge；</li>
+        <li>内含 <code>ChatSpanProcessor</code>，负责关联。</li>
+      </ul>
+      <p class="muted">它不被业务 import，只被 <code>src/index.ts</code> 调。</p>
+      <p class="ref">src/trace/llmtrace/langfuse.ts:37-111</p>
+    </div>
+
+    <div class="card">
+      <h3>OTel / Langfuse 包 <span class="tag">第三方</span></h3>
+      <ul>
+        <li><code>@opentelemetry/api</code>：全局门面（context / trace）；</li>
+        <li><code>@opentelemetry/sdk-trace</code>：TracerProvider、SpanProcessor；</li>
+        <li><code>@opentelemetry/context-async-hooks</code>：让 OTel 上下文跨 await 存活；</li>
+        <li><code>@langfuse/otel</code>：把 span 导出到 Langfuse；</li>
+        <li><code>@langfuse/vercel-ai-sdk</code>：把 AI SDK telemetry 事件翻译成 span；</li>
+        <li><code>@langfuse/tracing</code>：<code>startObservation</code> 与属性常量（stage sink 用）。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><code>src/index.ts</code> <span class="tag">组合根</span></h3>
+      <p><code>setupLangfuse()</code> 在建 app 和 <code>serve()</code> 之前调用。</p>
+      <p class="muted">顺序很重要：请求进来前全局 provider / context / integration 必须就位，业务模块才可能 <code>getLlmtraceBridge()</code> 到实现。</p>
+      <p class="ref">src/index.ts:24-26</p>
+    </div>
+
+    <div class="card">
+      <h3><code>trace/systemtrace/log.ts</code> <span class="tag">本地日志</span></h3>
+      <p>pino + 一个独立 ALS，只存本地 UUID。</p>
+      <p class="muted"><code>endpoint.ts</code> 用 <code>runWithTrace</code> 包住整段请求；pino 的 mixin 每次写日志时取号。它跟 OTel 的 ALS 是两套，互不认识。</p>
+      <p class="ref">src/trace/systemtrace/log.ts:18-37</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <span class="section-no">02</span>
+    <h2>运行期关联：5 个全局单例 + 两套 ALS</h2>
+  </div>
+  <p class="section-note">这张图是请求真正跑起来后的数据流：谁写 Map、谁读 ALS、trace id 从哪来、又回到哪去。</p>
+
+  <figure class="diagram">
+    <pre class="mermaid">
+flowchart TB
+  subgraph GLOBAL["setupLangfuse 一次装好的全局状态"]
+    TP["global TracerProvider<br/>LangfuseSpanProcessor + ChatSpanProcessor"]
+    CM["global OTel ContextManager"]
+    REG["ai registerTelemetry<br/>LangfuseVercelAiSdkIntegration"]
+  end
+
+  subgraph CORR["关联键（模块级 Map / ALS）"]
+    PALS["pino ALS<br/>trace_id = 本地 UUID"]
+    CHATS["Chats Map<br/>本地 UUID → sessionId"]
+    TIDS["TraceIds Map<br/>本地 UUID → OTel trace id"]
+  end
+
+  SP["ChatSpanProcessor.onStart"]
+  ROOT["AI SDK 根 span<br/>gen_ai.agent.name = chat"]
+  OEND["toUIMessageStream onEnd<br/>withTrace 重新进 ALS"]
+  DB["traces 行<br/>id = 本地 UUID<br/>langfuse_trace_id"]
+  TOOL["retrieve 工具 execute"]
+  STAGE["Langfuse stage span"]
+
+  TP --> SP
+  CM -.->|"父子 span 传播"| ROOT
+  REG -->|"建根 / 步 / 模型 span"| ROOT
+  PALS -->|"currentTraceId()"| SP
+  CHATS -->|"get(localTraceId)"| SP
+  SP -->|"set session.id / traceName / tags"| ROOT
+  ROOT -->|"spanContext().traceId"| TIDS
+  TIDS -->|"takeChatTraceId → finishTrace"| DB
+  OEND --> DB
+  OEND -.-> PALS
+  TOOL -->|"createStageSink"| STAGE
+    </pre>
+    <figcaption>图 2 · 运行期关联图。两个 Map 方向相反：一个把业务信息送进 span，一个把 span 信息送回业务。</figcaption>
+  </figure>
+
+  <div class="grid">
+
+    <div class="card">
+      <h3>全局 <code>TracerProvider</code> <span class="tag">global</span></h3>
+      <p><code>trace.setGlobalTracerProvider(provider)</code> 是进程级单例。所有 OTel span——AI SDK 的根/步/模型 span、<code>startObservation</code> 的 stage span——都从这里出。</p>
+      <p>它挂了两个 processor：<code>LangfuseSpanProcessor</code> 负责导出，<code>ChatSpanProcessor</code> 负责关联。</p>
+      <p class="muted">全局意味着：谁再调一次 setup 就会把它换掉；测试里误调会让整个进程开始导 span。</p>
+    </div>
+
+    <div class="card">
+      <h3>全局 <code>ContextManager</code> <span class="tag">global</span></h3>
+      <p><code>AsyncLocalStorageContextManager</code>。没有它，OTel 的「当前 span」跨不了异步边界，stage span 挂不到父 span 下。</p>
+      <p class="muted">它和 pino ALS 不是一个东西：前者管 span 父子，后者管日志字段。</p>
+    </div>
+
+    <div class="card">
+      <h3><code>registerTelemetry</code> <span class="tag">global</span></h3>
+      <p>AI SDK 的进程级 integration 注册表。注册 <code>LangfuseVercelAiSdkIntegration</code> 后，每次 <code>generateText/streamText</code> 的生命周期事件都会发给它，由它建 span、导出。</p>
+      <p><code>chat.ts</code> 里传的 <code>functionId: 'chat'</code> 会被 <code>@ai-sdk/otel</code> 写成 <code>gen_ai.agent.name = "chat"</code>——这就是 <code>ChatSpanProcessor</code> 用来认「这是 chat 根 span」的记号。</p>
+      <p class="ref">@ai-sdk/otel/dist/index.js:768</p>
+    </div>
+
+    <div class="card">
+      <h3>pino ALS <span class="tag">关联键</span></h3>
+      <p>本地 UUID 的家。端点壳写入，日志 mixin、DB stage sink、<code>ChatSpanProcessor</code> 都从这里取。</p>
+      <p class="muted">流式回调（<code>onError/onEnd</code>）跑在请求作用域外，所以 chat 用 <code>withTrace(TraceId, ...)</code> 把回调重新包回同一个 ALS。</p>
+    </div>
+
+    <div class="card">
+      <h3><code>Chats</code> Map <span class="tag">入口方向</span></h3>
+      <p><code>本地 UUID → sessionId</code>。<code>beginChat</code> 在 <code>streamText</code> 前写，<code>ChatSpanProcessor</code> 在根 span 启动时读，<code>takeChatTraceId</code> 在流结束时删。</p>
+      <p class="muted">为什么需要：OTel span 不知道 sessionId，而 sessionId 是业务才知道的。</p>
+      <p class="muted">失败模式：流异常到 <code>onEnd</code> 都没跑，这条映射会留在内存里（量小，但不清理）。</p>
+    </div>
+
+    <div class="card">
+      <h3><code>TraceIds</code> Map <span class="tag">出口方向</span></h3>
+      <p><code>本地 UUID → OTel trace_id</code>。由 <code>ChatSpanProcessor</code> 在根 span 启动时写，<code>takeChatTraceId</code> 在 <code>onEnd</code> 读并删。</p>
+      <p class="muted">为什么需要：trace id 是 span 创建后才生成的，业务/数据库当时还不知道。</p>
+      <p><strong>两个 Map 方向相反：</strong>一个把业务信息送进 span，一个把 span 信息送回业务。</p>
+    </div>
+
+    <div class="card full">
+      <h3><code>ChatSpanProcessor.onStart</code> <span class="tag">接缝</span></h3>
+      <p>只处理根 span（无 <code>parentSpanContext</code> 且 <code>gen_ai.agent.name === 'chat'</code>）：</p>
+      <ul>
+        <li>从 pino ALS 取本地 UUID；</li>
+        <li>用 UUID 查 <code>Chats</code> 得 sessionId；</li>
+        <li>往根 span 写 trace 级属性：<code>session.id</code>、<code>traceName='chat'</code>、<code>tags=['chat']</code>、<code>metadata.route</code>、<code>metadata.local_trace_id</code>；</li>
+        <li>把根 span 的 OTel trace id 写进 <code>TraceIds</code>。</li>
+      </ul>
+      <p class="muted"><code>onEnd</code> 空着，<code>shutdown/forceFlush</code> 也空着——导出 flush 归 <code>LangfuseSpanProcessor</code>。</p>
+      <p class="ref">src/trace/llmtrace/langfuse.ts:85-111</p>
+    </div>
+
+    <div class="card">
+      <h3>根 span / AI SDK spans <span class="tag">观测</span></h3>
+      <p>由 Langfuse integration 通过 <code>@ai-sdk/otel</code> 创建：一次生成一个根 span，下面有步骤 span、模型调用 span。</p>
+      <p class="muted"><code>runtimeContext</code>（若配了白名单）只会作为 observation metadata 挂在 span 上；trace 级属性只有 <code>ChatSpanProcessor</code> 写的那几个。</p>
+    </div>
+
+    <div class="card">
+      <h3><code>onEnd</code> + <code>withTrace</code> <span class="tag">业务收口</span></h3>
+      <p>不是 span，是业务收口：流结束后补 <code>traces</code> 行的耗时/状态/错误码；<code>takeChatTraceId</code> 取 Langfuse trace id 回填；落 assistant 消息。</p>
+      <p class="muted">必须放这个回调里，因为只有它拿得到 <code>responseMessage / isAborted / isCancelled / outcome</code>。<code>withTrace</code> 只为让里面的 <code>logError</code> 带上 trace_id；<code>finishTrace</code> 本身不需要 ALS，因为 TraceId 是显式参数。</p>
+      <p class="ref">src/agent/chat/chat.ts:94-134</p>
+    </div>
+
+    <div class="card">
+      <h3>retrieve → stage sink <span class="tag">工具侧</span></h3>
+      <p>工具执行时从 bridge 取 sink，<code>Retriever.search</code> 里的 stage runner 每段调 <code>sink.record</code>。</p>
+      <p>Langfuse 版 sink 用 <code>startObservation</code> 开 span，并声明 <code>embedTelemetry: 'on'</code>（让检索里的 embedding 也进 Langfuse）；DB 版 sink 声明 <code>'off'</code>，避免重复 trace。</p>
+      <p class="muted">这个位置 <code>runtimeContext</code> 到不了，所以必须走 bridge / 闭包。</p>
+    </div>
+
+    <div class="card">
+      <h3><code>traces</code> 行 <span class="tag">持久化</span></h3>
+      <p>本地真源：<code>id</code> 是本地 UUID，<code>session_id</code> 由 <code>setTraceSession</code> 写，<code>langfuse_trace_id</code> 由 <code>onEnd</code> 回填。</p>
+      <p class="muted">两个 ID 都存，因为互相推不出来：本地 UUID 覆盖所有请求（包括非 LLM），OTel id 只有 LLM 调用才有，且生成权在 OTel 手里。</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <span class="section-no">03</span>
+    <h2>耦合到底在哪</h2>
+  </div>
+  <p class="section-note">四个层次，从编译期到运行期逐层加深。</p>
+
+  <table>
+    <thead>
+      <tr><th style="width: 140px;">层次</th><th>内容</th><th style="width: 220px;">runtimeContext 能改吗</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>编译期</strong></td>
+        <td>业务只 import <code>bridge.ts</code>，实现倒置；测试不加载 OTel / Langfuse。</td>
+        <td><span class="no">不能</span>，它不改变模块依赖</td>
+      </tr>
+      <tr>
+        <td><strong>全局状态</strong></td>
+        <td><code>TracerProvider</code>、<code>ContextManager</code>、<code>registerTelemetry</code> 注册表、bridge 模块变量、两个 Map。</td>
+        <td><span class="no">不能</span>，它进不了这些单例</td>
+      </tr>
+      <tr>
+        <td><strong>关联键</strong></td>
+        <td>本地 UUID 串 DB/日志，OTel trace id 串 Langfuse，sessionId 串业务；<code>ChatSpanProcessor</code> 是唯一同时摸到三方的地方。</td>
+        <td><span class="partial">只能补一块</span>：observation metadata</td>
+      </tr>
+      <tr>
+        <td><strong>时序与契约</strong></td>
+        <td><code>setupLangfuse</code> 必须在请求前；<code>functionId='chat'</code> 与 <code>gen_ai.agent.name</code> 是隐式契约（常量放 bridge 里就是为了不写两份）。</td>
+        <td><span class="no">不能</span>，它不参与启动时序</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>runtimeContext 的边界</strong>
+    <p>它能做的：作为 observation metadata 出现在 Langfuse 的根/步/模型 span 上（需要 <code>includeRuntimeContext</code> 白名单）。它做不到：写 trace 级 <code>session.id / traceName / tags</code>、回传 OTel trace id、进入工具 <code>execute</code>、进入 <code>ChatSpanProcessor</code>。所以它只能补旁路，替不掉 trace 桥。</p>
+  </div>
+</section>
+
+<footer>
+  路径：<code>_Agents/implementation-artifacts/trace-coupling-explainer.html</code> ·
+  源码依据：<code>app/server/src/trace/llmtrace/{bridge,langfuse}.ts</code>、<code>src/agent/chat/chat.ts</code>、<code>src/trace/systemtrace/{log,endpoint}.ts</code>、<code>src/index.ts</code>
+</footer>
+
+</div>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js"
+  integrity="sha384-8xUhuLNMjW/cI2Dacg3DR4WliYznvIg0LVG1stctThKD/YVrJFI9TNCFxft5NYgp"
+  crossorigin="anonymous"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    fontFamily: '"Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    themeVariables: {
+      primaryColor: '#ffffff',
+      primaryTextColor: '#0a0a0a',
+      primaryBorderColor: '#d4d4d4',
+      lineColor: '#888888',
+      secondaryColor: '#f5f5f5',
+      tertiaryColor: '#fafafa',
+      clusterBkg: '#fcfcfc',
+      clusterBorder: '#eaeaea',
+      fontSize: '14px'
+    },
+    flowchart: {
+      curve: 'basis',
+      htmlLabels: true,
+      nodeSpacing: 40,
+      rankSpacing: 55
+    }
+  });
+</script>
+</body>
+</html>

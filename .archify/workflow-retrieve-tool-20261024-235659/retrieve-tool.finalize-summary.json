@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/candidate.json",
+    "sha256": "119420a81b34e130c68dae40e7622dee4a3359e4f1814bdb2b24bf4c7e77b4ce",
+    "bytes": 4037
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.html",
+    "sha256": "1d27323919aaa9b83c993e77ed6a6d62af3e7234a504358c3cdf6c27b9f4327d",
+    "bytes": 820615
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/workflow-retrieve-tool-20261024-235659/retrieve-tool.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2852,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/candidate.json",
+    "sha256": "c140d9da967333f8153aa6b1dfb3e4755cdc4f934c6ca4c5b1c5088e6825e982",
+    "bytes": 3141
+  },
+  "artifact": {
+    "path": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.html",
+    "sha256": "3a8b683d34cec22fb4b9390fee8434eb8169cfec703af10c2e2f83dca70dfeca",
+    "bytes": 814488
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.finalize.json",
+    "summaryReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.finalize-summary.json",
+    "browserCheckReceipt": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/sequence-retrieve-stages-20261024-235659/retrieve-stages.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T15:57:13.922Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2386,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

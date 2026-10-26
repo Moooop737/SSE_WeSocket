@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 3.2 chat 流 → Langfuse",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/sequence-chat-langfuse-20261024-235659/chat-langfuse.html"
+  },
+  "participants": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Browser",
+      "sublabel": "useChat"
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /chat",
+      "sublabel": "SSE"
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "ChatService",
+      "sublabel": "streamText"
+    },
+    {
+      "id": "span",
+      "type": "security",
+      "label": "SpanProcessor",
+      "sublabel": "ALS 关联"
+    },
+    {
+      "id": "langfuse",
+      "type": "cloud",
+      "label": "Langfuse",
+      "sublabel": "remote trace"
+    },
+    {
+      "id": "stream",
+      "type": "messagebus",
+      "label": "UI stream",
+      "sublabel": "chunks"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 260,
+      "label": "开流"
+    },
+    {
+      "from": 265,
+      "to": 390,
+      "label": "生成"
+    },
+    {
+      "from": 395,
+      "to": 500,
+      "label": "收口"
+    }
+  ],
+  "messages": [
+    {
+      "id": "request",
+      "from": "client",
+      "to": "route",
+      "y": 160,
+      "label": "POST /chat",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ask",
+      "from": "route",
+      "to": "chat",
+      "y": 190,
+      "label": "ask()",
+      "variant": "default"
+    },
+    {
+      "id": "root-start",
+      "from": "chat",
+      "to": "span",
+      "y": 220,
+      "label": "root span onStart",
+      "variant": "security"
+    },
+    {
+      "id": "ids",
+      "from": "span",
+      "to": "langfuse",
+      "y": 250,
+      "label": "session.id + tags",
+      "variant": "dashed"
+    },
+    {
+      "id": "stream-start",
+      "from": "chat",
+      "to": "stream",
+      "y": 280,
+      "label": "streamText",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tokens",
+      "from": "stream",
+      "to": "chat",
+      "y": 310,
+      "label": "tokens / tool",
+      "variant": "return"
+    },
+    {
+      "id": "chunks",
+      "from": "chat",
+      "to": "client",
+      "y": 340,
+      "label": "UI chunks",
+      "variant": "emphasis"
+    },
+    {
+      "id": "end",
+      "from": "chat",
+      "to": "span",
+      "y": 370,
+      "label": "onEnd ok/error/cancelled",
+      "variant": "security"
+    },
+    {
+      "id": "export",
+      "from": "span",
+      "to": "langfuse",
+      "y": 400,
+      "label": "export trace",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "关联",
+      "items": [
+        "session_id 写进 SpanProcessor",
+        "根 span 抓 trace id",
+        "bridge 隔离 OTel"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "onEnd",
+      "items": [
+        "整条流耗时",
+        "ok / error / cancelled",
+        "中断也覆盖"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "降级",
+      "items": [
+        "缺 Langfuse 只打 I_TRACE_EXPORT_DISABLED",
+        "chat 照常",
+        "外链为 null"
+      ]
+    }
+  ]
+}

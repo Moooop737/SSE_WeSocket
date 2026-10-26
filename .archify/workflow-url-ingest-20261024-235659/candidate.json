@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Story 1.2 URL 入库：五段与失败分支",
+    "locale": "zh-CN",
+    "output": ".archify/workflow-url-ingest-20261024-235659/url-ingest.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "http", "label": "HTTP 入口" },
+    { "id": "ingest", "label": "Ingest 管线" },
+    { "id": "store", "label": "数据落点" },
+    { "id": "fail", "label": "失败 / 取消", "variant": "exception" }
+  ],
+  "nodes": [
+    { "id": "route", "lane": "http", "col": 0, "type": "backend", "label": "POST /resources", "sublabel": "body + url 校验", "width": 150 },
+    { "id": "duplicate", "lane": "http", "col": 1, "type": "security", "label": "查重", "sublabel": "ready / processing 拦截", "width": 150 },
+    { "id": "create", "lane": "store", "col": 1, "type": "database", "label": "建 processing 行", "sublabel": "title 先用域名", "width": 150 },
+    { "id": "fetch", "lane": "ingest", "col": 2, "type": "cloud", "label": "HttpFetcher", "sublabel": "http/https · 30s", "width": 150 },
+    { "id": "parse", "lane": "ingest", "col": 3, "type": "backend", "label": "HtmlParser", "sublabel": "Readability → Markdown", "width": 150 },
+    { "id": "chunk", "lane": "ingest", "col": 4, "type": "backend", "label": "LegacyChunker", "sublabel": "偏移 + 保护段", "width": 150 },
+    { "id": "embed", "lane": "ingest", "col": 5, "type": "backend", "label": "embedMany", "sublabel": "向量与 chunk 对齐", "width": 150 },
+    { "id": "write", "lane": "store", "col": 4, "type": "database", "label": "事务写入", "sublabel": "chunk + 向量 + ready", "width": 150 },
+    { "id": "ready", "lane": "store", "col": 5, "type": "backend", "label": "201 ready", "sublabel": "warning 可选", "width": 150 },
+    { "id": "reject", "lane": "fail", "col": 1, "type": "security", "label": "409 E_DUPLICATE", "sublabel": "不建新行", "width": 150 },
+    { "id": "failed", "lane": "fail", "col": 3, "type": "security", "label": "failed", "sublabel": "error_reason 留痕", "width": 150 },
+    { "id": "cancel", "lane": "fail", "col": 4, "type": "security", "label": "取消 / 超时", "sublabel": "信号入口（1.4 接）", "width": 150 }
+  ],
+  "edges": [
+    { "id": "route-duplicate", "from": "route", "to": "duplicate", "label": "先查重", "variant": "emphasis" },
+    { "id": "duplicate-create", "from": "duplicate", "to": "create", "label": "新 URL", "variant": "default" },
+    { "id": "duplicate-reject", "from": "duplicate", "to": "reject", "label": "已有活跃资源", "variant": "security", "role": "error" },
+    { "id": "create-fetch", "from": "create", "to": "fetch", "label": "run", "variant": "emphasis" },
+    { "id": "fetch-parse", "from": "fetch", "to": "parse", "label": "HTML", "variant": "default" },
+    { "id": "parse-chunk", "from": "parse", "to": "chunk", "label": "Markdown", "variant": "default" },
+    { "id": "chunk-embed", "from": "chunk", "to": "embed", "label": "chunks", "variant": "default" },
+    { "id": "embed-write", "from": "embed", "to": "write", "label": "vectors", "variant": "emphasis" },
+    { "id": "write-ready", "from": "write", "to": "ready", "label": "commit", "variant": "emphasis" },
+    { "id": "fetch-failed", "from": "fetch", "to": "failed", "label": "不可达 / 空正文", "variant": "dashed", "role": "error" },
+    { "id": "embed-failed", "from": "embed", "to": "failed", "label": "embedding_error", "variant": "dashed", "role": "error" },
+    { "id": "write-failed", "from": "write", "to": "failed", "label": "事务失败", "variant": "dashed", "role": "error" },
+    { "id": "cancel-failed", "from": "cancel", "to": "failed", "label": "中止并清理", "variant": "security", "role": "error" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "幂等", "items": ["只拦 ready / processing", "failed 允许重新抓取", "没有数据库唯一索引，接受 TOCTOU"] },
+    { "dot": "rose", "title": "失败留痕", "items": ["建行后的失败都落在同一条 resource", "error_reason 说明原因", "不留下 ready 但缺向量"] },
+    { "dot": "amber", "title": "本页未覆盖", "items": ["非 HTML MIME 前置拒绝仍在 deferred", "warning 已由当前 UI 展示", "取消的完整落点在 1.4"] }
+  ]
+}

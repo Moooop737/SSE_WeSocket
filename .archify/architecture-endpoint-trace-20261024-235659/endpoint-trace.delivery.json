@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4dc46684-496f-4db6-9814-fb832577289c",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-endpoint-trace-20261024-235659/candidate.json",
+  "output": "/Users/lynx/Documents/Dev/SSE_WeSocket/.archify/architecture-endpoint-trace-20261024-235659/endpoint-trace.html",
+  "specification": {
+    "sha256": "7999e6d1ab2b939c347ce864406b1a1a936806fcaa15ec399e9c1103e7c47a2d",
+    "bytes": 3496
+  },
+  "artifact": {
+    "sha256": "399dcc16dcc2ecf76105f05b987c7011e8abbe793d0aac76dda19d318003974e",
+    "bytes": 819283
+  }
+}

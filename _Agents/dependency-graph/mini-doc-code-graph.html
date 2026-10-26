@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档 ↔ 代码 · 图例</title>
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --panel: #101114;
+    --line: #23262c;
+    --text: #e6e8ec;
+    --muted: #8b919c;
+    --doc: #3dd6c3;
+    --code: #f0a35e;
+    --match: #9ef0a8;
+    --bad: #f2777a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 ui-sans-serif, -apple-system, "PingFang SC", sans-serif;
+    display: grid; grid-template-rows: 52px 1fr; overflow: hidden;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 14px; padding: 0 16px;
+    border-bottom: 1px solid var(--line); background: rgba(16,17,20,.94);
+  }
+  .brand { font-weight: 600; white-space: nowrap; }
+  .brand span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+  input[type="checkbox"] { accent-color: #9ca3af; }
+  button, .search input {
+    border: 1px solid var(--line); background: #15171b; color: var(--text);
+    padding: 6px 10px; border-radius: 7px; font: inherit;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: #3a3f47; }
+  .search input { width: 180px; outline: none; }
+  .search input:focus { border-color: #4b5563; }
+  main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  .hint {
+    position: absolute; left: 14px; bottom: 12px; color: #6f7580; font-size: 11.5px;
+    pointer-events: none; user-select: none;
+  }
+  .legend {
+    position: absolute; left: 14px; top: 12px; display: flex; gap: 14px;
+    color: var(--muted); font-size: 11.5px; pointer-events: none;
+  }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); padding: 14px; overflow: auto; }
+  h2 { font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .node-title { font-size: 15px; font-weight: 600; word-break: break-all; }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 12px; }
+  .badge { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.doc { color: var(--doc); border-color: #1f6f66; }
+  .badge.code { color: var(--code); border-color: #7a4a1d; }
+  .badge.ok { color: var(--match); border-color: #326b3a; }
+  .badge.bad { color: var(--bad); border-color: #6e2a2c; }
+  .sub { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #aeb4bd; word-break: break-all; }
+  .detail-sub { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  #steps { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 12px; color: #c8cdd5; }
+  #steps li::marker { color: var(--muted); }
+  #steps li b { color: var(--text); font-weight: 500; }
+  .result {
+    margin-top: 14px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px;
+    background: #0c0e12; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--muted); white-space: pre-wrap; line-height: 1.6;
+  }
+  .result.ok { color: var(--match); }
+  .result.bad { color: var(--bad); }
+  .empty { color: var(--muted); font-size: 12px; }
+  .tip { color: var(--muted); font-size: 11.5px; line-height: 1.6; margin-top: 12px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">文档 ↔ 代码 <span>两层各自生成 · 双向邻居做一次匹配</span></div>
+  <div class="controls">
+    <label><input type="checkbox" id="pathHint" checked> 文档路径提供模块提示</label>
+    <div class="search"><input id="search" placeholder="搜索节点…" autocomplete="off" spellcheck="false"></div>
+    <button id="break">模拟代码改名</button>
+    <button id="reset">重置</button>
+  </div>
+</header>
+<main>
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--doc)"></i>文档层</span>
+      <span><i style="background:var(--code)"></i>代码层</span>
+      <span><i style="background:var(--match)"></i>匹配</span>
+      <span><i style="border:1px dashed var(--muted);background:transparent"></i>external</span>
+    </div>
+    <div class="hint">滚轮缩放 · 拖拽平移 · 点击 Handler 看匹配 · 点击代码节点看反向</div>
+  </div>
+  <aside>
+    <h2>详情</h2>
+    <div id="detail"><div class="empty">点击左侧文档图里的 Handler 开始。</div></div>
+  </aside>
+</main>
+<script>
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const detail = document.getElementById('detail')
+const pathHint = document.getElementById('pathHint')
+const searchInput = document.getElementById('search')
+
+const nodes = [
+  { id: 'doc:User', layer: 'doc', label: 'User', sub: 'external', x: -620, y: -40, r: 30, external: true },
+  { id: 'doc:Handler', layer: 'doc', label: 'Handler', sub: 'participant', x: -390, y: -40, r: 36, clickable: true },
+  { id: 'code:AController', layer: 'code', label: 'AController', sub: '路由 /a', x: 250, y: -140, r: 34 },
+  { id: 'code:a', layer: 'code', label: 'Handler', sub: 'a.ts', x: 520, y: -140, r: 36, clickable: true },
+  { id: 'code:BController', layer: 'code', label: 'BController', sub: '路由 /b', x: 250, y: 80, r: 34 },
+  { id: 'code:b', layer: 'code', label: 'Handler', sub: 'b.ts', x: 520, y: 80, r: 36, clickable: true },
+]
+const edges = [
+  { from: 'doc:User', to: 'doc:Handler', label: 'GET /a', layer: 'doc' },
+  { from: 'code:AController', to: 'code:a', label: 'call · /a', layer: 'code' },
+  { from: 'code:BController', to: 'code:b', label: 'call · /b', layer: 'code' },
+]
+
+const state = {
+  selected: null,
+  match: null,
+  candidates: [],
+  broken: false,
+  search: '',
+  hovered: null,
+}
+let cam = { scale: 1, tx: 0, ty: 0 }
+let W = 0
+let H = 0
+let dpr = 1
+let panning = null
+let moved = false
+
+const byId = new Map(nodes.map((n) => [n.id, n]))
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1)
+  const rect = canvas.getBoundingClientRect()
+  W = rect.width
+  H = rect.height
+  canvas.width = Math.round(W * dpr)
+  canvas.height = Math.round(H * dpr)
+  draw()
+}
+
+function fit() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x - n.r)
+    maxX = Math.max(maxX, n.x + n.r)
+    minY = Math.min(minY, n.y - n.r)
+    maxY = Math.max(maxY, n.y + n.r)
+  }
+  const pad = 90
+  const s = Math.min((W - pad * 2) / (maxX - minX), (H - pad * 2) / (maxY - minY))
+  cam.scale = Math.max(0.2, Math.min(2.2, s))
+  cam.tx = W / 2 - ((minX + maxX) / 2) * cam.scale
+  cam.ty = H / 2 - ((minY + maxY) / 2) * cam.scale
+  draw()
+}
+
+function colorOf(n) {
+  if (n.external) return '#8b919c'
+  return n.layer === 'doc' ? '#3dd6c3' : '#f0a35e'
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  const bg = ctx.createLinearGradient(0, 0, 0, H)
+  bg.addColorStop(0, '#0b0c0f')
+  bg.addColorStop(1, '#08090b')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+  ctx.save()
+  ctx.translate(cam.tx, cam.ty)
+  ctx.scale(cam.scale, cam.scale)
+
+  ctx.font = `600 ${13 / cam.scale}px ui-sans-serif, sans-serif`
+  ctx.fillStyle = 'rgba(61,214,195,.45)'
+  ctx.textAlign = 'left'
+  ctx.fillText('文档层 · 自己生成', -700, -260)
+  ctx.fillStyle = 'rgba(240,163,94,.5)'
+  ctx.fillText('代码层 · 自己生成', 140, -260)
+
+  drawEdges()
+  drawNodes()
+  drawLabels()
+  ctx.restore()
+}
+
+function drawEdges() {
+  for (const e of edges) {
+    const a = byId.get(e.from)
+    const b = byId.get(e.to)
+    if (!a || !b) continue
+    const color = e.layer === 'doc' ? 'rgba(61,214,195,.55)' : 'rgba(240,163,94,.55)'
+    drawArrow(a, b, color, false)
+    const mx = (a.x + b.x) / 2
+    const my = (a.y + b.y) / 2
+    ctx.font = `${10 / cam.scale}px ui-monospace, Menlo, monospace`
+    ctx.fillStyle = color
+    ctx.textAlign = 'center'
+    ctx.fillText(e.label, mx, my - 10 / cam.scale)
+  }
+  if (state.match) {
+    const a = byId.get(state.match.docId)
+    const b = byId.get(state.match.codeId)
+    if (a && b) {
+      const curve = 120
+      drawArrow(a, b, 'rgba(158,240,168,.95)', true, curve)
+      const sx = a.x + a.r
+      const ex = b.x - b.r
+      const mx = (sx + ex) / 2
+      const my = (a.y + b.y) / 2 + curve * 0.5 + 16 / cam.scale
+      ctx.font = `${10 / cam.scale}px ui-monospace, Menlo, monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const tw = ctx.measureText(state.match.reason).width
+      ctx.fillStyle = '#0b0c0f'
+      ctx.fillRect(mx - tw / 2 - 5 / cam.scale, my - 7 / cam.scale, tw + 10 / cam.scale, 14 / cam.scale)
+      ctx.fillStyle = '#9ef0a8'
+      ctx.fillText(state.match.reason, mx, my)
+    }
+  }
+}
+
+function drawArrow(a, b, color, dashed, curve = 0) {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const d = Math.hypot(dx, dy) || 1
+  const ux = dx / d
+  const uy = dy / d
+  const x1 = a.x + ux * a.r
+  const y1 = a.y + uy * a.r
+  const x2 = b.x - ux * b.r
+  const y2 = b.y - uy * b.r
+  const cx = (x1 + x2) / 2
+  const cy = (y1 + y2) / 2 + curve
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.lineWidth = (dashed ? 2 : 1.3) / cam.scale
+  if (dashed) ctx.setLineDash([6 / cam.scale, 5 / cam.scale])
+  ctx.beginPath()
+  ctx.moveTo(x1, y1)
+  if (curve) ctx.quadraticCurveTo(cx, cy, x2, y2)
+  else ctx.lineTo(x2, y2)
+  ctx.stroke()
+  ctx.setLineDash([])
+  const tdx = curve ? x2 - cx : x2 - x1
+  const tdy = curve ? y2 - cy : y2 - y1
+  const td = Math.hypot(tdx, tdy) || 1
+  const tx = tdx / td
+  const ty = tdy / td
+  const ah = 7 / cam.scale
+  ctx.beginPath()
+  ctx.moveTo(x2, y2)
+  ctx.lineTo(x2 - tx * ah - ty * ah * 0.5, y2 - ty * ah + tx * ah * 0.5)
+  ctx.lineTo(x2 - tx * ah + ty * ah * 0.5, y2 - ty * ah - tx * ah * 0.5)
+  ctx.closePath()
+  ctx.fillStyle = color
+  ctx.fill()
+  ctx.restore()
+}
+
+function drawNodes() {
+  const sel = state.selected
+  const matches = new Set()
+  if (state.match) {
+    matches.add(state.match.docId)
+    matches.add(state.match.codeId)
+  }
+  for (const n of nodes) {
+    const isSel = n.id === sel
+    const isMatch = matches.has(n.id)
+    const isCandidate = state.candidates.includes(n.id)
+    const isSearch = state.search && (n.label + ' ' + n.sub).toLowerCase().includes(state.search.toLowerCase())
+    const dim = sel && !isSel && !isMatch && !isCandidate
+    ctx.globalAlpha = dim ? 0.28 : 1
+    roundRect(n.x - n.r * 1.55, n.y - n.r * 0.8, n.r * 3.1, n.r * 1.6, 9)
+    ctx.fillStyle = isMatch ? '#12231f' : isSel ? '#1a2330' : '#15171b'
+    ctx.fill()
+    ctx.lineWidth = (isSel || isMatch ? 2.2 : 1.3) / cam.scale
+    ctx.strokeStyle = isMatch ? '#9ef0a8' : isSel ? '#ffffff' : isSearch ? '#fde68a' : colorOf(n)
+    if (n.external) ctx.setLineDash([4 / cam.scale, 3 / cam.scale])
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
+  }
+}
+
+function drawLabels() {
+  for (const n of nodes) {
+    const isSel = n.id === state.selected
+    const isMatch = state.match && (n.id === state.match.docId || n.id === state.match.codeId)
+    ctx.font = `${12 / cam.scale}px ui-sans-serif, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = isMatch ? '#c8f5cd' : isSel ? '#ffffff' : '#dfe3e8'
+    ctx.fillText(n.label, n.x, n.y - 2 / cam.scale)
+    ctx.font = `${9.5 / cam.scale}px ui-monospace, Menlo, monospace`
+    ctx.fillStyle = '#8b919c'
+    ctx.fillText(n.sub, n.x, n.y + 14 / cam.scale)
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function toWorld(px, py) {
+  return { x: (px - cam.tx) / cam.scale, y: (py - cam.ty) / cam.scale }
+}
+
+function nodeAt(px, py) {
+  const p = toWorld(px, py)
+  for (const n of nodes) {
+    if (Math.abs(p.x - n.x) < n.r * 1.55 && Math.abs(p.y - n.y) < n.r * 0.8) return n
+  }
+  return null
+}
+
+function clearSelection() {
+  state.selected = null
+  state.match = null
+  state.candidates = []
+}
+
+function resolveHandler() {
+  clearSelection()
+  state.selected = 'doc:Handler'
+  const candidates = state.broken ? ['code:b'] : ['code:a', 'code:b']
+  state.candidates = candidates
+
+  const steps = []
+  steps.push(`名称搜索 <b>Handler</b> → ${candidates.length} 个候选` + (state.broken ? '（a.ts 已改名）' : ''))
+
+  if (state.broken) {
+    if (pathHint.checked) {
+      steps.push('文档路径 <b>docs/a.md</b> → 指向 a.ts，但 a.ts 里已经没有 Handler')
+    } else {
+      steps.push('候选只剩 <b>b.ts#Handler</b>；文档消息 <b>GET /a</b> 与它的 <b>/b</b> 不匹配')
+    }
+    steps.push('结果 <b>unresolved</b>：文档照常读，这一步暂时跳不过去')
+    renderDetail('Handler', '文档节点', steps, 'bad', 'unresolved\na.ts#Handler 已不存在\n文档内容不受影响')
+    draw()
+    return
+  }
+
+  if (pathHint.checked) {
+    steps.push('文档路径 <b>docs/a.md</b> + 章节「A 模块」→ 只指向 a.ts')
+    steps.push('唯一命中 <b>a.ts#Handler</b>，不需要 LLM')
+    state.match = { docId: 'doc:Handler', codeId: 'code:a', reason: '路径命中' }
+    renderDetail('Handler', '文档节点', steps, 'ok', 'a.ts#Handler\n依据：路径命中\nb.ts#Handler 被排除')
+  } else {
+    steps.push('路径无模块提示：候选仍是 2 个')
+    steps.push('文档邻居：<b>User</b>、消息 <b>GET /a</b>')
+    steps.push('代码邻居：<b>a.ts#Handler</b> ← AController（/a）；<b>b.ts#Handler</b> ← BController（/b）')
+    steps.push('匹配 <b>GET /a ↔ /a</b> → 选 a.ts#Handler；LLM 只在 2 个候选里选（步数 1/6）')
+    state.match = { docId: 'doc:Handler', codeId: 'code:a', reason: '邻居匹配 GET /a' }
+    renderDetail('Handler', '文档节点', steps, 'ok', 'a.ts#Handler\n依据：邻居匹配\nb.ts#Handler 被排除')
+  }
+  draw()
+}
+
+function selectCode(id) {
+  const steps = []
+  if (state.match && state.match.codeId === id) {
+    steps.push('这个代码节点有匹配的文档元素：<b>Handler</b>')
+    steps.push('反向查询同样只看双向邻居，没有关联表')
+    renderDetail(byId.get(id).label + ' · ' + byId.get(id).sub, '代码节点', steps, 'ok', '匹配到文档元素 doc:Handler')
+  } else {
+    steps.push('这个代码节点没有匹配的文档元素')
+    steps.push('文档层不知道代码存在，代码层也不知道文档存在')
+    renderDetail(byId.get(id).label + ' · ' + byId.get(id).sub, '代码节点', steps, '', '没有文档元素指向它')
+  }
+  state.selected = id
+  draw()
+}
+
+function renderDetail(title, kind, steps, tone, result) {
+  detail.innerHTML =
+    `<div class="node-title">${title}</div>` +
+    `<div class="badges"><span class="badge ${kind === '文档节点' ? 'doc' : 'code'}">${kind}</span></div>` +
+    `<ol id="steps">${steps.map((s) => `<li>${s}</li>`).join('')}</ol>` +
+    `<div class="result ${tone}">${result}</div>` +
+    `<div class="tip">文档层与代码层各自生成；匹配是这次查询用双向邻居算出来的，不在任何一张表里。</div>`
+}
+
+function resetAll() {
+  state.broken = false
+  state.search = ''
+  searchInput.value = ''
+  pathHint.checked = true
+  byId.get('code:a').label = 'Handler'
+  document.getElementById('break').textContent = '模拟代码改名'
+  clearSelection()
+  detail.innerHTML = '<div class="empty">点击左侧文档图里的 Handler 开始。</div>'
+  draw()
+}
+
+canvas.addEventListener('click', (e) => {
+  if (moved) return
+  const rect = canvas.getBoundingClientRect()
+  const n = nodeAt(e.clientX - rect.left, e.clientY - rect.top)
+  if (!n) { clearSelection(); detail.innerHTML = '<div class="empty">点击左侧文档图里的 Handler 开始。</div>'; draw(); return }
+  if (n.id === 'doc:Handler') resolveHandler()
+  else if (n.layer === 'code') selectCode(n.id)
+  else { state.selected = n.id; draw() }
+})
+
+canvas.addEventListener('pointerdown', (e) => {
+  moved = false
+  const rect = canvas.getBoundingClientRect()
+  panning = { x: e.clientX - rect.left, y: e.clientY - rect.top, tx: cam.tx, ty: cam.ty }
+  canvas.setPointerCapture(e.pointerId)
+  canvas.classList.add('dragging')
+})
+canvas.addEventListener('pointermove', (e) => {
+  if (!panning) return
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  if (Math.abs(x - panning.x) + Math.abs(y - panning.y) > 3) moved = true
+  cam.tx = panning.tx + (x - panning.x)
+  cam.ty = panning.ty + (y - panning.y)
+  draw()
+})
+canvas.addEventListener('pointerup', () => { panning = null; canvas.classList.remove('dragging') })
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+  const p = toWorld(px, py)
+  const k = Math.exp(-e.deltaY * 0.0014)
+  cam.scale = Math.max(0.2, Math.min(3, cam.scale * k))
+  cam.tx = px - p.x * cam.scale
+  cam.ty = py - p.y * cam.scale
+  draw()
+}, { passive: false })
+
+pathHint.addEventListener('change', () => {
+  if (state.selected === 'doc:Handler') resolveHandler()
+})
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value.trim()
+  draw()
+})
+document.getElementById('break').addEventListener('click', () => {
+  state.broken = !state.broken
+  byId.get('code:a').label = state.broken ? 'RequestHandler' : 'Handler'
+  document.getElementById('break').textContent = state.broken ? '恢复代码' : '模拟代码改名'
+  if (state.selected === 'doc:Handler') resolveHandler()
+  draw()
+})
+document.getElementById('reset').addEventListener('click', resetAll)
+
+window.addEventListener('resize', resize)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas)
+
+resize()
+fit()
+</script>
+</body>
+</html>

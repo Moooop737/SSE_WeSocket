@@ -1,0 +1,2554 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>代码图 · Knowledge Copilot</title>
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --panel: #101114;
+    --panel-2: #15171b;
+    --line: #23262c;
+    --text: #e6e8ec;
+    --muted: #8b919c;
+    --accent: #f5f5f5;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.45 ui-sans-serif, -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    overflow: hidden;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(16,17,20,.92);
+    backdrop-filter: blur(10px);
+    min-width: 0;
+  }
+  .brand { font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .brand span { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
+  .rev { color: var(--muted); font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+  .rev b { color: #c3c7ce; font-weight: 500; }
+  .seg { display: flex; gap: 2px; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+  .seg button {
+    flex: 1; appearance: none; border: 0; background: transparent; color: var(--muted);
+    padding: 5px 8px; border-radius: 6px; font: inherit; cursor: pointer; white-space: nowrap;
+  }
+  .seg button.active { background: #2a2d33; color: var(--text); }
+  .scope { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #0c0e12; font-size: 11.5px; }
+  .scope span { color: var(--muted); flex: none; }
+  .scope b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scope button { margin-left: auto; border: 0; background: none; color: #93c5fd; font: inherit; font-size: 11px; cursor: pointer; flex: none; padding: 0; }
+  .tree-body { position: relative; max-height: 44vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #0c0e12; }
+  .tree-body::-webkit-scrollbar { width: 7px; }
+  .tree-body::-webkit-scrollbar-thumb { background: #24272d; border-radius: 4px; }
+  .tree-row { display: flex; align-items: center; gap: 5px; min-height: 25px; padding: 1px 4px 1px 0; border-radius: 5px; color: #c3c7ce; font-size: 12px; }
+  .tree-row:hover { background: #15171b; }
+  .tree-row.active { background: #1e232b; color: #fff; }
+  .tree-row.on-path { color: #e6e8ec; }
+  .tree-caret { appearance: none; border: 0; background: none; color: #6f7580; width: 16px; height: 18px; flex: none; font: inherit; font-size: 10px; cursor: pointer; padding: 0; transition: transform .12s; }
+  .tree-caret.open { transform: rotate(90deg); color: #aeb4bd; }
+  .tree-caret.blank { visibility: hidden; cursor: default; }
+  .tree-svg { flex: none; display: block; }
+  .tree-label { appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-label:hover { color: #fff; }
+  .tree-meta { margin-left: auto; color: #6f7580; font-size: 10px; font-variant-numeric: tabular-nums; flex: none; }
+  .tree-empty { color: var(--muted); font-size: 11.5px; padding: 6px; }
+  .wide { width: 100%; text-align: center; }
+  .doc-entry.active { border-color: #4b5563; color: var(--text); }
+  .search { flex: 1; min-width: 90px; max-width: 360px; position: relative; }
+  .search input {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 7px; padding: 7px 10px 7px 28px; font: inherit; outline: none;
+  }
+  .search input:focus { border-color: #4b5563; }
+  .search::before { content: "⌕"; position: absolute; left: 9px; top: 5px; color: var(--muted); font-size: 15px; }
+  .ghost {
+    appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    padding: 6px 10px; border-radius: 7px; font: inherit; cursor: pointer; white-space: nowrap;
+  }
+  .ghost:hover { color: var(--text); border-color: #3a3f47; }
+  main { display: grid; grid-template-columns: 304px 1fr 342px; min-height: 0; }
+  aside { background: var(--panel); overflow-y: auto; }
+  .left { border-right: 1px solid var(--line); padding: 14px 12px 40px; }
+  .right { border-left: 1px solid var(--line); padding: 14px 14px 40px; }
+  aside::-webkit-scrollbar { width: 8px; }
+  aside::-webkit-scrollbar-thumb { background: #24272d; border-radius: 4px; }
+  section { margin-bottom: 20px; }
+  h3 {
+    margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted);
+  }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 12px; }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-direction: column; gap: 3px; max-height: 240px; overflow-y: auto; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #c3c7ce; padding: 2px 4px; border-radius: 4px; }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .legend-row .tree-svg { color: #c3c7ce; }
+  .legend-row em { margin-left: auto; color: var(--muted); font-style: normal; font-size: 11px; }
+  .edge-legend { display: grid; gap: 4px; font-size: 12px; color: #c3c7ce; }
+  .edge-legend div, .edge-check-row { display: flex; align-items: center; gap: 8px; }
+  .edge-legend i, .edge-sample { width: 24px; height: 0; border-top: 2px solid; flex: none; }
+  .checks { display: grid; gap: 7px; font-size: 12px; color: #c3c7ce; }
+  .checks label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .checks input { accent-color: #9ca3af; margin: 0; }
+  .checks em { color: #6f7580; font-style: normal; font-size: 10px; margin-left: auto; }
+  .hint { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+  .seq { margin-top: 10px; border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: #0c0e12; }
+  .seq-title { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .seq-parts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .seq-part { font: inherit; font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: #15171b; color: var(--text); cursor: pointer; }
+  .seq-part.resolved { border-color: #326b3a; color: #9ef0a8; }
+  .seq-part.external { color: var(--muted); border-style: dashed; cursor: default; }
+  .seq-part.unresolved { color: #f2777a; border-color: #6e2a2c; cursor: default; }
+  .seq-msgs { display: grid; gap: 1px; }
+  .seq-msg { display: grid; grid-template-columns: 82px 16px 1fr 82px; gap: 3px; align-items: center; width: 100%; text-align: left; border: 0; border-top: 1px solid #1a1d22; background: none; color: #c8cdd5; font: inherit; font-size: 11.5px; padding: 5px 2px; cursor: default; }
+  .seq-msg.resolved { cursor: pointer; }
+  .seq-msg.resolved:hover { background: #15171b; }
+  .seq-msg .arrow { color: #9ef0a8; text-align: center; }
+  .seq-msg .label { color: var(--text); }
+  .seq-msg .from, .seq-msg .to { color: var(--muted); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; }
+  .seq-msg.external { opacity: .7; }
+  .seq-msg.unresolved { opacity: .45; }
+  .match-list { display: grid; gap: 2px; }
+  .match {
+    text-align: left; border: 0; background: transparent; color: #c3c7ce; font: inherit;
+    padding: 4px 6px; border-radius: 5px; cursor: pointer; display: block; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .match:hover { background: var(--panel-2); color: var(--text); }
+  .match small { color: var(--muted); margin-left: 6px; }
+  .ext { display: grid; gap: 4px; font-size: 12px; }
+  .ext div { display: flex; justify-content: space-between; gap: 8px; color: #c3c7ce; }
+  .ext b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cycle { border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; margin-bottom: 6px; font-size: 11.5px; color: #b7bcc5; line-height: 1.5; }
+  .cycle button { border: 0; background: none; color: #d9dde3; font: inherit; padding: 0; cursor: pointer; }
+  .cycle button:hover { text-decoration: underline; }
+  .http-row { display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left; border: 0; background: transparent; color: #c3c7ce; font: inherit; font-size: 11.5px; padding: 3px 4px; border-radius: 4px; cursor: pointer; }
+  .http-row:hover { background: var(--panel-2); color: var(--text); }
+  .http-row .m { color: #f9a8d4; font: 10px/1 ui-monospace, monospace; flex: none; }
+  .http-row .p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .http-row .ok { margin-left: auto; color: #6ee7b7; font-size: 10px; flex: none; }
+  .http-row .bad { margin-left: auto; color: #fca5a5; font-size: 10px; flex: none; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  #hint {
+    position: absolute; left: 14px; bottom: 12px; color: #6f7580; font-size: 11.5px;
+    pointer-events: none; user-select: none;
+  }
+  #tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: rgba(20,22,26,.96); border: 1px solid #30343b; border-radius: 6px;
+    padding: 5px 8px; font-size: 11.5px; color: var(--text); max-width: 360px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  #tooltip small { color: var(--muted); display: block; }
+  .empty { color: var(--muted); font-size: 12px; padding-top: 6px; }
+  .detail-head { display: flex; gap: 10px; align-items: flex-start; }
+  .detail-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; margin-top: 5px; box-shadow: 0 0 12px currentColor; }
+  .node-title { font-size: 15px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 12px; }
+  .badge { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.exported { color: #a7f3d0; border-color: #1f6f55; }
+  .badge.warn { color: #fcd34d; border-color: #6b4e10; }
+  .badge.gen { color: #c4b5fd; border-color: #4c3d8f; }
+  .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #aeb4bd; word-break: break-all; }
+  .sig { margin: 8px 0 2px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #0c0e12; color: #cbd5e1; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  .meta { display: grid; grid-template-columns: 86px 1fr; gap: 4px 8px; font-size: 11.5px; margin: 8px 0 4px; }
+  .meta span { color: var(--muted); }
+  .meta b { font-weight: 400; color: #cbd1d8; word-break: break-all; }
+  .detail-sub { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  .edge-list { display: grid; gap: 2px; }
+  .edge-item {
+    display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left;
+    border: 0; background: transparent; color: #c9cdd4; font: inherit; cursor: pointer;
+    padding: 3px 5px; border-radius: 4px; font-size: 12px;
+  }
+  .edge-item:hover { background: var(--panel-2); color: var(--text); }
+  .edge-item .kind { font-size: 10px; color: var(--muted); flex: none; }
+  .edge-item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .edge-item .count { margin-left: auto; color: var(--muted); font-size: 10.5px; flex: none; }
+  .method { border-top: 1px solid var(--line); padding: 8px 0; }
+  .method-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #d7dbe1; }
+  .file-link { border: 0; background: none; color: #93c5fd; font: inherit; padding: 0; cursor: pointer; text-align: left; }
+  .file-link:hover { text-decoration: underline; }
+  .toggle-symbol { border: 0; background: var(--panel-2); color: var(--text); border-radius: 5px; font: inherit; font-size: 11.5px; padding: 3px 8px; cursor: pointer; margin: 6px 6px 0 0; }
+  .toggle-symbol:hover { background: #20232a; }
+  .action-row { display: flex; flex-wrap: wrap; gap: 2px; margin: 2px 0 4px; }
+  @media (max-width: 1180px) {
+    .brand span, .rev { display: none; }
+  }
+  @media (max-width: 980px) {
+    main { grid-template-columns: 200px 1fr; }
+    .right {
+      display: block;
+      position: fixed;
+      right: 10px;
+      bottom: 10px;
+      width: min(390px, calc(100vw - 20px));
+      max-height: 46vh;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .55);
+      z-index: 20;
+      background: var(--panel);
+      padding-bottom: 24px;
+    }
+    .left { padding-left: 10px; padding-right: 10px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">代码图 <span>一张图 · 缩放看层级</span></div>
+  <div class="rev" id="rev"></div>
+  <div class="search"><input id="search" placeholder="搜索模块 / 文件 / 符号 / 路由" autocomplete="off" spellcheck="false"></div>
+  <button class="ghost" id="fit">适配</button>
+</header>
+<main>
+  <aside class="left">
+    <section id="explorer"></section>
+    <section id="stats"></section>
+    <section id="filters"></section>
+    <section id="matches" hidden></section>
+    <section id="legend"></section>
+    <section id="cycles"></section>
+    <section id="externals"></section>
+    <section id="http"></section>
+    <section id="docgraph"></section>
+  </aside>
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+    <div id="hint">点击展开 / 深层点击放大 · 左栏选择显示内容 · 滚轮缩放 · 拖拽平移</div>
+  </div>
+  <aside class="right" id="detail"><div class="empty">点击节点查看详情</div></aside>
+</main>
+<script>
+const DATA = /*__GRAPH_DATA__*/null
+
+const moduleGraph = DATA.moduleGraph
+const symbolGraph = DATA.symbolGraph
+const REVISION = moduleGraph.code_revision || { short: 'unknown', dirty: false }
+const MODULE_NODES = moduleGraph.modules
+const FILE_NODES = moduleGraph.nodes
+const FOLDER_NODES = moduleGraph.folders
+const SYMBOL_NODES = symbolGraph.nodes
+const TOP_SYMBOL_NODES = SYMBOL_NODES.filter((n) => n.kind !== 'method')
+const ROUTE_NODES = SYMBOL_NODES.filter((n) => n.kind === 'route')
+
+const FILE_BY_ID = new Map(FILE_NODES.map((n) => [n.id, n]))
+const FILE_DEGREE = new Map(FILE_NODES.map((n) => [n.id, 0]))
+for (const e of moduleGraph.edges) {
+  FILE_DEGREE.set(e.source, (FILE_DEGREE.get(e.source) || 0) + 1)
+  FILE_DEGREE.set(e.target, (FILE_DEGREE.get(e.target) || 0) + 1)
+}
+const FOLDER_BY_ID = new Map(FOLDER_NODES.map((n) => [n.id, n]))
+const MODULE_BY_ID = new Map(MODULE_NODES.map((n) => [n.id, n]))
+const MODULE_BY_KEY = new Map(MODULE_NODES.map((n) => [n.module_id, n]))
+const EXTERNAL_BY_ID = new Map(moduleGraph.externalNodes.map((n) => [n.id, n]))
+const SYMBOL_BY_ID = new Map(SYMBOL_NODES.map((n) => [n.id, n]))
+const SYMBOL_EDGES_BY_SYMBOL = new Map()
+for (const e of symbolGraph.edges) {
+  if (!SYMBOL_EDGES_BY_SYMBOL.has(e.source)) SYMBOL_EDGES_BY_SYMBOL.set(e.source, [])
+  if (!SYMBOL_EDGES_BY_SYMBOL.has(e.target)) SYMBOL_EDGES_BY_SYMBOL.set(e.target, [])
+  SYMBOL_EDGES_BY_SYMBOL.get(e.source).push(e)
+  SYMBOL_EDGES_BY_SYMBOL.get(e.target).push(e)
+}
+const CODE_BY_ID = new Map()
+for (const n of FILE_NODES) CODE_BY_ID.set(n.id, n)
+for (const n of FOLDER_NODES) CODE_BY_ID.set(n.id, n)
+for (const n of MODULE_NODES) CODE_BY_ID.set(n.id, n)
+for (const n of moduleGraph.externalNodes) CODE_BY_ID.set(n.id, n)
+for (const n of SYMBOL_NODES) CODE_BY_ID.set(n.id, n)
+
+const TOP_SYMBOLS_BY_FILE = new Map()
+const TOP_SYMBOLS_BY_NAME = new Map()
+const SYMBOLS_BY_NAME = new Map()
+const METHODS_BY_CLASS = new Map()
+const METHODS_BY_NAME = new Map()
+for (const n of SYMBOL_NODES) {
+  if (!SYMBOLS_BY_NAME.has(n.name)) SYMBOLS_BY_NAME.set(n.name, [])
+  SYMBOLS_BY_NAME.get(n.name).push(n)
+  if (n.kind === 'method') {
+    if (!METHODS_BY_CLASS.has(n.class_id)) METHODS_BY_CLASS.set(n.class_id, [])
+    METHODS_BY_CLASS.get(n.class_id).push(n)
+    if (!METHODS_BY_NAME.has(n.name)) METHODS_BY_NAME.set(n.name, [])
+    METHODS_BY_NAME.get(n.name).push(n)
+  } else {
+    if (!TOP_SYMBOLS_BY_FILE.has(n.file)) TOP_SYMBOLS_BY_FILE.set(n.file, [])
+    TOP_SYMBOLS_BY_FILE.get(n.file).push(n)
+    if (n.kind !== 'route') {
+      if (!TOP_SYMBOLS_BY_NAME.has(n.name)) TOP_SYMBOLS_BY_NAME.set(n.name, [])
+      TOP_SYMBOLS_BY_NAME.get(n.name).push(n)
+    }
+  }
+}
+for (const list of TOP_SYMBOLS_BY_FILE.values()) list.sort((a, b) => a.line - b.line || a.id.localeCompare(b.id))
+for (const list of METHODS_BY_CLASS.values()) list.sort((a, b) => a.line - b.line || a.id.localeCompare(b.id))
+
+const KIND_LABEL = {
+  module: '模块', folder: '目录', file: '文件', class: '类', interface: 'interface', type: 'type',
+  enum: 'enum', function: '函数', method: '方法', route: '路由', external: '外部', wiki: 'Wiki',
+}
+const KIND_COLOR = {
+  folder: '#64748b', file: '#7dd3fc', class: '#c084fc', interface: '#2dd4bf', type: '#fbbf24',
+  enum: '#f472b6', function: '#4ade80', method: '#86efac', route: '#f87171', external: '#94a3b8',
+}
+const KIND_ICON = { module: 'M', function: 'ƒ', route: '→', external: '↗' }
+const NODE_PATHS = {
+  module: 'M 0 -1 L 0.87 -0.5 L 0.87 0.5 L 0 1 L -0.87 0.5 L -0.87 -0.5 Z',
+  folder: 'M -1 -0.62 L 0.3 -0.62 L 0.62 0 L 0.3 0.62 L -1 0.62 Z',
+  file: 'M -0.72 -0.9 L 0.72 -0.9 Q 0.9 -0.9 0.9 -0.72 L 0.9 0.72 Q 0.9 0.9 0.72 0.9 L -0.72 0.9 Q -0.9 0.9 -0.9 0.72 L -0.9 -0.72 Q -0.9 -0.9 -0.72 -0.9 Z',
+  class: 'M 0 -1 A 1 1 0 1 0 0 1 A 1 1 0 1 0 0 -1 Z',
+  interface: 'M 0 -1 L 1 0 L 0 1 L -1 0 Z',
+  type: 'M 0 -1 L 1 0.78 L -1 0.78 Z',
+  enum: 'M -0.78 -0.78 L 0.78 -0.78 L 0.78 0.78 L -0.78 0.78 Z',
+  function: 'M 0 -1 A 1 1 0 1 0 0 1 A 1 1 0 1 0 0 -1 Z',
+  method: 'M 0 -1 A 1 1 0 1 0 0 1 A 1 1 0 1 0 0 -1 Z',
+  route: 'M -1 -0.52 L 0.42 -0.52 L 1 0 L 0.42 0.52 L -1 0.52 Z',
+  external: 'M -0.38 -1 L 0.38 -1 L 1 -0.38 L 1 0.38 L 0.38 1 L -0.38 1 L -1 0.38 L -1 -0.38 Z',
+  wiki: 'M 0 -1 L 0.87 -0.5 L 0.87 0.5 L 0 1 L -0.87 0.5 L -0.87 -0.5 Z',
+}
+const SHAPE_CACHE = new Map()
+function shapeFor(kind) {
+  if (!SHAPE_CACHE.has(kind)) SHAPE_CACHE.set(kind, new Path2D(NODE_PATHS[kind] || NODE_PATHS.file))
+  return SHAPE_CACHE.get(kind)
+}
+function shapeSvg(kind, color, size = 11) {
+  const d = NODE_PATHS[kind] || NODE_PATHS.file
+  return `<svg class="tree-svg" width="${size}" height="${size}" viewBox="-1.2 -1.2 2.4 2.4" aria-hidden="true"><path d="${d}" fill="${color}" fill-opacity=".88" stroke="rgba(0,0,0,.55)" stroke-width=".12"/></svg>`
+}
+
+const WIKI_TYPE_COLOR = { summary: '#7ba7f7', entity: '#b58cff', concept: '#f0a35e' }
+const WIKI_EXTERNAL = new Set(['Langfuse', 'Ollama', 'DeepSeek', 'ParadeDB', 'PostgreSQL', 'Redis'])
+const WIKI_PAGES_SPEC = [
+  { id: 'wiki/chat-request', title: '聊天请求链路', type: 'summary', summary: '从 POST /chat 进入，ChatRoute 装配 ChatService，模型通过 retrieve 工具检索知识库并流式返回。', links: ['wiki/chatservice', 'wiki/retriever-factory', 'wiki/rrf', 'wiki/retrieve-tool', 'wiki/observability'], refs: ['ChatRoute', 'ChatService', 'buildAgentTools', 'buildRetrieveTool', 'RetrieverFactory', 'Langfuse'] , sequence: `sequenceDiagram
+  participant Browser
+  participant ChatRoute
+  participant ChatService
+  participant buildAgentTools
+  participant buildRetrieveTool
+  Browser->>ChatRoute: POST /chat
+  ChatRoute->>ChatService: ask(query)
+  ChatService->>buildAgentTools: 组装工具
+  buildAgentTools->>buildRetrieveTool: 注册 retrieve` },
+  { id: 'wiki/retrieval', title: '检索与融合', type: 'summary', summary: 'BM25 与向量两路召回，经 RRF 融合后交给模型；RetrieverFactory 负责组装。', links: ['wiki/retriever-factory', 'wiki/rrf', 'wiki/chat-request'], refs: ['RetrieverFactory', 'ParadeDbBm25Search', 'ParadeDbVectorSearch', 'RrfFuser'] },
+  { id: 'wiki/ingest', title: '入库流水线', type: 'summary', summary: 'URL 或文本进入 IngestFactory，经过 fetch、parse、chunk、embed、write 五个阶段。', links: ['wiki/ingest-factory', 'wiki/chat-request'], refs: ['IngestFactory', 'HttpFetcher', 'HtmlParser', 'LegacyChunker'] },
+  { id: 'wiki/observability', title: '观测与 Trace', type: 'summary', summary: 'endpoint 中间件、stage runner 和 Langfuse span processor 记录每次请求。', links: ['wiki/chatspanprocessor', 'wiki/langfuse', 'wiki/chat-request'], refs: ['createEndpointTrace', 'runStage', 'ChatSpanProcessor', 'Langfuse'] },
+  { id: 'wiki/multiturn', title: '多轮会话', type: 'summary', summary: '服务端按 session 读库历史，只回灌 text parts，最近 6 轮交给模型。', links: ['wiki/chatservice', 'wiki/chat-request'], refs: ['SessionsRoute', 'PostgresRepo', 'ChatService'] },
+  { id: 'wiki/chatservice', title: 'ChatService', type: 'entity', summary: '聊天编排类：装配模型、工具与会话历史。', links: ['wiki/chat-request', 'wiki/retrieve-tool', 'wiki/streaming'], refs: ['ChatService'] },
+  { id: 'wiki/retriever-factory', title: 'RetrieverFactory', type: 'entity', summary: '混合检索器工厂：装配 BM25、向量与 RRF。', links: ['wiki/retrieval', 'wiki/rrf'], refs: ['RetrieverFactory'] },
+  { id: 'wiki/ingest-factory', title: 'IngestFactory', type: 'entity', summary: '入库流水线工厂：按 Recipe 组装 stages。', links: ['wiki/ingest'], refs: ['IngestFactory'] },
+  { id: 'wiki/chatspanprocessor', title: 'ChatSpanProcessor', type: 'entity', summary: '把 chat 根 span 的 session 与 trace 信息写入 Langfuse。', links: ['wiki/observability', 'wiki/langfuse'], refs: ['ChatSpanProcessor'] },
+  { id: 'wiki/langfuse', title: 'Langfuse', type: 'entity', summary: '外部观测平台，保存 chat trace 与 session。', links: ['wiki/observability'], refs: ['Langfuse'] },
+  { id: 'wiki/rrf', title: 'RRF 融合', type: 'concept', summary: '按名次融合 BM25 与向量两路结果，不做分数归一化。', links: ['wiki/retrieval', 'wiki/retriever-factory'], refs: ['RrfFuser'] },
+  { id: 'wiki/retrieve-tool', title: '检索工具化', type: 'concept', summary: '把 retrieve 包成工具交给模型调用，最多 4 次有界重查。', links: ['wiki/chat-request', 'wiki/chatservice', 'wiki/retriever-factory'], refs: ['buildRetrieveTool', 'buildAgentTools'] },
+  { id: 'wiki/streaming', title: '流式输出', type: 'concept', summary: 'streamText 转 UI message stream，经 Hono 直通 SSE。', links: ['wiki/chat-request', 'wiki/chatservice'], refs: ['ChatService', 'ChatRoute'] },
+]
+
+const WIKI_PAGES = WIKI_PAGES_SPEC.map((page) => ({
+  ...page,
+  refs: page.refs.map((surface) => {
+    if (WIKI_EXTERNAL.has(surface)) return { surface, status: 'external', codeId: null, evidence: '外部依赖，代码图里没有' }
+    const hits = TOP_SYMBOLS_BY_NAME.get(surface) ?? []
+    if (hits.length === 1) return { surface, status: 'resolved', codeId: hits[0].id, evidence: `${hits[0].file}:${hits[0].line}` }
+    if (hits.length > 1) return { surface, status: 'ambiguous', codeId: null, evidence: `${hits.length} 个同名符号` }
+    return { surface, status: 'unresolved', codeId: null, evidence: '代码索引里没有这个名字' }
+  }),
+}))
+const WIKI_BY_ID = new Map(WIKI_PAGES.map((p) => [p.id, p]))
+
+const WIKI_NODES = []
+const wikiByType = { summary: [], entity: [], concept: [] }
+for (const p of WIKI_PAGES) wikiByType[p.type].push(p)
+const WIKI_TYPE_X = { summary: -760, entity: -480, concept: -200 }
+for (const [type, list] of Object.entries(wikiByType)) {
+  list.forEach((p, i) => {
+    WIKI_NODES.push({
+      id: p.id, kind: 'wiki', type, name: p.title, label: p.title, title: p.title,
+      summary: p.summary, group: `wiki/${type}`, x: WIKI_TYPE_X[type],
+      y: (i - (list.length - 1) / 2) * 120, r: 34, degree: p.refs.length, page: p,
+    })
+  })
+}
+const WIKI_EDGES = []
+for (const p of WIKI_PAGES) {
+  for (const target of p.links) if (WIKI_BY_ID.has(target)) WIKI_EDGES.push({ source: p.id, target, kind: 'wiki' })
+}
+
+const GHOST_NODES = []
+const GHOST_BY_ID = new Map()
+const resolvedSymbolIds = [...new Set(WIKI_PAGES.flatMap((p) => p.refs.map((r) => r.codeId)).filter(Boolean))]
+resolvedSymbolIds.forEach((id, i) => {
+  const src = SYMBOL_BY_ID.get(id)
+  if (!src) return
+  const cols = 4
+  const rows = Math.ceil(resolvedSymbolIds.length / cols)
+  const node = { ...src, ghost: true, x: 220 + (i % cols) * 230, y: (Math.floor(i / cols) - (rows - 1) / 2) * 112, r: 8 }
+  GHOST_NODES.push(node)
+  GHOST_BY_ID.set(id, node)
+})
+
+const WIKI_REFERENCES_BY_SYMBOL = new Map()
+for (const page of WIKI_PAGES) {
+  for (const ref of page.refs) {
+    if (!ref.codeId) continue
+    if (!WIKI_REFERENCES_BY_SYMBOL.has(ref.codeId)) WIKI_REFERENCES_BY_SYMBOL.set(ref.codeId, [])
+    const list = WIKI_REFERENCES_BY_SYMBOL.get(ref.codeId)
+    if (!list.includes(page)) list.push(page)
+  }
+}
+
+const EDGE_STYLE = {
+  contains: { color: '#475569', dash: [], width: 0.8, arrow: null, label: '归属 / 包含' },
+  import: { color: '#60a5fa', dash: [6, 4], width: 1, arrow: null, label: '编译依赖' },
+  call: { color: '#7ba7f7', dash: [], width: 1.15, arrow: 'filled', label: '调用' },
+  new: { color: '#f0a35e', dash: [6, 4], width: 1.15, arrow: 'filled', label: '实例化' },
+  render: { color: '#3dd6c3', dash: [], width: 1.15, arrow: 'filled', label: 'JSX 渲染' },
+  ref: { color: '#8b93a1', dash: [2, 3], width: 0.9, arrow: null, label: '值 / 类型引用' },
+  extends: { color: '#e2e8f0', dash: [], width: 1.25, arrow: 'hollow', label: '继承' },
+  implements: { color: '#a78bfa', dash: [5, 3], width: 1.2, arrow: 'hollow', label: '实现' },
+  route_handler: { color: '#34d399', dash: [], width: 1.1, arrow: 'filled', label: '路由绑定' },
+  http: { color: '#f472b6', dash: [9, 3, 2, 3], width: 1.2, arrow: 'filled', label: 'HTTP 契约' },
+  db: { color: '#f59e0b', dash: [6, 4], width: 1, arrow: 'filled', label: '数据读写（待建）' },
+  external: { color: '#94a3b8', dash: [2, 3], width: 1, arrow: null, label: '外部调用（待建）' },
+  wiki: { color: '#8b93a1', dash: [], width: 1.2, arrow: 'filled', label: 'Wiki 链接' },
+}
+const CODE_EDGE_KINDS = ['import', 'http', 'contains', 'call', 'new', 'render', 'ref', 'extends', 'implements', 'route_handler']
+const CODE_KIND_ORDER = ['module', 'file', 'class', 'interface', 'type', 'enum', 'function', 'method', 'route', 'external']
+const LOD_FILE = 0.9
+const LOD_SYMBOL = 1.35
+const LOD_METHOD = 2.15
+const LOD_LABEL = ['模块', '文件', '符号', '方法']
+const LOD_FILE_LIMIT = 48
+const LOD_SYMBOL_FILE_LIMIT = 8
+const LOD_METHOD_CLASS_LIMIT = 6
+const LAYER_COLOR = { presentation: '#38bdf8', interface: '#fb923c', application: '#a78bfa', infrastructure: '#94a3b8' }
+const LAYER_LABEL = { presentation: '表现层', interface: '接口层', application: '应用层', infrastructure: '基础设施' }
+
+const state = {
+  mode: 'code',
+  selected: null,
+  hovered: null,
+  search: '',
+  edgeKinds: new Set(['contains', 'import', 'call', 'new', 'render', 'ref', 'extends', 'implements', 'route_handler', 'http']),
+  kindShown: new Set(['module', 'file', 'class', 'interface', 'type', 'enum', 'function', 'method', 'route']),
+  typeEdges: true,
+  hideGenerated: false,
+  hideIsolated: false,
+  lodLevel: 0,
+  expandedModules: new Set(),
+  expandedFiles: new Set(),
+  expandedClasses: new Set(),
+}
+
+let viewNodes = []
+let viewNodeById = new Map()
+let viewEdges = []
+let adjacency = new Map()
+let matches = new Set()
+let contextIds = new Set()
+let cam = { scale: 1, tx: 0, ty: 0 }
+let dpr = 1
+let W = 0
+let H = 0
+let dragging = null
+let panning = null
+let moved = false
+let raf = 0
+let cameraAnim = 0
+let cameraAnimToken = 0
+let cameraTouched = false
+
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const tooltip = document.getElementById('tooltip')
+const detail = document.getElementById('detail')
+const searchInput = document.getElementById('search')
+const explorerEl = document.getElementById('explorer')
+const statsEl = document.getElementById('stats')
+const filtersEl = document.getElementById('filters')
+const matchesEl = document.getElementById('matches')
+const legendEl = document.getElementById('legend')
+const cyclesEl = document.getElementById('cycles')
+const externalsEl = document.getElementById('externals')
+const httpEl = document.getElementById('http')
+const docgraphEl = document.getElementById('docgraph')
+
+const dirname = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '')
+const basename = (p) => (p.includes('/') ? p.slice(p.lastIndexOf('/') + 1) : p)
+const shortPath = (p) => String(p || '').replace('app/server/src/', 'server/').replace('app/web/src/', 'web/')
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+function displayName(n) {
+  if (!n) return ''
+  if (n.kind === 'module') return n.label
+  if (n.kind === 'folder') return n.depth === 0 ? `${n.zone}/src` : n.name
+  if (n.kind === 'file') return n.label
+  if (n.kind === 'wiki') return n.title || n.label
+  return n.name || n.label || n.id
+}
+
+function colorOf(n) {
+  if (n.kind === 'module') return n.layer_color || LAYER_COLOR[n.layer] || '#94a3b8'
+  if (n.kind === 'wiki') return WIKI_TYPE_COLOR[n.type] || '#94a3b8'
+  return KIND_COLOR[n.kind] || '#94a3b8'
+}
+
+function moduleOfNode(n) {
+  if (!n) return null
+  if (n.kind === 'module') return n
+  return n.module_id ? MODULE_BY_KEY.get(n.module_id) : null
+}
+
+// ---------- layout ----------
+
+const MODULE_HOME = new Map()
+const EXTERNAL_POS = new Map()
+const FILE_DEPS_OUT = new Map()
+const FILE_DEPS_IN = new Map()
+const FILE_DEP_MAP = new Map()
+
+function addFileDep(source, target, dep) {
+  const key = `${source}|${target}|${dep.kind}`
+  const current = FILE_DEP_MAP.get(key)
+  if (current) {
+    current.count += dep.count || 1
+    if (dep.http_path) current.http_path = dep.http_path
+    return
+  }
+  FILE_DEP_MAP.set(key, { source, target, ...dep, count: dep.count || 1 })
+}
+for (const e of moduleGraph.edges) {
+  addFileDep(e.source, e.target, { kind: 'import', count: e.count || 1, typeOnly: e.kind === 'type' })
+}
+for (const call of symbolGraph.httpCalls) {
+  if (call.status !== 'resolved') continue
+  const route = SYMBOL_BY_ID.get(call.route_id)
+  if (!route?.file) continue
+  addFileDep(call.file, route.file, { kind: 'http', count: 1, http_method: call.method, http_path: call.route_path })
+}
+for (const dep of FILE_DEP_MAP.values()) {
+  if (!FILE_DEPS_OUT.has(dep.source)) FILE_DEPS_OUT.set(dep.source, [])
+  if (!FILE_DEPS_IN.has(dep.target)) FILE_DEPS_IN.set(dep.target, [])
+  FILE_DEPS_OUT.get(dep.source).push(dep)
+  FILE_DEPS_IN.get(dep.target).push(dep)
+}
+
+const positions = new Map()
+const TOP_SYMBOL_INDEX = new Map()
+for (const list of TOP_SYMBOLS_BY_FILE.values()) list.forEach((n, i) => TOP_SYMBOL_INDEX.set(n.id, i))
+const METHOD_INDEX = new Map()
+for (const list of METHODS_BY_CLASS.values()) list.forEach((n, i) => METHOD_INDEX.set(n.id, i))
+
+function hash01(text) {
+  let h = 2166136261
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return ((h >>> 0) % 100000) / 100000
+}
+function hashAngle(text) { return hash01(text) * Math.PI * 2 }
+
+function modulePos(id) {
+  return MODULE_HOME.get(id) || { x: 0, y: 0 }
+}
+
+function radiusOf(node) {
+  if (node.kind === 'module') return 27 + Math.min(7, Math.sqrt(node.file_count || 1) * 1.3)
+  if (node.kind === 'folder') return 18 + Math.min(6, Math.sqrt(node.total_files || 1) * 1.4)
+  if (node.kind === 'file') return 12 + Math.min(6, Math.sqrt((node.lines || 1) / 90))
+  if (node.kind === 'class') return 9 + Math.min(2.5, Math.sqrt(node.method_count || 0) * 0.6)
+  if (node.kind === 'route') return 9
+  if (node.kind === 'interface') return 8 + Math.min(1.5, (node.degree || 0) / 24)
+  if (node.kind === 'type' || node.kind === 'enum') return 7.6
+  if (node.kind === 'function') return 5 + Math.min(1.6, Math.sqrt(node.degree || 0) / 3)
+  if (node.kind === 'method') return 3.4 + Math.min(1.4, Math.sqrt(node.degree || 0) / 4)
+  if (node.kind === 'external') return 10
+  if (node.kind === 'wiki') return 34
+  return 6
+}
+
+function layoutModules() {
+  const sim = MODULE_NODES.map((node, i) => {
+    const angle = (i / MODULE_NODES.length) * Math.PI * 2 + hash01(node.id) * 0.45
+    const radius = 390 + hash01(`${node.id}:r`) * 150
+    return { id: node.id, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, vx: 0, vy: 0, r: radiusOf(node) }
+  })
+  const simById = new Map(sim.map((n) => [n.id, n]))
+  for (let iter = 0; iter < 320; iter++) {
+    for (let i = 0; i < sim.length; i++) {
+      const a = sim[i]
+      for (let j = i + 1; j < sim.length; j++) {
+        const b = sim[j]
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let d2 = dx * dx + dy * dy
+        if (d2 < 1) { dx = hash01(`${a.id}:${iter}`) - 0.5; dy = hash01(`${b.id}:${iter}`) - 0.5; d2 = 1 }
+        const d = Math.sqrt(d2)
+        const minD = a.r + b.r + 72
+        const force = (d < minD ? 140000 : 52000) / d2
+        const fx = (dx / d) * force
+        const fy = (dy / d) * force
+        a.vx -= fx; a.vy -= fy
+        b.vx += fx; b.vy += fy
+      }
+    }
+    for (const e of moduleGraph.moduleEdges) {
+      const a = simById.get(e.source)
+      const b = simById.get(e.target)
+      if (!a || !b) continue
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const d = Math.hypot(dx, dy) || 0.01
+      const weight = Math.log2((e.count || 1) + 1)
+      const ideal = Math.max(190, 300 - weight * 22)
+      const f = (d - ideal) * (0.0035 + weight * 0.0018)
+      const fx = (dx / d) * f
+      const fy = (dy / d) * f
+      a.vx += fx; a.vy += fy
+      b.vx -= fx; b.vy -= fy
+    }
+    for (const n of sim) {
+      n.vx += (0 - n.x) * 0.0035
+      n.vy += (0 - n.y) * 0.0035
+      n.vx *= 0.82
+      n.vy *= 0.82
+      n.x += Math.max(-16, Math.min(16, n.vx))
+      n.y += Math.max(-16, Math.min(16, n.vy))
+    }
+  }
+  for (let pass = 0; pass < 90; pass++) {
+    for (let i = 0; i < sim.length; i++) {
+      for (let j = i + 1; j < sim.length; j++) {
+        const a = sim[i]
+        const b = sim[j]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const d = Math.hypot(dx, dy) || 0.01
+        const minD = a.r + b.r + 56
+        if (d >= minD) continue
+        const push = (minD - d) / 2
+        const ux = dx / d
+        const uy = dy / d
+        a.x -= ux * push; a.y -= uy * push
+        b.x += ux * push; b.y += uy * push
+      }
+    }
+  }
+  const xs = sim.map((n) => n.x)
+  const ys = sim.map((n) => n.y)
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2
+  for (const n of sim) {
+    n.x -= cx
+    n.y -= cy
+    MODULE_HOME.set(n.id, { x: n.x, y: n.y })
+    positions.set(n.id, { x: n.x, y: n.y })
+  }
+  const maxX = Math.max(...sim.map((n) => n.x))
+  const externalCount = moduleGraph.externalNodes.length
+  moduleGraph.externalNodes.forEach((node, i) => {
+    const pos = { x: maxX + 280, y: (i - (externalCount - 1) / 2) * 115 }
+    EXTERNAL_POS.set(node.id, pos)
+    positions.set(node.id, pos)
+  })
+}
+
+function lodLevelForScale(scale) {
+  if (scale >= LOD_METHOD) return 3
+  if (scale >= LOD_SYMBOL) return 2
+  if (scale >= LOD_FILE) return 1
+  return 0
+}
+
+function viewportWorldRect(margin = 0.3) {
+  const scale = cam.scale || 1
+  const left = -cam.tx / scale
+  const top = -cam.ty / scale
+  const width = W / scale
+  const height = H / scale
+  return {
+    x1: left - width * margin,
+    x2: left + width * (1 + margin),
+    y1: top - height * margin,
+    y2: top + height * (1 + margin),
+  }
+}
+
+function insideRect(node, rect, pad = 0) {
+  return node.x >= rect.x1 - pad && node.x <= rect.x2 + pad && node.y >= rect.y1 - pad && node.y <= rect.y2 + pad
+}
+
+function distanceToCenter(x, y, center) {
+  return Math.hypot(x - center.x, y - center.y)
+}
+
+function lodFilePosition(file) {
+  const module = modulePos(`module:${file.module_id}`)
+  const siblings = FILE_NODES.filter((f) => f.module_id === file.module_id)
+  const index = Math.max(0, siblings.findIndex((f) => f.id === file.id))
+  const angle = index * 2.399963 + hash01(file.id) * 0.9
+  const radius = 74 + 18 * Math.sqrt(siblings.length)
+  return { x: module.x + Math.cos(angle) * radius, y: module.y + Math.sin(angle) * radius }
+}
+
+function meanPosition(list) {
+  if (!list.length) return null
+  let x = 0
+  let y = 0
+  for (const p of list) { x += p.x; y += p.y }
+  return { x: x / list.length, y: y / list.length }
+}
+
+function dependencyAnchors(node, role) {
+  const anchors = []
+  if (node.kind === 'file') {
+    const deps = role === 'context' ? FILE_DEPS_IN.get(node.id) || [] : FILE_DEPS_OUT.get(node.id) || []
+    for (const dep of deps) {
+      const p = positions.get(role === 'context' ? dep.source : dep.target)
+      if (p) anchors.push(p)
+    }
+    return anchors
+  }
+  for (const e of SYMBOL_EDGES_BY_SYMBOL.get(node.id) || []) {
+    const outgoing = e.source === node.id
+    if (role === 'context' ? outgoing : !outgoing) continue
+    let other = SYMBOL_BY_ID.get(outgoing ? e.target : e.source)
+    if (other?.kind === 'method') other = SYMBOL_BY_ID.get(other.class_id)
+    const p = other ? positions.get(other.id) : null
+    if (p) anchors.push(p)
+  }
+  return anchors
+}
+
+function seedNodePosition(node, role) {
+  if (node.kind === 'module') return modulePos(node.id)
+  if (node.kind === 'external') return EXTERNAL_POS.get(node.id) || { x: 0, y: 0 }
+  if (node.kind === 'method') {
+    const cls = SYMBOL_BY_ID.get(node.class_id)
+    const base = cls ? positions.get(cls.id) : null
+    const center = base || { x: 0, y: 0 }
+    const index = METHOD_INDEX.get(node.id) ?? 0
+    const count = (METHODS_BY_CLASS.get(node.class_id) || []).length || 1
+    const angle = (index / count) * Math.PI * 2 + hashAngle(node.id) * 0.4
+    return { x: center.x + Math.cos(angle) * 30, y: center.y + Math.sin(angle) * 30 }
+  }
+  if (node.kind === 'file') {
+    const module = modulePos(`module:${node.module_id}`)
+    const siblings = FILE_NODES.filter((f) => f.module_id === node.module_id)
+    const index = Math.max(0, siblings.findIndex((f) => f.id === node.id))
+    const angle = index * 2.399963 + hash01(node.id) * 0.9
+    const radius = 74 + 18 * Math.sqrt(siblings.length)
+    let pos = { x: module.x + Math.cos(angle) * radius, y: module.y + Math.sin(angle) * radius }
+    const anchors = dependencyAnchors(node, role)
+    const mean = meanPosition(anchors)
+    if (mean) {
+      const blend = role === 'context' ? 0.68 : 0.32
+      pos = { x: pos.x * (1 - blend) + mean.x * blend, y: pos.y * (1 - blend) + mean.y * blend }
+    }
+    return { x: pos.x + (hash01(node.id) - 0.5) * 16, y: pos.y + (hash01(`${node.id}:y`) - 0.5) * 16 }
+  }
+  const file = FILE_BY_ID.get(node.file)
+  const parent = file ? positions.get(file.id) : null
+  const center = parent || modulePos(file ? `module:${file.module_id}` : 'module:core')
+  const siblings = TOP_SYMBOLS_BY_FILE.get(node.file) || [node]
+  const index = Math.max(0, siblings.findIndex((s) => s.id === node.id))
+  const angle = (index / Math.max(1, siblings.length)) * Math.PI * 2 + hash01(node.id) * 0.7
+  const radius = 44 + 10 * Math.sqrt(siblings.length)
+  let pos = { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }
+  const anchors = dependencyAnchors(node, role)
+  const mean = meanPosition(anchors)
+  if (mean) {
+    const blend = role === 'context' ? 0.7 : 0.28
+    pos = { x: pos.x * (1 - blend) + mean.x * blend, y: pos.y * (1 - blend) + mean.y * blend }
+  }
+  return { x: pos.x + (hash01(node.id) - 0.5) * 12, y: pos.y + (hash01(`${node.id}:y`) - 0.5) * 12 }
+}
+
+function edgeIdeal(e, a, b) {
+  if (e.kind === 'contains') {
+    if (a.kind === 'module' || b.kind === 'module') return 150
+    if (a.kind === 'class' || b.kind === 'class') return 32
+    return 52
+  }
+  if (e.kind === 'import' || e.kind === 'http') return 150
+  if (e.kind === 'call' || e.kind === 'render' || e.kind === 'new') return 80
+  if (e.kind === 'ref' || e.kind === 'extends' || e.kind === 'implements') return 70
+  return 120
+}
+
+function layoutNewNodes(newNodes, allNodes, edges) {
+  if (!newNodes.length) return
+  const newIds = new Set(newNodes.map((n) => n.id))
+  const allById = new Map(allNodes.map((n) => [n.id, n]))
+  const existing = allNodes.filter((n) => !newIds.has(n.id))
+  for (const n of newNodes) {
+    n.seedX = n.x
+    n.seedY = n.y
+    n.vx = 0
+    n.vy = 0
+  }
+  const iterations = newNodes.length > 140 ? 48 : 70
+  const cutoff = 460
+  const cutoff2 = cutoff * cutoff
+  for (let iter = 0; iter < iterations; iter++) {
+    for (let i = 0; i < newNodes.length; i++) {
+      const a = newNodes[i]
+      for (let j = i + 1; j < newNodes.length; j++) {
+        const b = newNodes[j]
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let d2 = dx * dx + dy * dy
+        if (d2 < 1) { dx = hash01(`${a.id}:${iter}`) - 0.5; dy = hash01(`${b.id}:${iter}`) - 0.5; d2 = 1 }
+        const d = Math.sqrt(d2)
+        if (d2 > cutoff2) continue
+        const minD = a.r + b.r + 10
+        const force = (d < minD ? 12000 : 3200) / d2
+        const fx = (dx / d) * force
+        const fy = (dy / d) * force
+        a.vx -= fx; a.vy -= fy
+        b.vx += fx; b.vy += fy
+      }
+    }
+    for (const a of newNodes) {
+      for (const b of existing) {
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        const d2 = dx * dx + dy * dy
+        if (d2 > cutoff2 || d2 < 0.01) continue
+        const d = Math.sqrt(d2)
+        const minD = a.r + b.r + 10
+        if (d >= minD) continue
+        const push = (minD - d) * 0.08
+        a.vx += (dx / d) * push
+        a.vy += (dy / d) * push
+      }
+    }
+    for (const e of edges) {
+      const a = allById.get(e.source)
+      const b = allById.get(e.target)
+      if (!a || !b) continue
+      const aNew = newIds.has(a.id)
+      const bNew = newIds.has(b.id)
+      if (!aNew && !bNew) continue
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const d = Math.hypot(dx, dy) || 0.01
+      const ideal = edgeIdeal(e, a, b)
+      const f = (d - ideal) * (e.kind === 'contains' ? 0.04 : 0.012)
+      const fx = (dx / d) * f
+      const fy = (dy / d) * f
+      if (aNew && bNew) {
+        a.vx += fx * 0.5; a.vy += fy * 0.5
+        b.vx -= fx * 0.5; b.vy -= fy * 0.5
+      } else if (aNew) {
+        a.vx += fx; a.vy += fy
+      } else {
+        b.vx -= fx; b.vy -= fy
+      }
+    }
+    for (const n of newNodes) {
+      n.vx += (n.seedX - n.x) * 0.012
+      n.vy += (n.seedY - n.y) * 0.012
+      n.vx *= 0.72
+      n.vy *= 0.72
+      n.x += Math.max(-16, Math.min(16, n.vx))
+      n.y += Math.max(-16, Math.min(16, n.vy))
+    }
+  }
+  for (const n of newNodes) positions.set(n.id, { x: n.x, y: n.y })
+}
+
+function prepareLayout(nodes, edges) {
+  for (const n of nodes) {
+    n.r = radiusOf(n)
+    const p = positions.get(n.id)
+    if (p) { n.x = p.x; n.y = p.y }
+  }
+  const fresh = nodes.filter((n) => !positions.has(n.id))
+  const rank = (n) => {
+    if (n.kind === 'module') return 0
+    if (n.kind === 'file') return contextIds.has(n.id) ? 2 : 1
+    if (n.kind === 'method') return 5
+    return contextIds.has(n.id) ? 4 : 3
+  }
+  fresh.sort((a, b) => rank(a) - rank(b))
+  for (const n of fresh) {
+    const pos = seedNodePosition(n, contextIds.has(n.id) ? 'context' : 'base')
+    positions.set(n.id, pos)
+    n.x = pos.x
+    n.y = pos.y
+  }
+  layoutNewNodes(fresh, nodes, edges)
+  for (const n of nodes) {
+    const p = positions.get(n.id)
+    if (p) { n.x = p.x; n.y = p.y }
+  }
+}
+
+function topSymbolsOfFile(fileId) {
+  return TOP_SYMBOLS_BY_FILE.get(fileId) || []
+}
+
+function methodsOfClass(classId) {
+  return METHODS_BY_CLASS.get(classId) || []
+}
+
+// ---------- view graph ----------
+
+function visibleNodes() {
+  const roles = new Map()
+  const out = []
+  const context = new Set()
+  const add = (node, role = 'base') => {
+    if (!node || node.kind === 'folder') return false
+    if (!state.kindShown.has(node.kind)) return false
+    if (state.hideGenerated) {
+      if (node.kind === 'file' && node.generated) return false
+      if (node.file && FILE_BY_ID.get(node.file)?.generated) return false
+    }
+    const previous = roles.get(node.id)
+    if (previous) {
+      if (previous === 'context' && role === 'base') {
+        roles.set(node.id, 'base')
+        context.delete(node.id)
+      }
+      return false
+    }
+    roles.set(node.id, role)
+    if (role === 'context') context.add(node.id)
+    out.push(node)
+    return true
+  }
+
+  for (const module of MODULE_NODES) add(module, 'base')
+  if (state.kindShown.has('external')) for (const node of moduleGraph.externalNodes) add(node, 'base')
+
+  const explicitFiles = new Set()
+  for (const moduleId of state.expandedModules) {
+    const module = MODULE_BY_ID.get(moduleId)
+    if (!module) continue
+    for (const file of FILE_NODES) {
+      if (file.module_id !== module.module_id) continue
+      add(file, 'base')
+      explicitFiles.add(file.id)
+    }
+  }
+  if (state.selected) {
+    const selected = CODE_BY_ID.get(state.selected)
+    if (selected?.kind === 'file') {
+      add(selected, 'base')
+      explicitFiles.add(selected.id)
+    }
+  }
+
+  if (state.lodLevel >= 1) {
+    const rect = viewportWorldRect(0.18)
+    const center = { x: (rect.x1 + rect.x2) / 2, y: (rect.y1 + rect.y2) / 2 }
+    const nearestModule = MODULE_NODES
+      .filter((module) => roles.has(module.id) && insideRect(module, rect, module.r + 120))
+      .sort((a, b) => distanceToCenter(a.x, a.y, center) - distanceToCenter(b.x, b.y, center))[0]
+    if (nearestModule) {
+      const files = FILE_NODES
+        .filter((file) => file.module_id === nearestModule.module_id)
+        .map((file) => ({ file, p: positions.get(file.id) || lodFilePosition(file) }))
+        .sort((a, b) => distanceToCenter(a.p.x, a.p.y, center) - distanceToCenter(b.p.x, b.p.y, center))
+        .slice(0, LOD_FILE_LIMIT)
+      for (const { file } of files) add(file, 'base')
+    }
+  }
+
+  for (const fileId of state.expandedFiles) {
+    const file = FILE_BY_ID.get(fileId)
+    if (!file) continue
+    add(file, 'base')
+    explicitFiles.add(fileId)
+  }
+
+  for (const fileId of explicitFiles) {
+    for (const dep of FILE_DEPS_OUT.get(fileId) || []) {
+      const target = FILE_BY_ID.get(dep.target)
+      if (target && !roles.has(target.id)) add(target, 'context')
+    }
+  }
+
+  const explicitSymbolIds = new Set()
+  for (const fileId of state.expandedFiles) {
+    const file = FILE_BY_ID.get(fileId)
+    if (!file) continue
+    add(file, 'base')
+    for (const symbol of topSymbolsOfFile(fileId)) {
+      add(symbol, 'base')
+      explicitSymbolIds.add(symbol.id)
+    }
+  }
+
+  if (state.lodLevel >= 2) {
+    const rect = viewportWorldRect(0.18)
+    const center = { x: (rect.x1 + rect.x2) / 2, y: (rect.y1 + rect.y2) / 2 }
+    const nearestFiles = FILE_NODES
+      .filter((file) => roles.get(file.id) === 'base')
+      .map((file) => ({ file, p: positions.get(file.id) || lodFilePosition(file) }))
+      .filter((item) => insideRect(item.p, rect, 90))
+      .sort((a, b) => distanceToCenter(a.p.x, a.p.y, center) - distanceToCenter(b.p.x, b.p.y, center))
+      .slice(0, LOD_SYMBOL_FILE_LIMIT)
+    for (const { file } of nearestFiles) {
+      for (const symbol of topSymbolsOfFile(file.id)) add(symbol, 'base')
+    }
+  }
+
+  if (state.selected) {
+    const selected = CODE_BY_ID.get(state.selected)
+    if (selected && selected.kind !== 'module' && selected.kind !== 'file' && selected.file) {
+      const file = FILE_BY_ID.get(selected.file)
+      if (file) add(file, 'base')
+      if (selected.kind === 'method' && selected.class_id) add(SYMBOL_BY_ID.get(selected.class_id), 'base')
+      add(selected, 'base')
+    }
+  }
+
+  for (const symbolId of explicitSymbolIds) {
+    const symbol = SYMBOL_BY_ID.get(symbolId)
+    if (!symbol) continue
+    for (const e of SYMBOL_EDGES_BY_SYMBOL.get(symbol.id) || []) {
+      if (e.source !== symbol.id) continue
+      let target = SYMBOL_BY_ID.get(e.target)
+      if (target?.kind === 'method') target = SYMBOL_BY_ID.get(target.class_id)
+      if (!target || roles.has(target.id)) continue
+      add(target, 'context')
+      const targetFile = FILE_BY_ID.get(target.file)
+      if (targetFile) add(targetFile, 'context')
+    }
+  }
+
+  const methodRect = state.lodLevel >= 3 ? viewportWorldRect(0.18) : null
+  const lodClassIds = new Set()
+  if (methodRect) {
+    const center = { x: (methodRect.x1 + methodRect.x2) / 2, y: (methodRect.y1 + methodRect.y2) / 2 }
+    const classes = out
+      .filter((n) => n.kind === 'class' && roles.get(n.id) === 'base' && Number.isFinite(n.x) && insideRect(n, methodRect, 60))
+      .sort((a, b) => distanceToCenter(a.x, a.y, center) - distanceToCenter(b.x, b.y, center))
+      .slice(0, LOD_METHOD_CLASS_LIMIT)
+    for (const cls of classes) lodClassIds.add(cls.id)
+  }
+  for (const node of out.slice()) {
+    if (node.kind !== 'class') continue
+    if (!state.expandedClasses.has(node.id) && !lodClassIds.has(node.id)) continue
+    for (const method of methodsOfClass(node.id)) add(method, 'base')
+  }
+
+  contextIds = context
+  return out
+}
+
+function proxyEndpoint(id, byId) {
+  if (byId.has(id)) return id
+  const node = CODE_BY_ID.get(id)
+  if (node && node.kind === 'method' && node.class_id && byId.has(node.class_id)) return node.class_id
+  return null
+}
+
+function buildEdges(nodes) {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const raw = []
+  const push = (e) => {
+    if (!e || !state.edgeKinds.has(e.kind)) return
+    raw.push(e)
+  }
+  for (const e of moduleGraph.moduleEdges) {
+    if (byId.has(e.source) && byId.has(e.target)) push({ ...e, kind: e.kind || 'import', aggregate: true })
+  }
+  for (const file of nodes) {
+    if (file.kind !== 'file') continue
+    const moduleId = `module:${file.module_id}`
+    if (byId.has(moduleId)) push({ source: moduleId, target: file.id, kind: 'contains', count: 1 })
+  }
+  for (const dep of FILE_DEP_MAP.values()) {
+    if (!byId.has(dep.source) || !byId.has(dep.target)) continue
+    if (dep.kind === 'import' && dep.typeOnly && !state.typeEdges) continue
+    push({ ...dep })
+  }
+  for (const node of nodes) {
+    if (node.kind !== 'method' && node.file && byId.has(node.file)) {
+      push({ source: node.file, target: node.id, kind: 'contains', count: 1 })
+    }
+    if (node.kind === 'method' && node.class_id && byId.has(node.class_id)) {
+      push({ source: node.class_id, target: node.id, kind: 'contains', count: 1 })
+    }
+  }
+  for (const e of symbolGraph.edges) {
+    if (!state.edgeKinds.has(e.kind)) continue
+    const source = proxyEndpoint(e.source, byId)
+    const target = proxyEndpoint(e.target, byId)
+    if (!source || !target || source === target) continue
+    push({ ...e, source, target, proxied: source !== e.source || target !== e.target })
+  }
+  const map = new Map()
+  for (const e of raw) {
+    const key = `${e.kind}|${e.source}|${e.target}`
+    const cur = map.get(key)
+    if (!cur) {
+      map.set(key, { ...e, count: e.count || 1 })
+      continue
+    }
+    cur.count = (cur.count || 1) + (e.count || 1)
+    if (e.typeOnly) cur.typeOnly = true
+    if (e.proxied) cur.proxied = true
+  }
+  return [...map.values()]
+}
+
+function buildGraph() {
+  contextIds = new Set()
+  if (state.mode === 'wiki') {
+    viewNodes = [...WIKI_NODES, ...GHOST_NODES]
+    viewEdges = WIKI_EDGES
+    viewNodeById = new Map(viewNodes.map((n) => [n.id, n]))
+    adjacency = new Map(viewNodes.map((n) => [n.id, new Set()]))
+    for (const e of viewEdges) {
+      adjacency.get(e.source)?.add(e.target)
+      adjacency.get(e.target)?.add(e.source)
+    }
+    return
+  }
+  state.lodLevel = lodLevelForScale(cam.scale)
+  let nodes = visibleNodes()
+  let edges = buildEdges(nodes)
+  if (state.hideIsolated) {
+    const linked = new Set()
+    for (const e of edges) { linked.add(e.source); linked.add(e.target) }
+    const kept = nodes.filter((n) => linked.has(n.id) || n.id === state.selected)
+    if (kept.length !== nodes.length) {
+      nodes = kept
+      edges = buildEdges(nodes)
+    }
+  }
+  viewNodes = nodes
+  viewEdges = edges
+  viewNodeById = new Map(viewNodes.map((n) => [n.id, n]))
+  adjacency = new Map(viewNodes.map((n) => [n.id, new Set()]))
+  for (const e of viewEdges) {
+    adjacency.get(e.source)?.add(e.target)
+    adjacency.get(e.target)?.add(e.source)
+  }
+  prepareLayout(viewNodes, viewEdges)
+}
+
+function rebuild() {
+  buildGraph()
+  computeMatches()
+  renderSidebar()
+  renderDetail()
+  requestDraw()
+}
+
+// ---------- search ----------
+
+function searchableNodes() {
+  if (state.mode === 'wiki') return [...WIKI_NODES, ...GHOST_NODES]
+  return [...FILE_NODES, ...MODULE_NODES, ...SYMBOL_NODES, ...moduleGraph.externalNodes]
+}
+
+function nodeHaystack(n) {
+  const module = moduleOfNode(n)
+  return [
+    n.name, n.label, n.title, n.qualified_name, n.file, n.path, n.http_path, n.type_shape,
+    n.module_id, module?.label, n.summary, n.type, n.id,
+  ].filter(Boolean).join(' ').toLowerCase()
+}
+
+function computeMatches() {
+  matches = new Set()
+  const q = state.search.trim().toLowerCase()
+  if (!q) return
+  for (const n of searchableNodes()) if (nodeHaystack(n).includes(q)) matches.add(n.id)
+}
+
+// ---------- camera ----------
+
+function requestDraw() {
+  if (raf) return
+  raf = requestAnimationFrame(() => { raf = 0; draw() })
+}
+
+function fit() {
+  fitToNodes(viewNodes)
+  const nextLevel = lodLevelForScale(cam.scale)
+  if (state.mode === 'code' && nextLevel !== state.lodLevel) rebuild()
+}
+
+function fitToNodes(nodes, touch = false) {
+  if (!nodes.length) return
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x - n.r)
+    maxX = Math.max(maxX, n.x + n.r)
+    minY = Math.min(minY, n.y - n.r)
+    maxY = Math.max(maxY, n.y + n.r)
+  }
+  const pad = 56
+  const s = Math.min((W - pad * 2) / Math.max(1, maxX - minX), (H - pad * 2) / Math.max(1, maxY - minY))
+  let scale = Math.max(0.04, Math.min(3, s))
+  if (state.mode === 'code' && state.lodLevel === 0 && !state.expandedModules.size && !state.expandedFiles.size) {
+    scale = Math.min(scale, LOD_FILE * 0.95)
+  }
+  cam.scale = scale
+  cam.tx = W / 2 - ((minX + maxX) / 2) * cam.scale
+  cam.ty = H / 2 - ((minY + maxY) / 2) * cam.scale
+  if (touch) cameraTouched = true
+  requestDraw()
+}
+
+function cancelCameraAnim() {
+  if (cameraAnim) cancelAnimationFrame(cameraAnim)
+  cameraAnim = 0
+  cameraAnimToken += 1
+}
+
+function animateCameraTo(scale, worldX, worldY, duration = 320) {
+  const targetScale = Math.max(0.04, Math.min(2.8, scale))
+  const target = {
+    scale: targetScale,
+    tx: W / 2 - worldX * targetScale,
+    ty: H / 2 - worldY * targetScale,
+  }
+  const from = { ...cam }
+  const start = performance.now()
+  cancelCameraAnim()
+  const token = ++cameraAnimToken
+  const tick = (now) => {
+    if (token !== cameraAnimToken) return
+    const t = Math.min(1, (now - start) / duration)
+    const eased = 1 - Math.pow(1 - t, 3)
+    cam.scale = from.scale + (target.scale - from.scale) * eased
+    cam.tx = from.tx + (target.tx - from.tx) * eased
+    cam.ty = from.ty + (target.ty - from.ty) * eased
+    cameraTouched = true
+    requestDraw()
+    if (t < 1) {
+      cameraAnim = requestAnimationFrame(tick)
+    } else {
+      cameraAnim = 0
+      const nextLevel = lodLevelForScale(cam.scale)
+      if (nextLevel !== state.lodLevel) rebuild()
+    }
+  }
+  cameraAnim = requestAnimationFrame(tick)
+}
+
+function nodeOnScreen(node) {
+  const x = node.x * cam.scale + cam.tx
+  const y = node.y * cam.scale + cam.ty
+  return x > 32 && x < W - 32 && y > 32 && y < H - 32
+}
+
+function centerOnNode(id, targetScale = cam.scale) {
+  const node = viewNodeById.get(id) || GHOST_BY_ID.get(id)
+  if (!node) return false
+  const scaleChanged = Math.abs(targetScale - cam.scale) > 0.02
+  if (scaleChanged || !nodeOnScreen(node)) animateCameraTo(targetScale, node.x, node.y)
+  return true
+}
+
+function toWorld(px, py) {
+  return { x: (px - cam.tx) / cam.scale, y: (py - cam.ty) / cam.scale }
+}
+
+function nodeAt(px, py) {
+  const p = toWorld(px, py)
+  let best = null
+  let bestD = Infinity
+  for (const n of viewNodes) {
+    const d = Math.hypot(n.x - p.x, n.y - p.y)
+    if (d < n.r + 6 / cam.scale && d < bestD) { best = n; bestD = d }
+  }
+  return best
+}
+
+// ---------- draw ----------
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1)
+  const rect = canvas.getBoundingClientRect()
+  W = rect.width
+  H = rect.height
+  canvas.width = Math.round(W * dpr)
+  canvas.height = Math.round(H * dpr)
+  if (!cameraTouched && viewNodes.length && W > 80 && H > 80) fit()
+  draw()
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, W, H)
+  const bg = ctx.createLinearGradient(0, 0, 0, H)
+  bg.addColorStop(0, '#0b0c0f')
+  bg.addColorStop(1, '#08090b')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+  drawGrid()
+  ctx.save()
+  ctx.translate(cam.tx, cam.ty)
+  ctx.scale(cam.scale, cam.scale)
+  drawEdges()
+  drawWikiMatches()
+  drawNodes()
+  drawLabels()
+  ctx.restore()
+}
+
+function drawGrid() {
+  const step = 80 * cam.scale
+  if (step < 26) return
+  ctx.fillStyle = 'rgba(255,255,255,0.045)'
+  const ox = cam.tx % step
+  const oy = cam.ty % step
+  for (let x = ox; x < W; x += step) {
+    for (let y = oy; y < H; y += step) ctx.fillRect(x, y, 1, 1)
+  }
+}
+
+function edgeDash(kind, scale) {
+  const style = EDGE_STYLE[kind] || EDGE_STYLE.ref
+  return (style.dash || []).map((x) => x / scale)
+}
+
+function drawArrowHead(x1, y1, x2, y2, style, color, scale, alpha) {
+  const angle = Math.atan2(y2 - y1, x2 - x1)
+  const size = (style.arrow === 'hollow' ? 9 : 6.5) / scale
+  const spread = 0.46
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.beginPath()
+  ctx.moveTo(x2, y2)
+  ctx.lineTo(x2 - Math.cos(angle - spread) * size, y2 - Math.sin(angle - spread) * size)
+  ctx.lineTo(x2 - Math.cos(angle + spread) * size, y2 - Math.sin(angle + spread) * size)
+  ctx.closePath()
+  if (style.arrow === 'hollow') {
+    ctx.fillStyle = '#0b0c0f'
+    ctx.fill()
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.2 / scale
+    ctx.stroke()
+  } else {
+    ctx.fillStyle = color
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawEdgeLabel(text, x, y, color, scale, alpha) {
+  if (!text) return
+  const size = 9.5 / scale
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.font = `${size}px ui-sans-serif, -apple-system, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  const tw = ctx.measureText(text).width
+  ctx.fillStyle = 'rgba(8,9,11,.84)'
+  ctx.fillRect(x - tw / 2 - 3 / scale, y - size * 0.7, tw + 6 / scale, size * 1.4)
+  ctx.fillStyle = color
+  ctx.fillText(text, x, y)
+  ctx.restore()
+}
+
+function drawEdges() {
+  const sel = state.selected
+  const scale = cam.scale
+  ctx.lineCap = 'round'
+  for (const e of viewEdges) {
+    const a = viewNodeById.get(e.source)
+    const b = viewNodeById.get(e.target)
+    if (!a || !b) continue
+    const style = EDGE_STYLE[e.kind] || EDGE_STYLE.ref
+    const connected = sel && (e.source === sel || e.target === sel)
+    let alpha = sel ? (connected ? 0.9 : 0.035) : state.mode === 'wiki' ? 0.42 : 0.18
+    if (!sel && matches.size && (matches.has(e.source) || matches.has(e.target))) alpha = Math.max(alpha, 0.52)
+    if (e.kind === 'contains') alpha *= 0.62
+    if (e.typeOnly) alpha *= 0.75
+    if (e.aggregate && state.lodLevel > 0) alpha *= 0.38
+    if (alpha < 0.03) continue
+    const color = style.color
+    ctx.strokeStyle = color
+    ctx.globalAlpha = alpha
+    const width = (connected ? 1.7 : style.width) * (e.aggregate ? Math.min(2.4, 1 + Math.log2(Math.max(1, e.count)) / 3) : 1)
+    ctx.lineWidth = width / scale
+    ctx.setLineDash(edgeDash(e.kind, scale))
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const d = Math.hypot(dx, dy) || 1
+    const ux = dx / d
+    const uy = dy / d
+    const sa = a.r + 2 / scale
+    const sb = b.r + 2 / scale
+    const x1 = a.x + ux * sa
+    const y1 = a.y + uy * sa
+    const x2 = b.x - ux * sb
+    const y2 = b.y - uy * sb
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+    ctx.setLineDash([])
+    if (style.arrow) drawArrowHead(x1, y1, x2, y2, style, color, scale, alpha)
+    const mx = (x1 + x2) / 2
+    const my = (y1 + y2) / 2
+    if (e.kind === 'http' && e.http_path && (connected || scale > 0.72)) {
+      drawEdgeLabel(`${e.http_method || ''} ${e.http_path || ''}`.trim(), mx, my - 7 / scale, color, scale, Math.max(alpha, 0.72))
+    } else if (e.kind === 'new' && (connected || scale > 0.72)) {
+      drawEdgeLabel('«create»', mx, my - 7 / scale, color, scale, Math.max(alpha, 0.72))
+    } else if (e.aggregate && scale > 0.24 && (state.lodLevel === 0 || connected)) {
+      drawEdgeLabel(String(e.count || 1), mx, my - 6 / scale, '#a9b0ba', scale, Math.max(alpha, 0.62))
+    } else if (e.kind === 'route_handler' && connected && scale > 0.45) {
+      drawEdgeLabel('handler', mx, my - 6 / scale, color, scale, 0.8)
+    }
+  }
+  ctx.globalAlpha = 1
+}
+
+function drawWikiMatches() {
+  const pairs = wikiMatchPairs()
+  if (!pairs.length) return
+  const scale = cam.scale
+  for (const { page, code, surface } of pairs) {
+    const pageNode = viewNodeById.get(page.id) || page
+    const dx = code.x - pageNode.x
+    const dy = code.y - pageNode.y
+    const d = Math.hypot(dx, dy) || 1
+    const ux = dx / d
+    const uy = dy / d
+    const x1 = pageNode.x + ux * pageNode.r
+    const y1 = pageNode.y + uy * pageNode.r
+    const x2 = code.x - ux * code.r
+    const y2 = code.y - uy * code.r
+    ctx.save()
+    ctx.strokeStyle = 'rgba(158,240,168,.85)'
+    ctx.lineWidth = 1.6 / scale
+    ctx.setLineDash([5 / scale, 4 / scale])
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+    ctx.setLineDash([])
+    if (pairs.length === 1) {
+      const mx = (x1 + x2) / 2
+      const my = (y1 + y2) / 2
+      ctx.font = `${10 / scale}px ui-sans-serif, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const tw = ctx.measureText(surface).width * scale
+      ctx.fillStyle = '#0b0c0f'
+      ctx.fillRect(mx - tw / 2 - 4 / scale, my - 8 / scale, tw + 8 / scale, 16 / scale)
+      ctx.fillStyle = '#9ef0a8'
+      ctx.fillText(surface, mx, my)
+    }
+    ctx.restore()
+  }
+}
+
+function drawNodeIcon(n, fill) {
+  const scale = cam.scale
+  if (n.r * scale < 5.2) return
+  const r = n.r
+  ctx.save()
+  ctx.strokeStyle = 'rgba(7,9,12,.8)'
+  ctx.fillStyle = 'rgba(7,9,12,.8)'
+  ctx.lineWidth = Math.max(0.7, 1.1 / scale)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  if (n.kind === 'route' || n.kind === 'external') {
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.34, 0)
+    ctx.lineTo(r * 0.3, 0)
+    ctx.moveTo(r * 0.08, -r * 0.18)
+    ctx.lineTo(r * 0.3, 0)
+    ctx.lineTo(r * 0.08, r * 0.18)
+    ctx.stroke()
+  } else {
+    const icon = KIND_ICON[n.kind]
+    if (!icon) { ctx.restore(); return }
+    ctx.font = `600 ${Math.max(5, r * 0.82)}px ui-sans-serif, -apple-system, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(icon, 0, r * 0.04)
+  }
+  ctx.restore()
+}
+
+function drawNodes() {
+  const sel = state.selected
+  const neighbors = sel ? adjacency.get(sel) : null
+  const wikiMatched = state.mode === 'wiki' ? wikiMatchedIds() : new Set()
+  const wikiPageSelected = state.mode === 'wiki' && sel && WIKI_BY_ID.has(sel)
+  const scale = cam.scale
+  for (const n of viewNodes) {
+    if (wikiPageSelected && n.ghost && !wikiMatched.has(n.id)) continue
+    const inFocus = !sel || n.id === sel || neighbors?.has(n.id) || wikiMatched.has(n.id)
+    const isMatch = matches.has(n.id)
+    const fill = colorOf(n)
+    const isContext = contextIds.has(n.id)
+    const baseAlpha = inFocus ? (isContext ? 0.5 : 1) : 0.12
+    ctx.globalAlpha = inFocus ? 1 : 0.12
+    if (n.id === sel) {
+      const halo = n.r + 11 / scale
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, Math.max(1, halo), 0, Math.PI * 2)
+      ctx.fillStyle = fill
+      ctx.globalAlpha = 0.16
+      ctx.fill()
+      ctx.restore()
+    }
+    const path = shapeFor(n.kind)
+    ctx.save()
+    ctx.translate(n.x, n.y)
+    ctx.scale(n.r, n.r)
+    ctx.fillStyle = fill
+    ctx.globalAlpha = baseAlpha * (n.kind === 'function' && !n.exported ? 0.7 : n.kind === 'external' ? 0.58 : 0.92)
+    ctx.fill(path)
+    ctx.globalAlpha = baseAlpha
+    ctx.strokeStyle = 'rgba(0,0,0,.48)'
+    ctx.lineWidth = 1.1 / (scale * n.r)
+    ctx.stroke(path)
+    if (n.kind === 'module') {
+      ctx.globalAlpha = baseAlpha * 0.45
+      ctx.scale(0.58, 0.58)
+      ctx.strokeStyle = 'rgba(7,9,12,.55)'
+      ctx.lineWidth = 1.4 / (scale * n.r * 0.58)
+      ctx.stroke(path)
+    } else if (n.kind === 'file') {
+      ctx.globalAlpha = baseAlpha * 0.45
+      ctx.strokeStyle = 'rgba(7,9,12,.55)'
+      ctx.lineWidth = 1.2 / (scale * n.r)
+      ctx.beginPath()
+      ctx.moveTo(-0.42, 0)
+      ctx.lineTo(0.42, 0)
+      ctx.stroke()
+    }
+    ctx.restore()
+    if (n.kind === 'class') {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r * 1.24, 0, Math.PI * 2)
+      ctx.globalAlpha = baseAlpha * 0.45
+      ctx.strokeStyle = fill
+      ctx.lineWidth = 1 / scale
+      ctx.stroke()
+    } else if (n.kind === 'route') {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, Math.max(1, n.r * 0.2), 0, Math.PI * 2)
+      ctx.globalAlpha = baseAlpha * 0.7
+      ctx.fillStyle = 'rgba(7,9,12,.7)'
+      ctx.fill()
+    }
+    if (n.kind === 'external' || n.unresolved) {
+      ctx.save()
+      ctx.translate(n.x, n.y)
+      ctx.scale(n.r, n.r)
+      ctx.setLineDash([3 / (scale * n.r), 3 / (scale * n.r)])
+      ctx.strokeStyle = 'rgba(203,213,225,.65)'
+      ctx.globalAlpha = baseAlpha
+      ctx.lineWidth = 1.1 / (scale * n.r)
+      ctx.stroke(path)
+      ctx.restore()
+    }
+    if (n.generated) {
+      ctx.save()
+      ctx.setLineDash([2 / scale, 3 / scale])
+      ctx.strokeStyle = 'rgba(196,181,253,.7)'
+      ctx.globalAlpha = baseAlpha
+      ctx.lineWidth = 1 / scale
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, Math.max(1, n.r - 3 / scale), 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+    if (isMatch) {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + 4.5 / scale, 0, Math.PI * 2)
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = '#fde68a'
+      ctx.lineWidth = 1.8 / scale
+      ctx.stroke()
+    }
+    if (n.id === sel) {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + 3 / scale, 0, Math.PI * 2)
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 2.2 / scale
+      ctx.stroke()
+    } else if (state.hovered === n.id) {
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + 2.5 / scale, 0, Math.PI * 2)
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'
+      ctx.lineWidth = 1.2 / scale
+      ctx.stroke()
+    }
+    drawNodeIcon(n, fill)
+  }
+  ctx.globalAlpha = 1
+}
+
+function labelSize(n) {
+  if (n.kind === 'module') return 13
+  if (n.kind === 'folder') return 11.5
+  if (n.kind === 'file') return 10.5
+  if (n.kind === 'wiki') return 12
+  if (n.kind === 'class' || n.kind === 'route') return 10
+  if (n.kind === 'interface' || n.kind === 'type' || n.kind === 'enum') return 9
+  if (n.kind === 'function') return 8.5
+  if (n.kind === 'method') return 8
+  return 9.5
+}
+
+function labelVisible(n, isMatch) {
+  if (isMatch || n.id === state.selected || state.hovered === n.id) return true
+  if (state.mode === 'wiki') return n.kind === 'wiki' || cam.scale > 0.2
+  if (contextIds.has(n.id)) return cam.scale > 1.0 || (n.degree || 0) >= 14
+  if (n.kind === 'module' || n.kind === 'external') return true
+  if (n.kind === 'file') {
+    const moduleOpen = state.expandedModules.has(`module:${n.module_id}`)
+    return moduleOpen ? cam.scale > 0.52 || (FILE_DEGREE.get(n.id) || 0) >= 6 : cam.scale > 0.45 || (FILE_DEGREE.get(n.id) || 0) >= 5
+  }
+  if (n.kind === 'class' || n.kind === 'route') return cam.scale > 0.62 || (n.degree || 0) >= 9
+  if (n.kind === 'interface') return cam.scale > 0.8 || (n.degree || 0) >= 12
+  if (n.kind === 'type' || n.kind === 'enum') return cam.scale > 0.95
+  if (n.kind === 'function') return cam.scale > 1.05
+  if (n.kind === 'method') {
+    return cam.scale > 1.55 || (!!state.selected && (adjacency.get(state.selected)?.has(n.id) ?? false))
+  }
+  return cam.scale > 0.8
+}
+
+function drawLabels() {
+  const sel = state.selected
+  const neighbors = sel ? adjacency.get(sel) : null
+  const wikiMatched = state.mode === 'wiki' ? wikiMatchedIds() : new Set()
+  const scale = cam.scale
+  const items = []
+  for (const n of viewNodes) {
+    const inFocus = !sel || n.id === sel || neighbors?.has(n.id) || wikiMatched.has(n.id)
+    if (!inFocus) continue
+    const isMatch = matches.has(n.id)
+    if (!labelVisible(n, isMatch)) continue
+    const rank = (n.id === sel ? 1e6 : 0) + (isMatch ? 1e5 : 0) +
+      (n.kind === 'module' ? 4e4 : n.kind === 'class' ? 3e4 : n.kind === 'route' ? 2.5e4 : 0) +
+      (n.kind === 'file' ? FILE_DEGREE.get(n.id) || 0 : n.kind === 'folder' ? n.total_files || 0 : n.degree || 0)
+    items.push({ n, rank, isMatch })
+  }
+  items.sort((a, b) => b.rank - a.rank)
+  const boxes = []
+  for (const { n, isMatch } of items) {
+    const raw = displayName(n)
+    const label = raw.length > 30 ? `${raw.slice(0, 29)}…` : raw
+    const size = labelSize(n) / scale
+    ctx.font = `${size}px ui-sans-serif, -apple-system, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    const worldY = n.y + n.r + 5 / scale
+    const sx = n.x * scale + cam.tx
+    const sy = worldY * scale + cam.ty
+    const tw = ctx.measureText(label).width * scale
+    const th = size * scale
+    const box = { x: sx - tw / 2 - 2, y: sy - 1, w: tw + 4, h: th + 3 }
+    if (n.id !== sel && !isMatch) {
+      const hit = boxes.some((b) => !(box.x + box.w < b.x || box.x > b.x + b.w || box.y + box.h < b.y || box.y > b.y + b.h))
+      if (hit) continue
+    }
+    boxes.push(box)
+    ctx.fillStyle = n.id === sel ? '#ffffff' : isMatch ? '#fde68a' : contextIds.has(n.id) ? 'rgba(180,186,196,.55)' : 'rgba(220,224,230,.84)'
+    ctx.fillText(label, n.x, worldY)
+  }
+}
+
+// ---------- wiki ----------
+
+function wikiMatchPairs() {
+  if (state.mode !== 'wiki' || !state.selected) return []
+  if (WIKI_BY_ID.has(state.selected)) {
+    const page = WIKI_BY_ID.get(state.selected)
+    return page.refs
+      .filter((r) => r.codeId && GHOST_BY_ID.has(r.codeId))
+      .map((r) => ({ page, code: GHOST_BY_ID.get(r.codeId), surface: r.surface }))
+  }
+  const ghost = GHOST_BY_ID.get(state.selected)
+  if (!ghost) return []
+  return WIKI_PAGES
+    .filter((p) => p.refs.some((r) => r.codeId === state.selected))
+    .map((page) => ({ page, code: ghost, surface: page.refs.find((r) => r.codeId === state.selected).surface }))
+}
+
+function wikiMatchedIds() {
+  return new Set(wikiMatchPairs().map((pair) => pair.code.id))
+}
+
+function parseSequence(source) {
+  const participants = []
+  const messages = []
+  const seen = new Set()
+  const ensure = (id) => {
+    if (!seen.has(id)) { seen.add(id); participants.push({ id, label: id }) }
+  }
+  for (const raw of String(source).split('\n')) {
+    const line = raw.trim()
+    if (!line || line.startsWith('sequenceDiagram') || line.startsWith('%%')) continue
+    const part = line.match(/^(?:participant|actor)\s+([\w$.]+)(?:\s+as\s+(.+))?$/)
+    if (part) { ensure(part[1]); continue }
+    const msg = line.match(/^([\w$.]+)\s*(?:->>|-->>|->|-->)\s*([\w$.]+)\s*:\s*(.+)$/)
+    if (msg) {
+      ensure(msg[1]); ensure(msg[2])
+      messages.push({ from: msg[1], to: msg[2], label: msg[3].trim() })
+    }
+  }
+  return { participants, messages }
+}
+
+function participantResult(name) {
+  if (WIKI_EXTERNAL.has(name)) return { status: 'external', codeId: null, label: name }
+  const hits = TOP_SYMBOLS_BY_NAME.get(name) ?? []
+  if (hits.length === 1) return { status: 'resolved', codeId: hits[0].id, label: name }
+  return { status: 'unresolved', codeId: null, label: name }
+}
+
+function messageResult(message) {
+  const method = (message.label.match(/^([A-Za-z_$][\w$]*)\s*\(/) || [])[1]
+  if (method) {
+    const direct = TOP_SYMBOLS_BY_NAME.get(method) ?? []
+    if (direct.length === 1) return { status: 'resolved', codeId: direct[0].id, label: method }
+    const methodHits = METHODS_BY_NAME.get(method) ?? []
+    if (methodHits.length === 1) return { status: 'resolved', codeId: methodHits[0].id, label: methodHits[0].qualified_name }
+    const from = participantResult(message.from)
+    if (from.codeId) return { status: 'resolved', codeId: from.codeId, label: method }
+  }
+  const to = participantResult(message.to)
+  if (to.codeId) return { status: 'resolved', codeId: to.codeId, label: message.label }
+  const from = participantResult(message.from)
+  if (from.codeId) return { status: 'resolved', codeId: from.codeId, label: message.label }
+  return { status: 'unresolved', codeId: null, label: message.label }
+}
+
+function renderSequence(page) {
+  if (!page.sequence) return ''
+  const model = parseSequence(page.sequence)
+  const parts = model.participants.map((p) => {
+    const r = participantResult(p.id)
+    const attr = r.codeId ? `data-seq-symbol="${escapeHtml(r.codeId)}"` : ''
+    return `<button class="seq-part ${r.status}" ${attr}>${escapeHtml(p.label)}</button>`
+  }).join('')
+  const rows = model.messages.map((m) => {
+    const r = messageResult(m)
+    const attr = r.codeId ? `data-seq-symbol="${escapeHtml(r.codeId)}"` : ''
+    return `<button class="seq-msg ${r.status}" ${attr}>
+      <span class="from">${escapeHtml(m.from)}</span>
+      <span class="arrow">→</span>
+      <span class="label">${escapeHtml(m.label)}</span>
+      <span class="to">${escapeHtml(m.to)}</span>
+    </button>`
+  }).join('')
+  return `<div class="seq"><div class="seq-title">时序图 · 点击元素跳到代码</div>
+    <div class="seq-parts">${parts}</div>
+    <div class="seq-msgs">${rows}</div>
+  </div>`
+}
+
+// ---------- sidebar ----------
+
+function countBy(list, key) {
+  const out = {}
+  for (const x of list) out[x[key]] = (out[x[key]] || 0) + 1
+  return out
+}
+
+function fileTreeLabel(file) {
+  const module = MODULE_BY_KEY.get(file.module_id)
+  const base = module?.paths?.find((p) => file.file === p || file.file.startsWith(`${p}/`))
+  return base ? file.file.slice(base.length).replace(/^\//, '') : shortPath(file.file)
+}
+
+function canExpandNode(node) {
+  if (!node) return false
+  if (node.kind === 'module') return FILE_NODES.some((f) => f.module_id === node.module_id)
+  if (node.kind === 'file') return topSymbolsOfFile(node.id).length > 0
+  if (node.kind === 'class') return methodsOfClass(node.id).length > 0
+  return false
+}
+
+function isNodeExpanded(node) {
+  if (!node) return false
+  if (node.kind === 'module') return moduleTreeOpen(node)
+  if (node.kind === 'file') return state.expandedFiles.has(node.id)
+  if (node.kind === 'class') return state.expandedClasses.has(node.id)
+  return false
+}
+
+function treeRow(node, depth, meta = '') {
+  const open = isNodeExpanded(node)
+  const expandable = canExpandNode(node)
+  const caret = expandable
+    ? `<button class="tree-caret ${open ? 'open' : ''}" data-tree-toggle="${node.kind}" data-id="${escapeHtml(node.id)}" aria-label="${open ? '折叠' : '展开'}">▶</button>`
+    : '<span class="tree-caret blank"></span>'
+  const name = node.kind === 'file' ? fileTreeLabel(node) : displayName(node)
+  const active = node.id === state.selected ? ' active' : ''
+  return `<div class="tree-row${active}" style="padding-left:${depth * 13}px">${caret}${shapeSvg(node.kind, colorOf(node), depth === 0 ? 12 : 10)}<button class="tree-label" data-node="${escapeHtml(node.id)}" title="${escapeHtml(name)}">${escapeHtml(name)}</button><span class="tree-meta">${escapeHtml(meta)}</span></div>`
+}
+
+function renderExplorer() {
+  if (state.mode === 'wiki') {
+    explorerEl.innerHTML = '<h3>导航</h3><div class="hint">当前是文档图 Wiki。下方「返回代码图」回到单图。</div>'
+    return
+  }
+  const previousScroll = document.getElementById('tree-body')?.scrollTop || 0
+  const rows = []
+  for (const module of MODULE_NODES) {
+    rows.push(treeRow(module, 0, `${module.file_count}`))
+    if (!moduleTreeOpen(module)) continue
+    const moduleFiles = FILE_NODES.filter((f) => f.module_id === module.module_id).sort((a, b) => a.file.localeCompare(b.file))
+    const selectedFile = CODE_BY_ID.get(state.selected)?.file || state.selected
+    const files = state.expandedModules.has(module.id)
+      ? moduleFiles
+      : moduleFiles.filter((f) => state.expandedFiles.has(f.id) || f.id === selectedFile)
+    for (const file of files) {
+      const symbols = topSymbolsOfFile(file.id)
+      rows.push(treeRow(file, 1, `${symbols.length}`))
+      if (!state.expandedFiles.has(file.id)) continue
+      for (const symbol of symbols) {
+        rows.push(treeRow(symbol, 2, symbol.kind === 'class' ? `${symbol.method_count || 0}` : symbol.exported ? 'exp' : `L${symbol.line}`))
+        if (symbol.kind !== 'class' || !state.expandedClasses.has(symbol.id)) continue
+        for (const method of methodsOfClass(symbol.id)) rows.push(treeRow(method, 3, `L${method.line}`))
+      }
+    }
+  }
+  const level = LOD_LABEL[state.lodLevel] || LOD_LABEL[0]
+  explorerEl.innerHTML = `<h3>显示 · 左栏选择</h3><div class="scope"><span>缩放层级</span><b>${level}</b></div><div class="tree-body" id="tree-body">${rows.join('') || '<div class="tree-empty">没有可显示节点</div>'}</div><div class="hint" style="margin-top:6px">点模块 = 全部文件 + 直接依赖；点文件 = 全部符号 + 直接依赖；点类 = 方法。缩放也会自动下钻。</div>`
+  const body = document.getElementById('tree-body')
+  if (body) body.scrollTop = previousScroll
+}
+
+function scrollTreeToSelection() {
+  requestAnimationFrame(() => {
+    const body = document.getElementById('tree-body')
+    const row = body?.querySelector('.tree-row.active')
+    if (!body || !row) return
+    body.scrollTop = Math.max(0, row.offsetTop - body.clientHeight / 2)
+  })
+}
+
+function renderSidebar() {
+  renderExplorer()
+  const stats = [
+    ['视图', state.mode === 'wiki' ? '文档图' : '代码图'],
+    ['缩放层级', state.mode === 'wiki' ? '-' : LOD_LABEL[state.lodLevel]],
+    ['节点', viewNodes.length],
+    ['边', viewEdges.length],
+    ['版本', `${REVISION.short}${REVISION.dirty ? '*' : ''}`],
+  ]
+  if (state.mode === 'wiki') {
+    stats.push(['Wiki 页面', WIKI_PAGES.length])
+    stats.push(['代码引用', WIKI_PAGES.reduce((a, p) => a + p.refs.filter((r) => r.status === 'resolved').length, 0)])
+  } else {
+    stats.push(['已展开模块', state.expandedModules.size])
+    stats.push(['已展开文件', state.expandedFiles.size])
+    stats.push(['HTTP', `${symbolGraph.stats.http.resolved} / ${symbolGraph.stats.http.total}`])
+  }
+  statsEl.innerHTML = '<h3>概览</h3><div class="kv">' + stats.map(([k, v]) => `<span>${k}</span><b>${escapeHtml(v)}</b>`).join('') + '</div>'
+
+  const filterRows = []
+  if (state.mode === 'wiki') {
+    filterRows.push('<div class="hint">节点 = Wiki 页面。点击页面看它引用的代码符号；点击 ghost 符号回到代码单图。</div>')
+  } else {
+    filterRows.push('<div class="hint">边</div>')
+    for (const kind of CODE_EDGE_KINDS) {
+      const style = EDGE_STYLE[kind]
+      filterRows.push(`<label class="edge-check-row"><input type="checkbox" data-edge="${kind}" ${state.edgeKinds.has(kind) ? 'checked' : ''}><i class="edge-sample" style="border-color:${style.color};border-top-style:${style.dash.length ? 'dashed' : 'solid'}"></i><span>${style.label}</span></label>`)
+    }
+    filterRows.push('<div class="hint" style="margin-top:4px">节点</div>')
+    for (const kind of CODE_KIND_ORDER) {
+      filterRows.push(`<label><input type="checkbox" data-kind="${kind}" ${state.kindShown.has(kind) ? 'checked' : ''}> ${KIND_LABEL[kind]}${kind === 'external' ? '<em>默认隐藏</em>' : ''}</label>`)
+    }
+    filterRows.push(`<label><input type="checkbox" id="type-edges" ${state.typeEdges ? 'checked' : ''}> 含仅类型 import</label>`)
+    filterRows.push(`<label><input type="checkbox" id="generated" ${state.hideGenerated ? 'checked' : ''}> 隐藏生成文件</label>`)
+    filterRows.push(`<label><input type="checkbox" id="isolated" ${state.hideIsolated ? 'checked' : ''}> 隐藏无连线节点</label>`)
+    filterRows.push('<div class="hint">db / external 边按 spec 后置；HTTP 契约边已解析。</div>')
+  }
+  filtersEl.innerHTML = '<h3>过滤</h3><div class="checks">' + filterRows.join('') + '</div>'
+
+  if (state.search.trim()) {
+    matchesEl.hidden = false
+    const list = [...matches].slice(0, 50)
+    matchesEl.innerHTML = `<h3>匹配 ${matches.size}</h3><div class="match-list">` +
+      list.map((id) => {
+        const n = CODE_BY_ID.get(id) || WIKI_BY_ID.get(id) || GHOST_BY_ID.get(id)
+        if (!n) return ''
+        const hidden = !viewNodeById.has(id)
+        const sub = n.file ? shortPath(n.file) : n.path ? shortPath(n.path) : n.kind === 'wiki' ? 'wiki' : ''
+        return `<button class="match" data-node="${escapeHtml(id)}">${escapeHtml(displayName(n))}<small>${escapeHtml(KIND_LABEL[n.kind] || n.kind)}${sub ? ` · ${escapeHtml(sub)}` : ''}${hidden ? ' · 未显示' : ''}</small></button>`
+      }).join('') + '</div>'
+    if (matches.size > 50) matchesEl.innerHTML += '<div class="hint">仅显示前 50 个，继续输入以缩小范围。</div>'
+  } else {
+    matchesEl.hidden = true
+  }
+
+  const kindCounts = countBy(viewNodes, 'kind')
+  const kindRows = CODE_KIND_ORDER.filter((k) => kindCounts[k]).map((k) => {
+    const color = k === 'module' ? '#a78bfa' : KIND_COLOR[k] || '#94a3b8'
+    return `<div class="legend-row">${shapeSvg(k, color, 12)}${KIND_LABEL[k]}<em>${kindCounts[k]}</em></div>`
+  })
+  const edgeRows = (state.mode === 'wiki' ? ['wiki'] : CODE_EDGE_KINDS.filter((k) => state.edgeKinds.has(k))).map((k) => {
+    const style = EDGE_STYLE[k]
+    const dash = style.dash.length ? 'dashed' : 'solid'
+    return `<div><i style="border-color:${style.color};border-top-style:${dash}"></i>${style.label}</div>`
+  })
+  const contextNote = state.mode !== 'wiki' && contextIds.size
+    ? '<div class="hint" style="margin-top:8px">暗色节点 = 依赖上下文（不在当前展开范围内）。</div>'
+    : ''
+  legendEl.innerHTML = '<h3>节点 · 形状与层级</h3><div class="legend">' + kindRows.join('') + '</div>' + contextNote +
+    '<h3 style="margin-top:14px">边</h3><div class="edge-legend">' + edgeRows.join('') + '</div>'
+  if (state.mode === 'wiki') {
+    const typeRows = ['summary', 'entity', 'concept'].map((t) => {
+      const count = WIKI_PAGES.filter((p) => p.type === t).length
+      return `<div class="legend-row"><span class="swatch" style="background:${WIKI_TYPE_COLOR[t]}"></span>${t}<em>${count}</em></div>`
+    })
+    legendEl.innerHTML = '<h3>页面类型</h3><div class="legend">' + typeRows.join('') + '</div>' +
+      '<h3 style="margin-top:14px">边</h3><div class="edge-legend"><div><i style="border-color:#8b93a1"></i>Wiki 链接</div><div><i style="border-color:#9ef0a8;border-top-style:dashed"></i>引用匹配</div></div>'
+  }
+
+  const runtimeCycles = moduleGraph.cycles || []
+  const allCycles = moduleGraph.allCycles || []
+  if (state.mode !== 'wiki' && allCycles.length) {
+    let html = '<h3>文件级循环依赖</h3>'
+    if (runtimeCycles.length === 0) html += '<div class="hint">运行时 import 无环；下面把仅类型 import 也算进去。</div>'
+    const shown = runtimeCycles.length ? runtimeCycles : allCycles
+    html += shown.slice(0, 4).map((cycle) => {
+      const items = cycle.slice(0, 6).map((f) => `<button data-node="${escapeHtml(f)}">${escapeHtml(shortPath(f))}</button>`)
+      return `<div class="cycle">${items.join(' ↔ ')}${cycle.length > 6 ? ` … 共 ${cycle.length} 个文件` : ''}</div>`
+    }).join('')
+    cyclesEl.innerHTML = html
+    cyclesEl.hidden = false
+  } else {
+    cyclesEl.hidden = true
+  }
+
+  if (state.mode !== 'wiki') {
+    const top = moduleGraph.externals.slice(0, 12)
+    let html = '<h3>外部包 · 引用文件数</h3><div class="ext">' +
+      top.map((p) => `<div><span>${escapeHtml(p.name)}</span><b>${p.files}</b></div>`).join('') + '</div>'
+    html += '<h3 style="margin-top:14px">外部服务 · 边待建</h3><div class="ext">' +
+      moduleGraph.externalNodes.map((n) => `<div><button class="match" data-node="${escapeHtml(n.id)}" style="padding:0;display:inline">${escapeHtml(n.name)}</button><b>${escapeHtml(n.service)}</b></div>`).join('') + '</div>'
+    externalsEl.innerHTML = html
+  } else {
+    externalsEl.innerHTML = '<div class="hint">Wiki 页面是示例内容（取自本仓库设计）；代码符号与边来自真实 AST。</div>'
+  }
+
+  if (state.mode === 'wiki') {
+    httpEl.innerHTML = ''
+  } else {
+    const hs = symbolGraph.stats.http
+    const unresolved = symbolGraph.httpCalls.filter((c) => c.status !== 'resolved')
+    const matched = symbolGraph.httpCalls.filter((c) => c.status === 'resolved')
+    let html = '<h3>HTTP 契约</h3><div class="kv"><span>调用</span><b>' + hs.total + '</b><span>匹配</span><b>' + hs.resolved + '</b><span>unresolved</span><b>' + hs.unresolved + '</b></div>'
+    if (unresolved.length) {
+      html += '<div class="detail-sub">未匹配</div><div class="edge-list">' +
+        unresolved.slice(0, 12).map((c) => `<button class="http-row" data-node="${escapeHtml(c.source)}"><span class="m">${escapeHtml(c.method)}</span><span class="p">${escapeHtml(c.api_path)}</span><span class="bad">${escapeHtml(c.reason || 'unresolved')}</span></button>`).join('') + '</div>'
+    }
+    html += `<details class="hint" style="margin-top:6px"><summary>已匹配 ${matched.length} 条</summary>` +
+      matched.slice(0, 30).map((c) => `<button class="http-row" data-node="${escapeHtml(c.source)}"><span class="m">${escapeHtml(c.method)}</span><span class="p">${escapeHtml(c.route_path || c.api_path)}</span><span class="ok">${escapeHtml(c.via)}</span></button>`).join('') +
+      `</details>`
+    html += `<div class="hint">requestJson / requestNoContent 是通用封装，按调用方展开；DefaultChatTransport 按 POST 记。</div>`
+    httpEl.innerHTML = html
+  }
+
+  docgraphEl.innerHTML = state.mode === 'wiki'
+    ? `<h3>文档图</h3><button class="ghost wide doc-entry active" id="back-code">← 返回代码图</button><div class="hint">Wiki 示例页：页面引用与 ghost 符号可跳到代码图。</div>`
+    : `<h3>文档图</h3><button class="ghost wide doc-entry" id="open-wiki">Wiki 示例 · 文档引导</button><div class="hint">代码图只有一个入口；文档图独立保留，后续接 synthesis 图。</div>`
+}
+
+// ---------- detail ----------
+
+function detailHeader(node, subtitle) {
+  const color = colorOf(node)
+  return `<div class="detail-head"><span class="detail-dot" style="background:${color};color:${color}"></span><div style="min-width:0"><div class="node-title">${escapeHtml(displayName(node))}</div><div class="path">${escapeHtml(subtitle || '')}</div></div></div>`
+}
+
+function nodeButton(id, label, kindText, count) {
+  return `<button class="edge-item" data-node="${escapeHtml(id)}"><span class="kind">${escapeHtml(kindText || '')}</span><span class="nm">${escapeHtml(label)}</span><span class="count">${count ?? ''}</span></button>`
+}
+
+function edgeSection(title, edges, nodeId) {
+  if (!edges.length) return `<div class="detail-sub">${title} · 0</div>`
+  const sorted = edges.slice().sort((a, b) => (b.count || 0) - (a.count || 0))
+  return `<div class="detail-sub">${title} · ${edges.length}</div><div class="edge-list">` +
+    sorted.slice(0, 90).map((e) => {
+      const out = e.source === nodeId
+      const otherId = out ? e.target : e.source
+      const other = CODE_BY_ID.get(otherId)
+      const label = other ? (other.kind === 'file' ? shortPath(other.file) : displayName(other)) : (otherId.split('#').pop() || otherId)
+      const count = e.count > 1 ? e.count : ''
+      const kind = e.kind === 'http' ? `http ${e.http_method || ''}` : e.kind
+      return `<button class="edge-item" data-node="${escapeHtml(otherId)}"><span class="kind">${escapeHtml(kind.trim())}</span><span class="nm">${escapeHtml(label)}</span><span class="count">${count}</span></button>`
+    }).join('') +
+    (sorted.length > 90 ? '<div class="hint">仅显示前 90 条</div>' : '') +
+    '</div>'
+}
+
+function symbolEdgesOf(id) {
+  return symbolGraph.edges.filter((e) => e.source === id || e.target === id)
+}
+
+function fileEdgesOf(id) {
+  return moduleGraph.edges.filter((e) => e.source === id || e.target === id)
+}
+
+function moduleEdgesOf(id) {
+  return moduleGraph.moduleEdges.filter((e) => e.source === id || e.target === id)
+}
+
+function renderDetail() {
+  if (!state.selected) {
+    detail.innerHTML = '<div class="empty">点击节点查看详情</div>'
+    return
+  }
+  const id = state.selected
+  detail.scrollTop = 0
+  if (WIKI_BY_ID.has(id)) { renderWikiDetail(id); return }
+  const node = CODE_BY_ID.get(id)
+  if (!node) { detail.innerHTML = '<div class="empty">节点不存在</div>'; return }
+  if (node.kind === 'module') return renderModuleDetail(node)
+  if (node.kind === 'folder') return renderFolderDetail(node)
+  if (node.kind === 'file') return renderFileDetail(node)
+  if (node.kind === 'external') return renderExternalDetail(node)
+  return renderSymbolDetail(node)
+}
+
+function renderWikiDetail(id) {
+  const page = WIKI_BY_ID.get(id)
+  if (!page) return
+  const refs = page.refs.map((r) => {
+    const tag = r.status === 'resolved' ? 'resolved' : r.status === 'external' ? 'external' : r.status
+    const attr = r.codeId ? `data-node="${escapeHtml(r.codeId)}"` : ''
+    return `<button class="edge-item" ${attr}><span class="kind">${r.status === 'resolved' ? 'ref' : r.status}</span><span class="nm">${escapeHtml(r.surface)}</span><span class="count">${tag}</span></button>`
+  }).join('')
+  const links = page.links.map((linkId) => {
+    const target = WIKI_BY_ID.get(linkId)
+    return target ? `<button class="edge-item" data-wiki="${escapeHtml(linkId)}"><span class="kind">wiki</span><span class="nm">${escapeHtml(target.title)}</span></button>` : ''
+  }).join('')
+  detail.innerHTML = `
+    <div class="node-title">${escapeHtml(page.title)}</div>
+    <div class="badges"><span class="badge">${page.type}</span><span class="badge">${page.refs.length} 个引用</span><span class="badge">${page.links.length} 条链接</span></div>
+    <div class="path">${escapeHtml(page.id)}</div>
+    <div class="hint" style="margin-top:8px">${escapeHtml(page.summary)}</div>
+    ${renderSequence(page)}
+    <div class="detail-sub">代码引用</div>
+    <div class="edge-list">${refs}</div>
+    <div class="detail-sub">链接页面</div>
+    <div class="edge-list">${links}</div>
+    <div class="hint">点击 resolved 引用进入符号图；external / unresolved 不跳转。</div>
+    <div class="hint" style="margin-top:10px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+function renderModuleDetail(node) {
+  const files = FILE_NODES.filter((f) => f.module_id === node.module_id).sort((a, b) => b.lines - a.lines)
+  const out = moduleEdgesOf(node.id).filter((e) => e.source === node.id)
+  const inc = moduleEdgesOf(node.id).filter((e) => e.target === node.id)
+  const expanded = state.expandedModules.has(node.id)
+  const color = colorOf(node)
+  detail.innerHTML = `
+    ${detailHeader(node, `module:${node.module_id}`)}
+    <div class="badges"><span class="badge" style="border-color:${color}">${escapeHtml(node.layer)}</span><span class="badge">${node.file_count} 文件</span><span class="badge">${node.lines} 行</span></div>
+    <div class="meta">
+      <span>kind</span><b>module</b>
+      <span>layer</span><b>${escapeHtml(LAYER_LABEL[node.layer] || node.layer)}</b>
+      <span>paths</span><b>${node.paths.map((p) => `<span class="path">${escapeHtml(p)}</span>`).join('<br>')}</b>
+    </div>
+    <div class="action-row"><button class="toggle-symbol" data-toggle="module">${expanded ? '折叠文件' : '展开文件'}</button></div>
+    <div class="detail-sub">入口文件 · 导出最多</div>
+    <div class="edge-list">${node.entry_files.map((f) => nodeButton(f.file, shortPath(f.file), 'file', f.exports)).join('') || '<div class="hint">无导出</div>'}</div>
+    ${edgeSection('依赖出去', out, node.id)}
+    ${edgeSection('被依赖', inc, node.id)}
+    <div class="detail-sub">包含文件 · ${files.length}</div>
+    <div class="edge-list">${files.slice(0, 80).map((f) => nodeButton(f.id, shortPath(f.file), 'file', f.lines)).join('')}</div>
+    ${files.length > 80 ? '<div class="hint">仅显示前 80 个文件，用搜索或展开后定位。</div>' : ''}
+    <div class="hint" style="margin-top:12px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+function renderFolderDetail(node) {
+  const files = FILE_NODES.filter((f) => dirname(f.file) === node.path).sort((a, b) => b.lines - a.lines)
+  const parent = node.depth > 0 ? FOLDER_BY_ID.get(`folder:${dirname(node.path)}`) : null
+  detail.innerHTML = `
+    ${detailHeader(node, node.path)}
+    <div class="badges"><span class="badge">folder</span><span class="badge">${node.file_count} 直接文件</span><span class="badge">${node.total_files} 含子目录</span></div>
+    <div class="meta"><span>module</span><b>${node.module_id ? escapeHtml(MODULE_BY_KEY.get(node.module_id)?.label || node.module_id) : '跨模块'}</b></div>
+    ${parent ? `<div class="action-row">${nodeButton(parent.id, shortPath(parent.path), 'folder')}</div>` : ''}
+    <div class="detail-sub">直接文件 · ${files.length}</div>
+    <div class="edge-list">${files.map((f) => nodeButton(f.id, shortPath(f.file), 'file', f.lines)).join('') || '<div class="hint">没有直接文件</div>'}</div>
+    <div class="hint" style="margin-top:12px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+function renderFileDetail(node) {
+  const symbols = topSymbolsOfFile(node.id).slice().sort((a, b) => b.degree - a.degree)
+  const exports = symbols.filter((s) => s.exported)
+  const out = fileEdgesOf(node.id).filter((e) => e.source === node.id)
+  const inc = fileEdgesOf(node.id).filter((e) => e.target === node.id)
+  const module = moduleOfNode(node)
+  const expanded = state.expandedFiles.has(node.id)
+  detail.innerHTML = `
+    ${detailHeader(node, node.file)}
+    <div class="badges"><span class="badge">file</span>${module ? `<span class="badge" style="border-color:${colorOf(module)}">${escapeHtml(module.label)}</span>` : ''}<span class="badge">${node.lines} 行</span>${node.generated ? '<span class="badge gen">generated</span>' : ''}</div>
+    <div class="meta">
+      <span>module</span><b>${module ? `<button class="file-link" data-node="${escapeHtml(module.id)}">${escapeHtml(module.label)}</button>` : '-'}</b>
+      <span>exports</span><b>${exports.length}</b>
+    </div>
+    <div class="action-row"><button class="toggle-symbol" data-toggle="file">${expanded ? '折叠符号' : '展开符号'}</button></div>
+    ${edgeSection('import 出去', out, node.id)}
+    ${edgeSection('被 import', inc, node.id)}
+    <div class="detail-sub">符号 · ${symbols.length}</div>
+    <div class="edge-list">${symbols.slice(0, 80).map((s) => nodeButton(s.id, s.name, KIND_LABEL[s.kind], s.exported ? 'export' : `L${s.line}`)).join('')}</div>
+    ${symbols.length > 80 ? '<div class="hint">仅显示前 80 个符号。</div>' : ''}
+    <div class="hint" style="margin-top:12px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+function renderExternalDetail(node) {
+  detail.innerHTML = `
+    ${detailHeader(node, 'external service')}
+    <div class="badges"><span class="badge">external</span><span class="badge warn">边待建</span></div>
+    <div class="meta"><span>service</span><b>${escapeHtml(node.service || '-')}</b></div>
+    <div class="hint">按 spec，external 边与 db 边后置；这里只建节点，不伪造连接。默认隐藏，节点过滤里可打开。</div>
+    <div class="hint" style="margin-top:12px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+function renderSymbolDetail(node) {
+  const allEdges = symbolEdgesOf(node.id)
+  const out = allEdges.filter((e) => e.source === node.id && !(node.kind === 'class' && e.kind === 'contains'))
+  const inc = allEdges.filter((e) => e.target === node.id && !(node.kind === 'class' && e.kind === 'contains'))
+  const module = moduleOfNode(node)
+  const wikiPages = WIKI_REFERENCES_BY_SYMBOL.get(node.id) ?? []
+  const badges = [`<span class="badge">${KIND_LABEL[node.kind] || node.kind}</span>`]
+  if (node.exported) badges.push('<span class="badge exported">exported</span>')
+  if (node.type_shape) badges.push(`<span class="badge">type_shape · ${escapeHtml(node.type_shape)}</span>`)
+  if (node.http_method) badges.push(`<span class="badge">${escapeHtml(node.http_method)}</span>`)
+  if (node.generated) badges.push('<span class="badge gen">generated</span>')
+  const meta = [
+    `<span>kind</span><b>${escapeHtml(node.kind)}</b>`,
+    `<span>qualified</span><b>${escapeHtml(node.qualified_name || node.name)}</b>`,
+    `<span>file:line</span><b>${node.file ? `<button class="file-link" data-node="${escapeHtml(node.file)}">${escapeHtml(shortPath(node.file))}</button>:${node.line}` : '-'}</b>`,
+  ]
+  if (module) meta.push(`<span>module</span><b><button class="file-link" data-node="${escapeHtml(module.id)}">${escapeHtml(module.label)}</button></b>`)
+  if (node.class_id) meta.push(`<span>class</span><b><button class="file-link" data-node="${escapeHtml(node.class_id)}">${escapeHtml(node.class_name || node.class_id.split('#').pop())}</button></b>`)
+  if (node.http_path) meta.push(`<span>http path</span><b>${escapeHtml(node.http_method)} ${escapeHtml(node.http_path)}</b>`)
+  if (node.handler_id) meta.push(`<span>handler</span><b><button class="file-link" data-node="${escapeHtml(node.handler_id)}">${escapeHtml(node.handler_id.split('#').pop())}</button>${node.handler_inline ? ' · inline' : ''}${node.handler_generated ? ' · hono-crud' : ''}</b>`)
+  if (node.kind === 'method') meta.push(`<span>method_kind</span><b>${escapeHtml(node.method_kind || 'method')}</b>`)
+  const signature = node.signature ? `<div class="sig">${escapeHtml(node.signature)}</div>` : ''
+  const toggle = node.kind === 'class'
+    ? `<div class="action-row"><button class="toggle-symbol" data-toggle="class">${state.expandedClasses.has(node.id) ? '折叠方法' : '展开方法'}</button></div>`
+    : ''
+  const methods = node.kind === 'class'
+    ? `<div class="detail-sub">方法 · ${node.method_count || 0}</div><div class="edge-list">${methodsOfClass(node.id).map((m) => nodeButton(m.id, `${m.name}()`, 'method', `L${m.line}`)).join('') || '<div class="hint">没有方法</div>'}</div>`
+    : ''
+  const callers = node.kind === 'route'
+    ? (() => {
+        const calls = symbolGraph.httpCalls.filter((c) => c.route_id === node.id)
+        return `<div class="detail-sub">HTTP 调用方 · ${calls.length}</div><div class="edge-list">${calls.map((c) => `<button class="http-row" data-node="${escapeHtml(c.source)}"><span class="m">${escapeHtml(c.method)}</span><span class="p">${escapeHtml(c.file)}:${c.line}</span><span class="ok">${escapeHtml(c.via)}</span></button>`).join('') || '<div class="hint">没有前端调用点</div>'}</div>`
+      })()
+    : ''
+  const handlerNote = node.kind === 'route' && !node.handler_id
+    ? '<div class="hint">内联 handler 没有具名符号，route_handler 不伪造。</div>'
+    : ''
+  detail.innerHTML = `
+    ${detailHeader(node, node.qualified_name || node.name)}
+    <div class="badges">${badges.join('')}</div>
+    <div class="meta">${meta.join('')}</div>
+    ${signature}
+    ${toggle}
+    ${edgeSection('出去', out, node.id)}
+    ${edgeSection('进来', inc, node.id)}
+    ${callers}
+    ${handlerNote}
+    ${methods}
+    ${wikiPages.length ? `<div class="detail-sub">Wiki 引用 · ${wikiPages.length}</div><div class="edge-list">${wikiPages.map((p) => `<button class="edge-item" data-wiki="${escapeHtml(p.id)}"><span class="kind">wiki</span><span class="nm">${escapeHtml(p.title)}</span></button>`).join('')}</div>` : ''}
+    <div class="hint" style="margin-top:12px">代码版本 ${escapeHtml(REVISION.short)}${REVISION.dirty ? ' · dirty' : ''}</div>`
+}
+
+// ---------- selection & camera focus ----------
+
+function nodeOpenState(node) {
+  if (!node) return false
+  if (node.kind === 'module') return state.expandedModules.has(node.id)
+  if (node.kind === 'file') return state.expandedFiles.has(node.id)
+  if (node.kind === 'class') return state.expandedClasses.has(node.id)
+  return false
+}
+
+function addToSet(set, value) {
+  if (!value || set.has(value)) return false
+  set.add(value)
+  return true
+}
+
+function setNodeOpen(node, open) {
+  let changed = false
+  if (node.kind === 'module') {
+    if (open) changed = addToSet(state.expandedModules, node.id) || changed
+    else if (state.expandedModules.delete(node.id)) changed = true
+    if (!open) {
+      for (const file of FILE_NODES) {
+        if (file.module_id === node.module_id && state.expandedFiles.delete(file.id)) changed = true
+      }
+    }
+  } else if (node.kind === 'file') {
+    if (open) changed = addToSet(state.expandedFiles, node.id) || changed
+    else if (state.expandedFiles.delete(node.id)) changed = true
+  } else if (node.kind === 'class') {
+    if (open) changed = addToSet(state.expandedClasses, node.id) || changed
+    else if (state.expandedClasses.delete(node.id)) changed = true
+  }
+  return changed
+}
+
+function ensureOpenForNode(node) {
+  let changed = false
+  if (node.kind === 'external') {
+    changed = addToSet(state.kindShown, 'external') || changed
+  } else if (node.kind === 'module') {
+    changed = addToSet(state.expandedModules, node.id) || changed
+  } else if (node.kind === 'file') {
+    changed = addToSet(state.expandedFiles, node.id) || changed
+  } else if (node.kind === 'method') {
+    changed = addToSet(state.expandedFiles, node.file) || changed
+    if (node.class_id) changed = addToSet(state.expandedClasses, node.class_id) || changed
+  } else if (node.kind === 'class') {
+    changed = addToSet(state.expandedFiles, node.file) || changed
+    changed = addToSet(state.expandedClasses, node.id) || changed
+  } else if (node.file) {
+    changed = addToSet(state.expandedFiles, node.file) || changed
+  }
+  if (!state.kindShown.has(node.kind)) {
+    state.kindShown.add(node.kind)
+    changed = true
+  }
+  return changed
+}
+
+function moduleTreeOpen(module) {
+  if (state.expandedModules.has(module.id)) return true
+  for (const fileId of state.expandedFiles) {
+    if (FILE_BY_ID.get(fileId)?.module_id === module.module_id) return true
+  }
+  const selected = CODE_BY_ID.get(state.selected)
+  const selectedModule = selected?.module_id || FILE_BY_ID.get(selected?.file)?.module_id
+  return !!selected && selected.kind !== 'module' && selectedModule === module.module_id
+}
+
+function focusAfterSelect(node, opened) {
+  if (state.mode !== 'code') return
+  if (node.kind === 'module' || node.kind === 'external') {
+    if (!nodeOnScreen(node)) centerOnNode(node.id, cam.scale)
+    return
+  }
+  if (node.kind === 'file') {
+    if (opened) centerOnNode(node.id, Math.max(cam.scale, LOD_SYMBOL * 1.03))
+    else if (!nodeOnScreen(node)) centerOnNode(node.id, cam.scale)
+    return
+  }
+  if (node.kind === 'class') {
+    if (opened) centerOnNode(node.id, Math.max(cam.scale, LOD_METHOD * 1.02))
+    else if (!nodeOnScreen(node)) centerOnNode(node.id, cam.scale)
+    return
+  }
+  if (node.kind === 'method') {
+    centerOnNode(node.id, Math.max(cam.scale, 1.3))
+    return
+  }
+  centerOnNode(node.id, Math.max(cam.scale, LOD_SYMBOL * 1.08))
+}
+
+function select(id, opts = {}) {
+  if (!id) return
+  if (WIKI_BY_ID.has(id)) {
+    if (state.mode !== 'wiki') {
+      cancelCameraAnim()
+      state.mode = 'wiki'
+      rebuild()
+    }
+    state.selected = id
+    renderExplorer()
+    renderDetail()
+    if (opts.focus) {
+      const pageNode = viewNodeById.get(id)
+      const ghosts = WIKI_BY_ID.get(id).refs.map((r) => r.codeId && viewNodeById.get(r.codeId)).filter(Boolean)
+      if (pageNode) fitToNodes([pageNode, ...ghosts], true)
+    }
+    requestDraw()
+    return
+  }
+  const node = CODE_BY_ID.get(id)
+  if (!node) return
+  if (state.mode === 'wiki') {
+    cancelCameraAnim()
+    state.mode = 'code'
+  }
+  let opened = true
+  let changed = false
+  if (opts.toggle) {
+    opened = !nodeOpenState(node)
+    changed = setNodeOpen(node, opened)
+  } else {
+    changed = ensureOpenForNode(node)
+  }
+  if (changed) rebuild()
+  if (!viewNodeById.has(id) && ensureOpenForNode(node)) rebuild()
+  state.selected = id
+  cameraTouched = true
+  renderExplorer()
+  renderDetail()
+  if (opts.focus) focusAfterSelect(node, opened)
+  requestDraw()
+  scrollTreeToSelection()
+}
+
+function switchMode(mode) {
+  if (state.mode === mode) return
+  cancelCameraAnim()
+  state.mode = mode
+  state.selected = null
+  if (mode === 'code') {
+    cam.scale = 0.3
+    cam.tx = 0
+    cam.ty = 0
+  }
+  rebuild()
+  renderDetail()
+  cameraTouched = false
+  fit()
+  if (mode === 'code' && lodLevelForScale(cam.scale) !== state.lodLevel) rebuild()
+}
+
+function toggleExpansion(kind, id) {
+  const node = CODE_BY_ID.get(id)
+  if (!node) return
+  if (node.kind === 'module' && !state.expandedModules.has(id) && moduleTreeOpen(node)) {
+    for (const file of FILE_NODES) {
+      if (file.module_id === node.module_id) state.expandedFiles.delete(file.id)
+    }
+  } else {
+    setNodeOpen(node, !nodeOpenState(node))
+  }
+  cameraTouched = true
+  rebuild()
+  if (state.selected && !viewNodeById.has(state.selected)) state.selected = null
+  renderExplorer()
+  renderDetail()
+  requestDraw()
+}
+
+// ---------- events ----------
+
+function handleNodeClick(id) {
+  const node = CODE_BY_ID.get(id)
+  if (!node) { select(id); return }
+  const expandable = node.kind === 'module' || node.kind === 'file' || node.kind === 'class'
+  select(id, { focus: true, toggle: expandable })
+}
+
+explorerEl.addEventListener('click', (e) => {
+  const toggle = e.target.closest('button[data-tree-toggle]')
+  if (toggle) { toggleExpansion(toggle.dataset.treeToggle, toggle.dataset.id); return }
+  const nodeBtn = e.target.closest('button[data-node]')
+  if (nodeBtn) select(nodeBtn.dataset.node, { focus: true })
+})
+docgraphEl.addEventListener('click', (e) => {
+  if (e.target.closest('#open-wiki')) { switchMode('wiki'); return }
+  if (e.target.closest('#back-code')) { switchMode('code'); return }
+})
+document.getElementById('fit').addEventListener('click', fit)
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value
+  computeMatches()
+  renderSidebar()
+  requestDraw()
+})
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return
+  const first = [...matches][0]
+  if (first) { e.preventDefault(); select(first, { focus: true }) }
+})
+filtersEl.addEventListener('change', (e) => {
+  const t = e.target
+  if (t.dataset.edge) {
+    if (t.checked) state.edgeKinds.add(t.dataset.edge)
+    else state.edgeKinds.delete(t.dataset.edge)
+    rebuild()
+  } else if (t.dataset.kind) {
+    if (t.checked) state.kindShown.add(t.dataset.kind)
+    else state.kindShown.delete(t.dataset.kind)
+    rebuild()
+  } else if (t.id === 'type-edges') { state.typeEdges = t.checked; rebuild() }
+  else if (t.id === 'generated') { state.hideGenerated = t.checked; rebuild() }
+  else if (t.id === 'isolated') { state.hideIsolated = t.checked; rebuild() }
+})
+matchesEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-node]')
+  if (btn) select(btn.dataset.node, { focus: true })
+})
+cyclesEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-node]')
+  if (btn) select(btn.dataset.node, { focus: true })
+})
+externalsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-node]')
+  if (btn) select(btn.dataset.node, { focus: true })
+})
+httpEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-node]')
+  if (btn) select(btn.dataset.node, { focus: true })
+})
+detail.addEventListener('click', (e) => {
+  const seqBtn = e.target.closest('button[data-seq-symbol]')
+  if (seqBtn) { select(seqBtn.dataset.seqSymbol, { focus: true }); return }
+  const wikiBtn = e.target.closest('button[data-wiki]')
+  if (wikiBtn) { select(wikiBtn.dataset.wiki, { focus: true }); return }
+  const toggle = e.target.closest('button[data-toggle]')
+  if (toggle) { toggleExpansion(toggle.dataset.toggle, state.selected); return }
+  const nodeBtn = e.target.closest('button[data-node]')
+  if (nodeBtn) { select(nodeBtn.dataset.node, { focus: true }); return }
+})
+
+canvas.addEventListener('pointerdown', (e) => {
+  cancelCameraAnim()
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const hit = nodeAt(x, y)
+  moved = false
+  canvas.setPointerCapture(e.pointerId)
+  if (hit) {
+    dragging = { node: hit, dx: hit.x - toWorld(x, y).x, dy: hit.y - toWorld(x, y).y }
+    cameraTouched = true
+  } else {
+    panning = { x, y, tx: cam.tx, ty: cam.ty }
+    cameraTouched = true
+    canvas.classList.add('dragging')
+  }
+})
+canvas.addEventListener('pointermove', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  if (dragging) {
+    const p = toWorld(x, y)
+    dragging.node.x = p.x + dragging.dx
+    dragging.node.y = p.y + dragging.dy
+    positions.set(dragging.node.id, { x: dragging.node.x, y: dragging.node.y })
+    moved = true
+    requestDraw()
+    return
+  }
+  if (panning) {
+    cam.tx = panning.tx + (x - panning.x)
+    cam.ty = panning.ty + (y - panning.y)
+    moved = true
+    requestDraw()
+    return
+  }
+  const hit = nodeAt(x, y)
+  state.hovered = hit ? hit.id : null
+  if (hit) {
+    tooltip.style.display = 'block'
+    tooltip.style.left = Math.min(W - 360, x + 14) + 'px'
+    tooltip.style.top = Math.min(H - 70, y + 14) + 'px'
+    const module = moduleOfNode(hit)
+    const sub = hit.file ? shortPath(hit.file) : hit.path ? shortPath(hit.path) : module ? module.label : hit.kind
+    tooltip.innerHTML = `<div>${escapeHtml(displayName(hit))}</div><small>${escapeHtml(KIND_LABEL[hit.kind] || hit.kind)}${sub ? ` · ${escapeHtml(sub)}` : ''}</small>`
+    canvas.style.cursor = 'pointer'
+  } else {
+    tooltip.style.display = 'none'
+    canvas.style.cursor = 'grab'
+  }
+  requestDraw()
+})
+canvas.addEventListener('pointerup', (e) => {
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const wasPanning = !!panning && moved
+  if (dragging && !moved) {
+    handleNodeClick(dragging.node.id)
+  } else if (!dragging && !moved) {
+    const hit = nodeAt(x, y)
+    if (hit) handleNodeClick(hit.id)
+    else { state.selected = null; renderExplorer(); renderDetail(); requestDraw() }
+  }
+  dragging = null
+  panning = null
+  canvas.classList.remove('dragging')
+  if (wasPanning && state.lodLevel >= 1) rebuild()
+})
+canvas.addEventListener('pointercancel', () => { dragging = null; panning = null; canvas.classList.remove('dragging') })
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  cancelCameraAnim()
+  cameraTouched = true
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+  const p = toWorld(px, py)
+  const k = Math.exp(-e.deltaY * 0.0014)
+  cam.scale = Math.max(0.04, Math.min(4, cam.scale * k))
+  cam.tx = px - p.x * cam.scale
+  cam.ty = py - p.y * cam.scale
+  if (lodLevelForScale(cam.scale) !== state.lodLevel) rebuild()
+  else requestDraw()
+}, { passive: false })
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { cancelCameraAnim(); state.selected = null; renderExplorer(); renderDetail(); requestDraw() }
+  if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus() }
+})
+window.addEventListener('resize', resize)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas)
+
+document.getElementById('rev').innerHTML = `<b>${escapeHtml(REVISION.short)}</b>${REVISION.dirty ? ' · dirty' : ''}`
+document.title = `代码图 · ${REVISION.short}${REVISION.dirty ? ' · dirty' : ''}`
+layoutModules()
+cam.scale = 0.3
+resize()
+rebuild()
+resize()
+if (lodLevelForScale(cam.scale) !== state.lodLevel) rebuild()
+
+window.__CODE_GRAPH__ = {
+  get state() { return state },
+  get viewNodes() { return viewNodes },
+  get viewEdges() { return viewEdges },
+  get matches() { return matches },
+  get contextIds() { return contextIds },
+  get revision() { return REVISION },
+  get cam() { return { ...cam } },
+  get moduleHome() { return [...MODULE_HOME.entries()] },
+  select,
+  switchMode,
+  toggleExpansion,
+  handleNodeClick,
+  animateCameraTo,
+  lodLevelForScale,
+  topSymbolsOfFile,
+  methodsOfClass,
+}
+</script>
+</body>
+</html>

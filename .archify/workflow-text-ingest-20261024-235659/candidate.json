@@ -1,0 +1,221 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Story 1.3 两路来源汇入同一管线",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-text-ingest-20261024-235659/text-ingest.html"
+  },
+  "lanes": [
+    {
+      "id": "input",
+      "label": "来源与入口"
+    },
+    {
+      "id": "gate",
+      "label": "入口拒绝",
+      "variant": "exception"
+    },
+    {
+      "id": "pipe",
+      "label": "共享管线"
+    },
+    {
+      "id": "vector",
+      "label": "向量"
+    },
+    {
+      "id": "store",
+      "label": "数据落点"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "paste",
+      "lane": "input",
+      "col": 0,
+      "type": "frontend",
+      "label": "粘贴 / 文件",
+      "sublabel": "前端判定类型",
+      "width": 150
+    },
+    {
+      "id": "body",
+      "lane": "input",
+      "col": 1,
+      "type": "backend",
+      "label": "POST /resources",
+      "sublabel": "url 与 content 二选一",
+      "width": 160
+    },
+    {
+      "id": "bad-json",
+      "lane": "gate",
+      "col": 1,
+      "type": "security",
+      "label": "400 E_BAD_JSON",
+      "sublabel": "不建行",
+      "width": 150
+    },
+    {
+      "id": "empty",
+      "lane": "gate",
+      "col": 2,
+      "type": "security",
+      "label": "400 E_EMPTY_CONTENT",
+      "sublabel": "不建行",
+      "width": 150
+    },
+    {
+      "id": "pass",
+      "lane": "pipe",
+      "col": 2,
+      "type": "backend",
+      "label": "Passthrough",
+      "sublabel": "跳过网络",
+      "width": 150
+    },
+    {
+      "id": "text",
+      "lane": "pipe",
+      "col": 3,
+      "type": "backend",
+      "label": "TextParser",
+      "sublabel": "markdown / plaintext 共用",
+      "width": 160
+    },
+    {
+      "id": "chunk",
+      "lane": "pipe",
+      "col": 4,
+      "type": "backend",
+      "label": "LegacyChunker",
+      "sublabel": "保护段 + 偏移",
+      "width": 150
+    },
+    {
+      "id": "embed",
+      "lane": "vector",
+      "col": 4,
+      "type": "backend",
+      "label": "embedMany",
+      "sublabel": "向量与 chunk 对齐",
+      "width": 150
+    },
+    {
+      "id": "write",
+      "lane": "store",
+      "col": 4,
+      "type": "database",
+      "label": "事务写入",
+      "sublabel": "chunk + 向量 + ready",
+      "width": 150
+    },
+    {
+      "id": "ready",
+      "lane": "store",
+      "col": 5,
+      "type": "backend",
+      "label": "201 ready",
+      "sublabel": "warning 可选",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "paste-body",
+      "from": "paste",
+      "to": "body",
+      "label": "content",
+      "variant": "emphasis"
+    },
+    {
+      "id": "body-json",
+      "from": "body",
+      "to": "bad-json",
+      "label": "非法 JSON",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "body-empty",
+      "from": "body",
+      "to": "empty",
+      "label": "空白内容",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "body-pass",
+      "from": "body",
+      "to": "pass",
+      "label": "content_type",
+      "variant": "default"
+    },
+    {
+      "id": "pass-text",
+      "from": "pass",
+      "to": "text",
+      "label": "原文",
+      "variant": "default"
+    },
+    {
+      "id": "text-chunk",
+      "from": "text",
+      "to": "chunk",
+      "label": "Markdown",
+      "variant": "default"
+    },
+    {
+      "id": "chunk-embed",
+      "from": "chunk",
+      "to": "embed",
+      "label": "chunks",
+      "variant": "emphasis"
+    },
+    {
+      "id": "embed-write",
+      "from": "embed",
+      "to": "write",
+      "label": "vectors",
+      "variant": "emphasis"
+    },
+    {
+      "id": "write-ready",
+      "from": "write",
+      "to": "ready",
+      "label": "commit",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "共用 parse",
+      "items": [
+        "markdown 与 plaintext 走同一支",
+        "content_type 只存档",
+        "不改变当前处理路径"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "两种拒绝",
+      "items": [
+        "只拒绝 body 非 JSON 对象",
+        "只拒绝空白 content",
+        "两条都发生在建 Resource 之前"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "明确不做",
+      "items": [
+        "不做不可读 / 编码启发式",
+        "粘贴不去重",
+        "非文本由前端 accept / 后缀挡住"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wiki ↔ 代码 · 项目实图</title>
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #101114; --line: #23262c; --text: #e6e8ec; --muted: #8b919c;
+    --doc: #7ba7f7; --code: #f0a35e; --match: #9ef0a8; --bad: #f2777a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 ui-sans-serif, -apple-system, "PingFang SC", sans-serif;
+    display: grid; grid-template-rows: 52px 1fr; overflow: hidden;
+  }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 0 16px; border-bottom: 1px solid var(--line); background: rgba(16,17,20,.94); }
+  .brand { font-weight: 600; white-space: nowrap; }
+  .brand span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
+  input[type="checkbox"] { accent-color: #9ca3af; margin: 0; }
+  button, .search input { border: 1px solid var(--line); background: #15171b; color: var(--text); padding: 6px 10px; border-radius: 7px; font: inherit; }
+  button { cursor: pointer; }
+  button:hover { border-color: #3a3f47; }
+  .search input { width: 180px; outline: none; }
+  .search input:focus { border-color: #4b5563; }
+  .group-label { color: var(--muted); font-size: 11px; border-left: 1px solid var(--line); padding-left: 8px; }
+  main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  .hint { position: absolute; left: 14px; bottom: 12px; color: #6f7580; font-size: 11.5px; pointer-events: none; user-select: none; }
+  .legend { position: absolute; left: 14px; top: 12px; display: flex; gap: 12px; color: var(--muted); font-size: 11.5px; pointer-events: none; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); padding: 14px; overflow: auto; }
+  h2 { font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .node-title { font-size: 15px; font-weight: 600; word-break: break-word; line-height: 1.35; }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 10px; }
+  .badge { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.summary { color: #9db9f5; border-color: #2c4a7a; }
+  .badge.entity { color: #c7a9ff; border-color: #4a3570; }
+  .badge.concept { color: #f2b678; border-color: #7a4a1d; }
+  .badge.ok { color: var(--match); border-color: #326b3a; }
+  .badge.bad { color: var(--bad); border-color: #6e2a2c; }
+  .sub { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #aeb4bd; word-break: break-all; }
+  .summary { color: #c3c7ce; font-size: 12px; margin-top: 8px; line-height: 1.65; }
+  .detail-sub { margin: 15px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  .list { display: grid; gap: 2px; }
+  .item {
+    display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
+    border: 0; background: transparent; color: #c9cdd4; font: inherit; cursor: pointer;
+    padding: 4px 6px; border-radius: 5px; font-size: 12px;
+  }
+  .item:hover { background: #181a1f; color: var(--text); }
+  .item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .st { margin-left: auto; font-size: 10px; color: var(--muted); flex: none; }
+  .item .st.ok { color: var(--match); }
+  .item .st.bad { color: var(--bad); }
+  .empty { color: var(--muted); font-size: 12px; }
+  .tip { color: var(--muted); font-size: 11.5px; line-height: 1.6; margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+  .stats b { font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Wiki ↔ 代码 <span>项目实图 · 上方 Wiki 页面，下方真实目录图</span></div>
+  <div class="controls">
+    <div class="search"><input id="search" placeholder="搜索页面 / 符号…" autocomplete="off" spellcheck="false"></div>
+    <span class="group-label">Wiki</span>
+    <label><input type="checkbox" data-wiki-type="summary" checked>summary</label>
+    <label><input type="checkbox" data-wiki-type="entity" checked>entity</label>
+    <label><input type="checkbox" data-wiki-type="concept" checked>concept</label>
+    <span class="group-label">边</span>
+    <label><input type="checkbox" data-edge="runtime" checked>import</label>
+    <label><input type="checkbox" data-edge="type">仅类型</label>
+    <label><input type="checkbox" id="allMatches">显示全部匹配</label>
+    <button id="viewWiki">Wiki</button>
+    <button id="viewCode">代码</button>
+    <button id="viewAll">全图</button>
+    <button id="reset">重置</button>
+  </div>
+</header>
+<main>
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="legend">
+      <span><i style="background:#7ba7f7"></i>summary</span>
+      <span><i style="background:#b58cff"></i>entity</span>
+      <span><i style="background:#f0a35e"></i>concept</span>
+      <span><i style="background:#9ef0a8"></i>匹配</span>
+      <span><i style="border:1px dashed #8b919c;background:transparent"></i>外部 / 未解析</span>
+    </div>
+    <div class="hint">滚轮缩放 · 拖拽平移 · 点 Wiki 页面看匹配 · 点代码节点看反向</div>
+  </div>
+  <aside>
+    <h2>详情</h2>
+    <div id="detail"><div class="empty">点击左侧 Wiki 页面或右侧代码节点。</div></div>
+  </aside>
+</main>
+<script>
+const DATA = /*__BIG_DATA__*/null
+const wiki = DATA.wiki
+const code = DATA.code
+const wikiById = new Map(wiki.map((p) => [p.id, p]))
+const codeById = new Map(code.map((n) => [n.id, n]))
+const pageByCode = new Map()
+for (const p of wiki) {
+  for (const r of p.refs) {
+    if (!r.codeId) continue
+    if (!pageByCode.has(r.codeId)) pageByCode.set(r.codeId, [])
+    const list = pageByCode.get(r.codeId)
+    if (!list.includes(p)) list.push(p)
+  }
+}
+
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const detail = document.getElementById('detail')
+const searchInput = document.getElementById('search')
+
+const TYPE_COLOR = { summary: '#7ba7f7', entity: '#b58cff', concept: '#f0a35e' }
+const GROUP_COLOR = Object.fromEntries((DATA.groups || []).map((g) => [g.id, g.color]))
+const EDGE_COLOR = { runtime: 'rgba(123,167,247,.34)', type: 'rgba(139,145,156,.24)' }
+
+const state = {
+  selected: null,
+  activeRef: null,
+  search: '',
+  showTypes: new Set(['summary', 'entity', 'concept']),
+  edgeKinds: new Set(['runtime']),
+  allMatches: false,
+}
+let cam = { scale: 0.4, tx: 0, ty: 0 }
+let W = 0, H = 0, dpr = 1
+let panning = null, moved = false
+let hovered = null
+
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1)
+  const rect = canvas.getBoundingClientRect()
+  W = rect.width; H = rect.height
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr)
+  if (!cam.initialized) { cam.initialized = true; fitNodes(visibleWiki(), 0.1) }
+  draw()
+}
+
+function visibleWiki() { return wiki.filter((p) => state.showTypes.has(p.type)) }
+function visibleCode() { return code }
+function wikiVisible(id) { const p = wikiById.get(id); return p && state.showTypes.has(p.type) }
+
+function nodeBox(n) {
+  if (n.w) return { x: n.x - n.w / 2, y: n.y - n.h / 2, w: n.w, h: n.h }
+  const s = n.r * (n.kind === 'class' ? 1.5 : 1)
+  return { x: n.x - s, y: n.y - s, w: s * 2, h: s * 2 }
+}
+function allNodes() { return [...visibleWiki(), ...visibleCode()] }
+function bboxOf(nodes) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const n of nodes) {
+    const b = nodeBox(n)
+    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y)
+    maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h)
+  }
+  return { minX, minY, maxX, maxY }
+}
+function fitNodes(nodes, padRatio = 0.08) {
+  if (!nodes.length) return
+  const b = bboxOf(nodes)
+  const padX = Math.min(100, Math.max(50, (b.maxX - b.minX) * padRatio))
+  const padY = Math.min(90, Math.max(50, (b.maxY - b.minY) * padRatio))
+  const s = Math.min((W - padX * 2) / (b.maxX - b.minX), (H - padY * 2) / (b.maxY - b.minY))
+  cam.scale = Math.max(0.08, Math.min(2.4, s))
+  cam.tx = W / 2 - ((b.minX + b.maxX) / 2) * cam.scale
+  cam.ty = H / 2 - ((b.minY + b.maxY) / 2) * cam.scale
+  draw()
+}
+function fitAll() { fitNodes(allNodes(), 0.06) }
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  const bg = ctx.createLinearGradient(0, 0, 0, H)
+  bg.addColorStop(0, '#0b0c0f'); bg.addColorStop(1, '#08090b')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+  ctx.save(); ctx.translate(cam.tx, cam.ty); ctx.scale(cam.scale, cam.scale)
+
+  drawWikiEdges()
+  drawCodeEdges()
+  drawMatches()
+  drawWikiNodes()
+  drawCodeNodes()
+  drawLabels()
+  ctx.restore()
+}
+
+function drawZoneLabels() {
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.font = `600 ${13 / cam.scale}px ui-sans-serif, sans-serif`
+  ctx.fillStyle = 'rgba(123,167,247,.42)'
+  ctx.fillText('Wiki 页面层 · 自己生成', -1720, -690)
+  ctx.fillStyle = 'rgba(158,240,168,.32)'
+  ctx.textAlign = 'center'
+  ctx.fillText('跨层匹配 · 点击才计算', -420, -690)
+  ctx.fillStyle = 'rgba(240,163,94,.45)'
+  ctx.textAlign = 'left'
+  ctx.fillText('代码符号层 · 真实 AST', 160, -690)
+}
+
+function drawWikiEdges() {
+  if (state.selected) return
+  for (const e of DATA.wikiEdges) {
+    const a = wikiById.get(e.source); const b = wikiById.get(e.target)
+    if (!a || !b || !wikiVisible(a.id) || !wikiVisible(b.id)) continue
+    if (state.selected?.kind === 'wiki') {
+      const engaged = e.source === state.selected.id || e.target === state.selected.id
+      ctx.globalAlpha = engaged ? 0.8 : 0.12
+    } else {
+      ctx.globalAlpha = 0.22
+    }
+    line(a, b, TYPE_COLOR[a.type] || '#8b919c', false)
+  }
+  ctx.globalAlpha = 1
+}
+
+function drawCodeEdges() {
+  for (const e of DATA.codeEdges) {
+    if (!state.edgeKinds.has(e.kind)) continue
+    const a = codeById.get(e.source); const b = codeById.get(e.target)
+    if (!a || !b) continue
+    const engaged = state.selected?.kind === 'code' && (e.source === state.selected.id || e.target === state.selected.id)
+    ctx.globalAlpha = state.selected ? (engaged ? 0.85 : 0.08) : 0.55
+    line(a, b, EDGE_COLOR[e.kind], e.kind === 'type')
+  }
+  ctx.globalAlpha = 1
+}
+
+function matchPairs() {
+  const pairs = []
+  if (state.selected?.kind === 'wiki') {
+    const p = wikiById.get(state.selected.id)
+    if (!state.activeRef && !state.allMatches) return []
+    for (const r of p.refs) {
+      if (state.activeRef && r.surface !== state.activeRef) continue
+      if (r.codeId && codeById.has(r.codeId)) pairs.push({ page: p, ref: r, code: codeById.get(r.codeId) })
+    }
+  } else if (state.selected?.kind === 'code') {
+    const pages = pageByCode.get(state.selected.id) ?? []
+    for (const p of pages) {
+      const r = p.refs.find((x) => x.codeId === state.selected.id)
+      pairs.push({ page: p, ref: r, code: codeById.get(state.selected.id) })
+    }
+  } else if (state.allMatches) {
+    for (const p of wiki) for (const r of p.refs) {
+      if (r.codeId && codeById.has(r.codeId)) pairs.push({ page: p, ref: r, code: codeById.get(r.codeId) })
+    }
+  }
+  return pairs
+}
+
+function drawMatches() {
+  const pairs = matchPairs()
+  for (const { page, ref, code: cn } of pairs) {
+    const from = { x: page.x, y: page.y + page.h / 2 }
+    const to = { x: cn.x, y: cn.y - cn.r }
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const cx = from.x + dx * 0.5
+    const cy = from.y + dy * 0.5
+    ctx.save()
+    ctx.strokeStyle = 'rgba(158,240,168,.85)'
+    ctx.lineWidth = 1.8 / cam.scale
+    ctx.setLineDash([6 / cam.scale, 5 / cam.scale])
+    ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(cx, cy, to.x, to.y); ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle = 'rgba(158,240,168,.85)'
+    ctx.font = '10px ui-monospace, Menlo, monospace'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    const label = ref.surface
+    const mx = (from.x + to.x) / 2
+    const my = (from.y + to.y) / 2
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = '#0b0c0f'
+    ctx.fillRect(mx - tw / 2 - 4, my - 7, tw + 8, 14)
+    if (state.activeRef) {
+      ctx.fillStyle = 'rgba(158,240,168,.9)'
+      ctx.fillText(label, mx, my)
+    }
+    ctx.restore()
+  }
+}
+
+function line(a, b, color, dashed) {
+  const ab = nodeBox(a); const bb = nodeBox(b)
+  const x1 = ab.x + ab.w / 2
+  const y1 = ab.y + ab.h / 2
+  const x2 = bb.x + bb.w / 2
+  const y2 = bb.y + bb.h / 2
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.1 / cam.scale
+  if (dashed) ctx.setLineDash([4 / cam.scale, 4 / cam.scale])
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+  ctx.setLineDash([])
+}
+
+function isEngaged(id) {
+  if (!state.selected) return true
+  if (state.selected.kind === 'wiki') {
+    if (state.selected.id === id) return true
+    const p = wikiById.get(state.selected.id)
+    if (p && p.links.includes(id)) return true
+    return false
+  }
+  if (state.selected.id === id) return true
+  return pageByCode.get(state.selected.id)?.some((p) => p.id === id) ?? false
+}
+
+function drawWikiNodes() {
+  for (const p of visibleWiki()) {
+    const engaged = isEngaged(p.id)
+    if (state.selected?.kind === 'wiki' && p.id !== state.selected.id) continue
+    if (state.selected?.kind === 'code' && !(pageByCode.get(state.selected.id) ?? []).some((x) => x.id === p.id)) continue
+    const isSel = state.selected?.kind === 'wiki' && state.selected.id === p.id
+    const searchHit = state.search && (p.title + ' ' + p.summary).toLowerCase().includes(state.search.toLowerCase())
+    const isExternal = p.type === 'entity' && p.id === 'entity/langfuse'
+    ctx.globalAlpha = engaged ? 1 : 0.18
+    roundRect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h, 10)
+    ctx.fillStyle = isSel ? '#161d27' : '#13161b'
+    ctx.fill()
+    ctx.lineWidth = (isSel ? 2.2 : 1.2) / cam.scale
+    ctx.strokeStyle = isSel ? '#ffffff' : searchHit ? '#fde68a' : isExternal ? '#8b919c' : TYPE_COLOR[p.type]
+    if (isExternal) ctx.setLineDash([4 / cam.scale, 3 / cam.scale])
+    ctx.stroke(); ctx.setLineDash([])
+    ctx.globalAlpha = 1
+  }
+}
+
+function drawCodeNodes() {
+  const pairs = matchPairs()
+  const matched = new Set(pairs.map((m) => m.code.id))
+  for (const n of visibleCode()) {
+    if (state.selected && !matched.has(n.id) && !(state.selected.kind === 'code' && state.selected.id === n.id)) continue
+    const pages = pageByCode.get(n.id) ?? []
+    const engaged = isEngaged(n.id) || pages.some((p) => isEngaged(p.id)) && state.selected?.kind === 'code'
+    const isSel = state.selected?.kind === 'code' && state.selected.id === n.id
+    const isMatched = matched.has(n.id)
+    const searchHit = state.search && (n.name + ' ' + (n.file || '')).toLowerCase().includes(state.search.toLowerCase())
+    ctx.globalAlpha = state.selected ? (isSel || isMatched ? 1 : 0.14) : 1
+    if (n.kind === 'class' || n.kind === 'dir') {
+      const w = n.kind === 'dir' ? n.r * 2.4 : n.r * 2.2, h = n.kind === 'dir' ? n.r * 1.8 : n.r * 1.7
+      roundRect(n.x - w / 2, n.y - h / 2, w, h, 7)
+      ctx.fillStyle = isMatched ? '#12231f' : isSel ? '#1a2330' : '#15171b'
+      ctx.fill()
+      ctx.lineWidth = (isSel || isMatched ? 2.2 : 1.2) / cam.scale
+      ctx.strokeStyle = isMatched ? '#9ef0a8' : isSel ? '#ffffff' : searchHit ? '#fde68a' : (GROUP_COLOR[n.group] || '#8b919c')
+      ctx.stroke()
+    } else {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2)
+      ctx.fillStyle = isMatched ? '#12231f' : isSel ? '#1a2330' : '#15171b'
+      ctx.fill()
+      ctx.lineWidth = (isSel || isMatched ? 2.2 : 1.2) / cam.scale
+      ctx.strokeStyle = isMatched ? '#9ef0a8' : isSel ? '#ffffff' : searchHit ? '#fde68a' : (GROUP_COLOR[n.group] || '#8b919c')
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+  }
+}
+
+function drawLabels() {
+  for (const p of visibleWiki()) {
+    const engaged = isEngaged(p.id)
+    if (!engaged) continue
+    if (state.selected?.kind === 'wiki' && p.id !== state.selected.id) continue
+    if (state.selected?.kind === 'code' && !(pageByCode.get(state.selected.id) ?? []).some((x) => x.id === p.id)) continue
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+    ctx.font = '600 16px ui-sans-serif, sans-serif'
+    ctx.fillStyle = '#e6e8ec'
+    ctx.fillText(p.title, p.x - p.w / 2 + 14, p.y - p.h / 2 + 26)
+    ctx.font = '10px ui-sans-serif, sans-serif'
+    ctx.fillStyle = 'rgba(139,145,156,.95)'
+    wrapText(p.summary, p.x - p.w / 2 + 14, p.y - p.h / 2 + 46, p.w - 28, 14, 2)
+  }
+  const pairs = matchPairs()
+  const matched = new Set(pairs.map((m) => m.code.id))
+  const list = visibleCode()
+    .filter((n) => !state.selected || matched.has(n.id) || state.selected.id === n.id)
+    .map((n) => ({ n, rank: (matched.has(n.id) ? 2 : 0) + (state.selected?.id === n.id ? 3 : 0) }))
+    .sort((a, b) => b.rank - a.rank)
+  const boxes = []
+  for (const { n } of list) {
+    const worldY = n.y + ((n.kind === 'class' || n.kind === 'dir') ? n.r * 0.95 : n.r) + 9 / cam.scale
+    const sx = n.x * cam.scale + cam.tx
+    const sy = worldY * cam.scale + cam.ty
+    ctx.font = '11px ui-sans-serif, sans-serif'
+    const tw = ctx.measureText(n.name).width * cam.scale
+    const th = 11 * cam.scale
+    const box = { x: sx - tw / 2 - 2, y: sy - th / 2 - 1, w: tw + 4, h: th + 2 }
+    if (boxes.some((b) => !(box.x + box.w < b.x || box.x > b.x + b.w || box.y + box.h < b.y || box.y > b.y + b.h))) continue
+    boxes.push(box)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#dfe3e8'
+    ctx.fillText(n.name, n.x, worldY)
+  }
+}
+
+function wrapText(text, x, y, maxWidth, lineHeight, maxLines) {
+  const chars = String(text).split('')
+  let line = ''
+  let lines = 0
+  for (const ch of chars) {
+    const test = line + ch
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y + lines * lineHeight)
+      line = ch
+      lines += 1
+      if (lines >= maxLines) return
+    } else {
+      line = test
+    }
+  }
+  if (line && lines < maxLines) ctx.fillText(line, x, y + lines * lineHeight)
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function toWorld(px, py) { return { x: (px - cam.tx) / cam.scale, y: (py - cam.ty) / cam.scale } }
+
+function nodeAt(px, py) {
+  const p = toWorld(px, py)
+  for (const n of visibleCode()) {
+    if (Math.hypot(p.x - n.x, p.y - n.y) < n.r + 4) return { kind: 'code', node: n }
+  }
+  for (const pg of visibleWiki()) {
+    if (p.x > pg.x - pg.w / 2 && p.x < pg.x + pg.w / 2 && p.y > pg.y - pg.h / 2 && p.y < pg.y + pg.h / 2) return { kind: 'wiki', node: pg }
+  }
+  return null
+}
+
+function selectWiki(page) {
+  state.selected = { kind: 'wiki', id: page.id }
+  state.activeRef = null
+  renderDetail()
+  cam.scale = Math.max(cam.scale, 0.85)
+  cam.tx = W / 2 - page.x * cam.scale
+  cam.ty = H / 2 - page.y * cam.scale
+  draw()
+}
+
+function selectCode(node) {
+  state.selected = { kind: 'code', id: node.id }
+  state.activeRef = null
+  renderDetail()
+  const pages = pageByCode.get(node.id) ?? []
+  fitNodes([node, ...pages], 0.3)
+}
+
+function renderDetail() {
+  if (!state.selected) {
+    detail.innerHTML = statsHtml()
+    return
+  }
+  if (state.selected.kind === 'wiki') {
+    const p = wikiById.get(state.selected.id)
+    const refs = p.refs.map((r) => {
+      const st = r.status === 'resolved' ? 'ok' : r.status === 'external' ? '' : 'bad'
+      const label = r.status === 'resolved' ? 'resolved' : r.status === 'external' ? 'external' : r.status === 'ambiguous' ? 'ambiguous' : 'unresolved'
+      return `<button class="item" data-ref="${escapeHtml(r.surface)}"><span class="dot" style="background:${r.status === 'resolved' ? '#9ef0a8' : r.status === 'external' ? '#8b919c' : '#f2777a'}"></span><span class="nm">${escapeHtml(r.surface)}</span><span class="st ${st}">${label}</span></button>`
+    }).join('')
+    const links = p.links.map((id) => {
+      const t = wikiById.get(id)
+      return t ? `<button class="item" data-wiki="${escapeHtml(id)}"><span class="dot" style="background:${TYPE_COLOR[t.type]}"></span><span class="nm">${escapeHtml(t.title)}</span></button>` : ''
+    }).join('')
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(p.title)}</div>
+      <div class="badges"><span class="badge ${p.type}">${p.type}</span><span class="badge">${p.refs.length} 个代码引用</span></div>
+      <div class="summary">${escapeHtml(p.summary)}</div>
+      <div class="detail-sub">代码引用</div><div class="list">${refs}</div>
+      <div class="detail-sub">链接页面</div><div class="list">${links}</div>
+      <div class="tip">点击引用只高亮这一条；external / unresolved 不画虚线。</div>`
+  } else {
+    const n = codeById.get(state.selected.id)
+    const pages = pageByCode.get(n.id) ?? []
+    const links = pages.map((p) => `<button class="item" data-wiki="${escapeHtml(p.id)}"><span class="dot" style="background:${TYPE_COLOR[p.type]}"></span><span class="nm">${escapeHtml(p.title)}</span></button>`).join('')
+    const files = (DATA.filesByGroup?.[n.id] ?? []).slice().sort((a, b) => b.lines - a.lines)
+    detail.innerHTML = `
+      <div class="node-title">${escapeHtml(n.name)}</div>
+      <div class="badges"><span class="badge">目录</span><span class="badge">${n.files} 文件</span><span class="badge">${n.lines} 行</span></div>
+      <div class="sub">${escapeHtml(n.id)}</div>
+      <div class="detail-sub">被哪些 Wiki 页面引用 · ${pages.length}</div>
+      <div class="list">${links || '<div class="empty">没有页面引用它。</div>'}</div>
+      <div class="detail-sub">目录内文件 · ${files.length}</div>
+      <div class="list">${files.slice(0, 40).map((f) => `<div class="item" style="cursor:default"><span class="nm">${escapeHtml(f.file.split('/').pop())}</span><span class="st">${f.lines} 行</span></div>`).join('')}</div>
+      <div class="tip">反向查询同样只看引用的双向关系，不存关联表。</div>`
+  }
+}
+
+function statsHtml() {
+  const s = DATA.stats
+  return `<div class="node-title">项目实图</div>
+    <div class="summary">左侧是 Wiki 页面（示例内容取自本仓库设计），下方是真实目录依赖图；中间只画 resolved 的引用，external / unresolved 保持断开。</div>
+    <div class="detail-sub">规模</div>
+    <div class="stats">
+      <span>Wiki 页面</span><b>${s.wikiPages}</b>
+      <span>Wiki 链接</span><b>${s.wikiLinks}</b>
+      <span>代码目录</span><b>${s.codeNodes}</b>
+      <span>代码边</span><b>${s.codeEdges}</b>
+      <span>resolved</span><b>${s.resolved}</b>
+      <span>external</span><b>${s.external}</b>
+      <span>unresolved / ambiguous</span><b>${s.unresolved}</b>
+    </div>
+    <div class="tip">点击页面看它引用了哪些代码；点目录节点看哪些页面解释它。</div>`
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+canvas.addEventListener('click', (e) => {
+  if (moved) return
+  const rect = canvas.getBoundingClientRect()
+  const hit = nodeAt(e.clientX - rect.left, e.clientY - rect.top)
+  if (!hit) {
+    state.selected = null; state.activeRef = null; renderDetail(); draw(); return
+  }
+  if (hit.kind === 'wiki') selectWiki(hit.node)
+  else selectCode(hit.node)
+})
+canvas.addEventListener('pointerdown', (e) => {
+  moved = false
+  const rect = canvas.getBoundingClientRect()
+  panning = { x: e.clientX - rect.left, y: e.clientY - rect.top, tx: cam.tx, ty: cam.ty }
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging')
+})
+canvas.addEventListener('pointermove', (e) => {
+  if (!panning) return
+  const rect = canvas.getBoundingClientRect()
+  const x = e.clientX - rect.left, y = e.clientY - rect.top
+  if (Math.abs(x - panning.x) + Math.abs(y - panning.y) > 3) moved = true
+  cam.tx = panning.tx + (x - panning.x); cam.ty = panning.ty + (y - panning.y)
+  draw()
+})
+canvas.addEventListener('pointerup', () => { panning = null; canvas.classList.remove('dragging') })
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault()
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left, py = e.clientY - rect.top
+  const p = toWorld(px, py)
+  cam.scale = Math.max(0.06, Math.min(3, cam.scale * Math.exp(-e.deltaY * 0.0014)))
+  cam.tx = px - p.x * cam.scale; cam.ty = py - p.y * cam.scale
+  draw()
+}, { passive: false })
+
+detail.addEventListener('click', (e) => {
+  const refBtn = e.target.closest('button[data-ref]')
+  if (refBtn) {
+    state.activeRef = state.activeRef === refBtn.dataset.ref ? null : refBtn.dataset.ref
+    const p = wikiById.get(state.selected.id)
+    const ref = p.refs.find((r) => r.surface === state.activeRef)
+    const codeNode = ref?.codeId ? codeById.get(ref.codeId) : null
+    if (codeNode) fitNodes([p, codeNode], 0.1)
+    else { cam.scale = Math.max(cam.scale, 0.85); cam.tx = W / 2 - p.x * cam.scale; cam.ty = H / 2 - p.y * cam.scale; draw() }
+    return
+  }
+  const wikiBtn = e.target.closest('button[data-wiki]')
+  if (wikiBtn) { selectWiki(wikiById.get(wikiBtn.dataset.wiki)); return }
+  const codeBtn = e.target.closest('button[data-code]')
+  if (codeBtn) { selectCode(codeById.get(codeBtn.dataset.code)) }
+})
+
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value.trim()
+  draw()
+})
+for (const cb of document.querySelectorAll('input[data-wiki-type]')) {
+  cb.addEventListener('change', () => {
+    if (cb.checked) state.showTypes.add(cb.dataset.wikiType)
+    else state.showTypes.delete(cb.dataset.wikiType)
+    draw()
+  })
+}
+for (const cb of document.querySelectorAll('input[data-edge]')) {
+  cb.addEventListener('change', () => {
+    if (cb.checked) state.edgeKinds.add(cb.dataset.edge)
+    else state.edgeKinds.delete(cb.dataset.edge)
+    draw()
+  })
+}
+document.getElementById('allMatches').addEventListener('change', (e) => {
+  state.allMatches = e.target.checked
+  draw()
+})
+document.getElementById('viewWiki').addEventListener('click', () => fitNodes(visibleWiki(), 0.08))
+document.getElementById('viewCode').addEventListener('click', () => fitNodes(visibleCode(), 0.08))
+document.getElementById('viewAll').addEventListener('click', () => fitAll())
+document.getElementById('reset').addEventListener('click', () => {
+  state.selected = null; state.activeRef = null; state.search = ''
+  searchInput.value = ''
+  state.showTypes = new Set(['summary', 'entity', 'concept'])
+  state.edgeKinds = new Set(['runtime'])
+  state.allMatches = false
+  document.getElementById('allMatches').checked = false
+  for (const cb of document.querySelectorAll('input[data-wiki-type]')) cb.checked = true
+  for (const cb of document.querySelectorAll('input[data-edge]')) cb.checked = cb.dataset.edge === 'runtime'
+  renderDetail(); fitNodes(visibleWiki(), 0.1)
+})
+
+window.addEventListener('resize', resize)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas)
+
+renderDetail()
+resize()
+fitNodes(visibleWiki(), 0.1)
+</script>
+</body>
+</html>

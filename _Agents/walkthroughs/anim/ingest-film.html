@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URL ingest animation</title>
+<link rel="stylesheet" href="../assets/walkthrough.css?v=20261026d">
+<style>
+html, body { height: 100%; }
+body { margin: 0; overflow: auto; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+body.embed { overflow: hidden; background: transparent; }
+.film-shell { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 100%; padding: clamp(0px, 3vh, 32px) 0; box-sizing: border-box; }
+body.embed .film-shell { height: 100%; padding: 0; }
+.film-player { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+body:not(.embed) .film-player { width: min(1280px, 100%, calc((100vh - 6vh - 118px) * 16 / 9)); }
+.film-screen { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--bg); }
+body.embed .film-player, body.embed .film-screen { height: 100%; }
+body.embed .film-screen { aspect-ratio: auto; }
+body.is-manual .film-screen { cursor: pointer; }
+.film-stage { position: absolute; top: 0; left: 0; width: 1024px; height: 576px; transform-origin: 0 0; }
+.f-grid { position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--line) 32%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--line) 32%, transparent) 1px, transparent 1px); background-size: 48px 48px; opacity: .45; }
+.f-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 62%); }
+.f-hud { position: absolute; top: 22px; left: 28px; right: 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-3); font-family: var(--mono); font-size: 15px; letter-spacing: .05em; }
+.f-hud b { color: var(--accent); font-weight: 600; }
+.f-caption { position: absolute; left: 50%; bottom: 24px; width: 780px; padding: 12px 20px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--bg) 88%, transparent); box-shadow: 0 10px 30px rgba(0,0,0,.08); color: var(--ink); font-size: 22px; line-height: 1.45; text-align: center; transform: translateX(-50%); }
+.f-caption b { color: var(--accent); font-weight: 600; }
+.f-card { position: absolute; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); box-shadow: 0 10px 28px rgba(0,0,0,.07); }
+.f-kicker { color: var(--accent); font-family: var(--mono); font-size: 13px; letter-spacing: .08em; }
+.f-title { margin-top: 6px; color: var(--ink); font-size: 22px; font-weight: 600; }
+.f-sub { margin-top: 5px; color: var(--ink-3); font-size: 16px; line-height: 1.5; }
+.f-mono { font-family: var(--mono); }
+.f-chip { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink-2); font-family: var(--mono); font-size: 13px; }
+.f-chip.ok { border-color: color-mix(in srgb, var(--success) 45%, var(--line)); background: var(--success-soft); color: var(--success-ink); }
+.f-chip.warn { border-color: color-mix(in srgb, var(--warning) 45%, var(--line)); background: var(--warning-soft); color: var(--warning-ink); }
+.f-chip.bad { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); background: var(--danger-soft); color: var(--danger-ink); }
+.f-url { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line-strong); border-radius: 7px; color: var(--ink-2); font-family: var(--mono); font-size: 16px; }
+.f-doc { position: absolute; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--raised); box-shadow: 0 14px 36px rgba(0,0,0,.09); }
+.f-doc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--ink-3); font-family: var(--mono); font-size: 14px; }
+.f-doc-body { position: relative; height: calc(100% - 39px); padding: 16px 18px; overflow: hidden; }
+.f-md-line { height: 7px; margin-bottom: 9px; border-radius: 2px; background: color-mix(in srgb, var(--line) 80%, transparent); }
+.f-md-line.head { height: 13px; background: color-mix(in srgb, var(--ink-3) 35%, transparent); }
+.f-md-line.short { width: 58%; }
+.f-code { margin: 10px 0 9px; padding: 9px 10px; border: 1px solid var(--warning); border-radius: 6px; background: var(--warning-soft); color: var(--warning-ink); font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.f-cut { position: absolute; left: 8px; right: 8px; z-index: 3; border-top: 1px dashed var(--accent); opacity: 0; }
+.f-blade { position: absolute; left: 6px; right: 6px; top: 0; z-index: 4; height: 2px; background: var(--accent); box-shadow: 0 0 12px var(--accent); opacity: 0; }
+.f-shield { position: absolute; z-index: 5; padding: 2px 6px; border: 1px solid var(--warning); border-radius: 4px; background: var(--warning-soft); color: var(--warning-ink); font-family: var(--mono); font-size: 10px; opacity: 0; }
+.f-chunk { position: absolute; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); box-shadow: 0 6px 18px rgba(0,0,0,.05); }
+.f-chunk b { color: var(--accent); font-family: var(--mono); font-size: 16px; font-weight: 600; line-height: 1.2; }
+.f-chunk small { display: block; margin-top: 2px; color: var(--ink-3); font-family: var(--mono); font-size: 12px; line-height: 1.3; }
+.f-chunk p { margin: 5px 0 0; overflow: hidden; color: var(--ink-2); font-size: 13px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
+.f-more { position: absolute; color: var(--ink-3); font-family: var(--mono); font-size: 14px; }
+.f-counter { position: absolute; right: 28px; top: 52px; color: var(--ink-3); font-family: var(--mono); font-size: 15px; }
+.f-counter b { color: var(--accent); font-size: 24px; font-weight: 600; }
+.f-gate { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--accent); border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, var(--raised)); color: var(--accent); font-family: var(--mono); text-align: center; }
+.f-gate b { font-size: 20px; }
+.f-gate span { color: var(--ink-3); font-size: 13px; }
+.f-vec { position: absolute; display: flex; align-items: center; gap: 7px; }
+.f-vec i { color: var(--ink-3); font-family: var(--mono); font-size: 13px; font-style: normal; width: 22px; }
+.f-dots { display: flex; gap: 3px; }
+.f-dot { width: 7px; height: 7px; border-radius: 1px; background: var(--accent); opacity: .8; }
+.f-table { position: absolute; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); box-shadow: 0 8px 22px rgba(0,0,0,.06); }
+.f-table h4 { margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--line); color: var(--ink); font-family: var(--mono); font-size: 16px; font-weight: 600; }
+.f-table-row { display: flex; justify-content: space-between; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--line); color: var(--ink-3); font-family: var(--mono); font-size: 14px; }
+.f-table-row:last-child { border-bottom: 0; }
+.f-table-row b { color: var(--ink-2); font-weight: 500; }
+.f-table-row b.ok { color: var(--success-ink); }
+.f-commit { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: var(--success-soft); color: var(--success-ink); font-family: var(--mono); font-size: 15px; letter-spacing: .14em; }
+.f-note { position: absolute; color: var(--ink-3); font-family: var(--mono); font-size: 14px; line-height: 1.5; }
+.f-token { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent); }
+.f-token.bad { background: var(--danger); box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 55%, transparent); }
+.f-controls { display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.f-controls[hidden] { display: none; }
+.f-step-btn, .f-step-label, .f-mode button { height: 28px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink-2); font-family: var(--sans); font-size: 12px; cursor: pointer; }
+.f-step-btn { width: 28px; padding: 0; font-size: 16px; line-height: 1; }
+.f-step-label { min-width: 128px; padding: 0 9px; font-family: var(--mono); font-size: 11px; }
+.f-step-btn:hover, .f-step-label:hover { border-color: var(--accent); color: var(--accent); }
+.f-mode { display: flex; margin-left: auto; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; }
+.f-mode button { border: 0; border-radius: 0; padding: 0 10px; color: var(--ink-3); }
+.f-mode button + button { border-left: 1px solid var(--line); }
+.f-mode button.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.f-hint { padding: 0 6px; color: var(--ink-3); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
+.f-index-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.f-index-panel[hidden] { display: none; }
+.f-index-panel button { min-height: 30px; padding: 0 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink-2); font-family: var(--sans); font-size: 12px; text-align: left; cursor: pointer; }
+.f-index-panel button:hover { border-color: var(--accent); color: var(--accent); }
+.f-index-panel button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+@media (max-width: 620px) {
+  body:not(.embed) .film-shell { justify-content: flex-start; align-items: flex-start; overflow-x: auto; padding: 8px 0; }
+  body:not(.embed) .film-player { width: 720px; min-width: 720px; }
+  .f-step-label { min-width: 104px; font-size: 10px; }
+  .f-hint { display: none; }
+  .f-index-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.f-replay { position: absolute; right: 20px; bottom: 24px; z-index: 6; height: 38px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 13px; cursor: pointer; transform: none; box-shadow: 0 8px 20px rgba(0,0,0,.1); }
+.f-replay[hidden] { display: none; }
+
+.film-back { display: flex; align-self: flex-start; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); }
+.film-back a { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; color: var(--ink-3); font-family: var(--sans); font-size: 11px; text-decoration: none; }
+.film-back a:hover { background: var(--accent-soft); color: var(--accent-ink); }
+body.embed .film-back { display: none; }
+@media (max-width: 620px) { .film-back a { height: 24px; padding: 0 8px; font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="film-shell">
+  <div class="film-player">
+    <nav class="film-back" aria-label="返回目录"><a href="index.html">← 动画目录</a><a href="../index.html">走读目录</a></nav>
+    <div class="film-screen" id="film-screen">
+      <div class="film-stage" id="film-stage"></div>
+      <button type="button" class="f-replay" id="film-replay" hidden>重播</button>
+    </div>
+    <div class="f-controls" id="film-controls" hidden>
+      <button type="button" class="f-step-btn" id="film-prev" aria-label="上一页">‹</button>
+      <button type="button" class="f-step-label" id="film-step-label" aria-expanded="false">1 / 7 · 查重</button>
+      <button type="button" class="f-step-btn" id="film-next" aria-label="下一页">›</button>
+      <span class="f-mode"><button type="button" id="film-manual" class="active">手动</button><button type="button" id="film-auto">自动</button></span>
+      <span class="f-hint" id="film-hint">点画面继续</span>
+    </div>
+    <div class="f-index-panel" id="film-index-panel" hidden></div>
+  </div>
+</div>
+<script>
+(function () {
+  var Params = new URLSearchParams(location.search)
+  var Theme = Params.get('theme') === 'dark' ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', Theme)
+  document.body.classList.toggle('embed', Params.get('embed') === '1')
+  var Film = Params.get('film') || 'success'
+  var Clip = Params.get('clip') || ''
+  var Mode = Clip ? 'clip' : 'film'
+  var Width = 1024
+  var Height = 576
+  var Screen = document.getElementById('film-screen')
+  var Stage = document.getElementById('film-stage')
+  var Replay = document.getElementById('film-replay')
+  var Controls = document.getElementById('film-controls')
+  var Prev = document.getElementById('film-prev')
+  var Next = document.getElementById('film-next')
+  var StepLabel = document.getElementById('film-step-label')
+  var Manual = document.getElementById('film-manual')
+  var Auto = document.getElementById('film-auto')
+  var Hint = document.getElementById('film-hint')
+  var IndexPanel = document.getElementById('film-index-panel')
+  var StepNames = ['查重', 'fetch', 'parse', '切片', '向量', '写入', '完成']
+  var StepTimes = [0, 9.6, 12.4, 17.2, 29.2, 37.2, 42.4]
+  var SceneIndex = 0
+  var StepMode = false
+  var Timeline = { active: false, events: [], animations: [], now: 0, playing: false, raf: 0, startTime: 0, startStamp: 0, end: 49, manual: true }
+  var Boundaries = [0, 9.2, 12, 16.8, 28.8, 37, 42.2, 49]
+  var Cues = []
+  var CueIndex = 0
+  var CueSpecs = [
+    [0, 'URL 进入'],
+    [4, 'URL 收起，建 processing 行'],
+    [6.6, '重复请求 409'],
+    [9.2, 'fetch 卡出现'],
+    [9.4, '请求发往 fetch'],
+    [9.7, '抓回 HTML'],
+    [12, 'HTML → Markdown'],
+    [16.8, '进入切片文档'],
+    [19, '刀片扫过、逐刀切开'],
+    [21.2, '保护代码块'],
+    [23, 'chunk #0–#2 飞出'],
+    [23.6, 'chunk #3–#4 飞出'],
+    [24, '计数 16 chunks'],
+    [28.8, 'chunk 收起'],
+    [29.4, 'embedMany 关卡'],
+    [31.4, '向量 #0–#2'],
+    [32.75, '向量 #3–#4'],
+    [34, '16 / 16 对齐'],
+    [37, '三张表出现'],
+    [39.4, 'status ready + COMMIT'],
+    [42.2, '失败残影 / 完成']
+  ]
+  var Timers = []
+  var Animations = []
+  var Caption = null
+  var Total = 0
+  var ChunkRange = 8421
+  function safe(Value) { return String(Value == null ? '' : Value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+  var ChunkOffsets = []
+  for (var OffsetIndex = 0; OffsetIndex < 16; OffsetIndex += 1) {
+    ChunkOffsets.push([Math.round((OffsetIndex / 16) * ChunkRange), Math.round(((OffsetIndex + 1) / 16) * ChunkRange)])
+  }
+
+  function fit() {
+    var Scale = Screen.clientWidth / Width
+    Stage.style.transform = 'scale(' + Scale + ')'
+  }
+
+  function at(Seconds, Fn) {
+    if (Timeline.active) {
+      Timeline.events.push({ time: Timeline.now + Math.max(0, Seconds), fn: Fn, fired: false })
+      return
+    }
+    Timers.push(setTimeout(Fn, Math.max(0, Seconds) * 1000))
+  }
+
+  function anim(Element, Frames, Options) {
+    if (!Element) return null
+    var OptionsValue = Options || {}
+    var Duration = OptionsValue.duration == null ? .3 : OptionsValue.duration
+    if (Timeline.active) {
+      var Tracked = Element.animate(Frames, {
+        fill: OptionsValue.fill || 'both',
+        easing: OptionsValue.easing || 'cubic-bezier(.2,.7,.2,1)',
+        duration: Duration * 1000
+      })
+      Tracked.pause()
+      Tracked.currentTime = 0
+      Timeline.animations.push({ animation: Tracked, start: Timeline.now + (OptionsValue.delay || 0), duration: Duration })
+      return Tracked
+    }
+    var Settings = {
+      fill: OptionsValue.fill || 'both',
+      easing: OptionsValue.easing || 'cubic-bezier(.2,.7,.2,1)',
+      duration: Duration * 1000,
+      delay: (OptionsValue.delay || 0) * 1000
+    }
+    var Animation = Element.animate(Frames, Settings)
+    Animations.push(Animation)
+    return Animation
+  }
+
+  function box(ClassName, Html, X, Y, W, H) {
+    var Element = document.createElement('div')
+    Element.className = ClassName
+    Element.innerHTML = Html || ''
+    if (X != null) Element.style.left = X + 'px'
+    if (Y != null) Element.style.top = Y + 'px'
+    if (W != null) Element.style.width = W + 'px'
+    if (H != null) Element.style.height = H + 'px'
+    Stage.appendChild(Element)
+    return Element
+  }
+
+  function say(Text, Seconds) {
+    at(Seconds, function () {
+      Caption.innerHTML = Text
+      anim(Caption, [{ opacity: 0, transform: 'translateX(-50%) translateY(8px)' }, { opacity: 1, transform: 'translateX(-50%) translateY(0)' }], { duration: .42 })
+    })
+  }
+
+  function finish(Seconds) {
+    at(Seconds, function () {
+      if (Mode === 'film' && Film === 'success') return
+      Replay.hidden = false
+      anim(Replay, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: .3 })
+    })
+  }
+
+  function offsetText(Index) {
+    var Range = ChunkOffsets[Index]
+    return Range[0] + '–' + Range[1]
+  }
+
+  function urlCard(X, Y, W) {
+    return box('f-card', '<div style="padding:16px 18px"><div class="f-kicker">POST /resources</div><div class="f-title">一条 URL</div><div class="f-url">https://weknora…/03-quickstart.html</div><div style="display:flex;gap:6px;margin-top:10px"><span class="f-chip">text/html</span><span class="f-chip">同步入库</span></div></div>', X, Y, W, null)
+  }
+
+  function resourceCard(X, Y, W, Status) {
+    var StatusClass = Status === 'ready' ? 'ok' : Status === 'failed' ? 'bad' : 'warn'
+    return box('f-card', '<div style="padding:14px 16px"><div class="f-kicker">resources</div><div class="f-title" style="margin-top:4px">weknora/03-quickstart</div><div style="display:flex;gap:6px;margin-top:9px"><span class="f-chip">source = url</span><span class="f-chip ' + StatusClass + '">status = ' + Status + '</span><span class="f-chip">chunks = 0</span></div></div>', X, Y, W, null)
+  }
+
+  function docCard(X, Y, W, H, Markdown) {
+    var Head = Markdown ? 'article.md' : 'response.html'
+    var Meta = Markdown ? 'Markdown · 8,421 chars' : 'text/html · 12.4 KB'
+    var Body = Markdown
+      ? '<div class="f-md-line head" style="width:44%"></div><div class="f-md-line"></div><div class="f-md-line short"></div><div class="f-md-line" style="width:34%"></div><div class="f-md-line"></div><div class="f-md-line short"></div><div class="f-code">```ts<br>const result = await fetch(url)</div><div class="f-md-line"></div><div class="f-md-line short"></div><div class="f-md-line" style="width:47%"></div><div class="f-md-line"></div><div class="f-md-line short"></div>'
+      : '<div class="f-md-line head" style="width:58%"></div><div class="f-md-line"></div><div class="f-md-line short"></div><div class="f-md-line" style="width:76%"></div><div class="f-md-line" style="width:88%"></div><div class="f-md-line short"></div><div class="f-md-line" style="width:69%"></div><div class="f-md-line"></div><div class="f-md-line short"></div><div class="f-md-line" style="width:51%"></div>'
+    return box('f-doc', '<div class="f-doc-head"><span>' + Head + '</span><span>' + Meta + '</span></div><div class="f-doc-body">' + Body + '</div>', X, Y, W, H)
+  }
+
+  function chunkCard(Index, X, Y, W, H, Text) {
+    var Excerpts = ['# 快速上手 · 粘贴 URL', '## 安装 · 启动 Ollama', '## 配置 · DATABASE_URL', '## API · POST /resources', '## 示例 · ready + chunk_count', '## 检索 · 混合召回', '## 向量 · 1024 维', '## 总结 · 下一步']
+    return box('f-chunk', '<b>#' + Index + '</b><small>' + offsetText(Index) + '</small><p>' + (Text || Excerpts[Index % Excerpts.length]) + '</p>', X, Y, W, H)
+  }
+
+  function vectorRow(Index, X, Y, W) {
+    var Dots = ''
+    for (var DotIndex = 0; DotIndex < 12; DotIndex += 1) Dots += '<i class="f-dot"></i>'
+    return box('f-vec', '<i>#' + Index + '</i><span class="f-dots">' + Dots + '</span>', X, Y, W, null)
+  }
+
+  function table(X, Y, W, Title, Rows) {
+    var RowsHtml = Rows.map(function (Row) {
+      return '<div class="f-table-row"><span>' + Row[0] + '</span><b class="' + (Row[2] ? 'ok' : '') + '">' + Row[1] + '</b></div>'
+    }).join('')
+    return box('f-table', '<h4>' + Title + '</h4>' + RowsHtml, X, Y, W, null)
+  }
+
+  function stopTimeline() {
+    if (Timeline.raf) cancelAnimationFrame(Timeline.raf)
+    Timeline.raf = 0
+    Timeline.playing = false
+    Timeline.animations.forEach(function (Item) { Item.animation.cancel() })
+    Timeline.animations = []
+    Timeline.events = []
+  }
+
+  function setAnimationTime(Time) {
+    Timeline.animations.forEach(function (Item) {
+      var Local = Time - Item.start
+      var Milliseconds = Math.max(0, Math.min(Item.duration * 1000, Local * 1000))
+      Item.animation.currentTime = Milliseconds
+    })
+  }
+
+  function fireEvents(Time) {
+    Timeline.events.forEach(function (Event) {
+      if (Event.fired || Event.time > Time) return
+      Event.fired = true
+      Timeline.now = Event.time
+      Timeline.active = true
+      Event.fn()
+      Timeline.active = false
+    })
+  }
+
+  function buildTimeline() {
+    stopTimeline()
+    clearStage()
+    Timeline.events = []
+    Timeline.animations = []
+    Timeline.now = 0
+    Timeline.active = true
+    filmSuccess()
+    Timeline.active = false
+    Timeline.events.sort(function (A, B) { return A.time - B.time })
+  }
+
+  function seekTimeline(Time) {
+    buildTimeline()
+    fireEvents(Time)
+    setAnimationTime(Time)
+    Timeline.now = Time
+  }
+
+  function tickTimeline(Stamp) {
+    if (!Timeline.playing) return
+    var Time = Timeline.startTime + (Stamp - Timeline.startStamp) / 1000
+    if (Time > Timeline.end) Time = Timeline.end
+    fireEvents(Time)
+    setAnimationTime(Time)
+    Timeline.now = Time
+    if (Time >= Timeline.end) {
+      Timeline.playing = false
+      Timeline.raf = 0
+      return
+    }
+    Timeline.raf = requestAnimationFrame(tickTimeline)
+  }
+
+  function playRange(Start, End, Manual) {
+    seekTimeline(Start)
+    Timeline.manual = Manual
+    Timeline.end = End
+    Timeline.startTime = Start
+    Timeline.startStamp = performance.now()
+    Timeline.playing = true
+    Timeline.raf = requestAnimationFrame(tickTimeline)
+    requestAnimationFrame(fit)
+  }
+
+  function phaseForTime(Time) {
+    var Index = 0
+    Boundaries.forEach(function (Boundary, BoundaryIndex) {
+      if (Time >= Boundary) Index = BoundaryIndex
+    })
+    return Index
+  }
+
+  function buildCues() {
+    if (Cues.length) return
+    Cues = CueSpecs.map(function (Spec) {
+      return { start: Spec[0], label: Spec[1], phase: phaseForTime(Spec[0]), end: 0 }
+    })
+    Cues.forEach(function (Cue, Index) {
+      Cue.end = Index < Cues.length - 1 ? Cues[Index + 1].start - .02 : 49
+    })
+  }
+
+  function ensureCues() {
+    if (!Cues.length) buildCues()
+  }
+
+  function playCue(Index) {
+    if (Mode !== 'film' || Film !== 'success') return
+    ensureCues()
+    CueIndex = Math.max(0, Math.min(Cues.length - 1, Index))
+    var Cue = Cues[CueIndex]
+    StepMode = true
+    Controls.hidden = false
+    SceneIndex = Cue.phase
+    IndexPanel.hidden = true
+    StepLabel.setAttribute('aria-expanded', 'false')
+    playRange(Cue.start, Cue.end, true)
+    SceneIndex = Cue.phase
+    updateStepUi()
+  }
+
+  function cueForTime(Time) {
+    ensureCues()
+    var Result = 0
+    Cues.forEach(function (Item, CuePosition) {
+      if (Item.start <= Time + .01) Result = CuePosition
+    })
+    return Result
+  }
+
+  function playSegment(Index) {
+    ensureCues()
+    var Target = Boundaries[Index]
+    var Cue = 0
+    for (var Position = 0; Position < Cues.length; Position += 1) {
+      if (Cues[Position].start >= Target - .01) {
+        Cue = Position
+        break
+      }
+    }
+    playCue(Cue)
+  }
+
+  function playAuto() {
+    if (Mode !== 'film' || Film !== 'success') return
+    StepMode = false
+    Controls.hidden = false
+    SceneIndex = 0
+    IndexPanel.hidden = true
+    StepLabel.setAttribute('aria-expanded', 'false')
+    playRange(0, 49, false)
+    updateStepUi()
+  }
+
+  function updateStepUi() {
+    if (StepMode && Cues.length) {
+      var Cue = Cues[Math.max(0, Math.min(Cues.length - 1, CueIndex))]
+      StepLabel.textContent = (CueIndex + 1) + ' / ' + Cues.length + ' · ' + StepNames[Cue.phase] + ' · ' + Cue.label
+    } else {
+      StepLabel.textContent = (SceneIndex + 1) + ' / ' + StepNames.length + ' · ' + StepNames[SceneIndex]
+    }
+    Manual.classList.toggle('active', StepMode)
+    Auto.classList.toggle('active', !StepMode)
+    Hint.textContent = StepMode ? '点画面继续' : '自动播放'
+    document.body.classList.toggle('is-manual', StepMode)
+    Array.prototype.forEach.call(IndexPanel.children, function (Button, Index) {
+      Button.classList.toggle('active', Index === SceneIndex)
+    })
+  }
+
+  function markStep(Index) {
+    SceneIndex = Math.max(0, Math.min(StepNames.length - 1, Index))
+    updateStepUi()
+  }
+
+  function clearStage() {
+    Timers.forEach(clearTimeout)
+    Animations.forEach(function (Animation) { Animation.cancel() })
+    Timers = []
+    Animations = []
+    Stage.innerHTML = '<div class="f-grid"></div><div class="f-glow"></div><div class="f-hud"><span id="film-hud"></span><span>STORY 1.2 · URL → READY</span></div><div class="f-caption" id="film-caption"></div>'
+    Caption = document.getElementById('film-caption')
+    Replay.hidden = true
+    document.getElementById('film-hud').innerHTML = Mode === 'film' ? '<b>FULL FILM</b> · ' + (Film === 'success' ? '成功链路' : Film) : '<b>CLIP</b> · ' + Clip
+  }
+
+  function play() {
+    StepMode = false
+    Controls.hidden = !(Mode === 'film' && Film === 'success')
+    IndexPanel.hidden = true
+    StepLabel.setAttribute('aria-expanded', 'false')
+    clearStage()
+    markStep(0)
+    updateStepUi()
+    requestAnimationFrame(fit)
+    if (Mode === 'film') {
+      if (Film === 'failure') filmFailure()
+      else if (Film === 'duplicate') filmDuplicate()
+      else filmSuccess()
+    } else {
+      if (Clip === 'vectors') clipVectors()
+      else if (Clip === 'commit') clipCommit()
+      else if (Clip === 'failure') clipFailure()
+      else if (Clip === 'reject') clipReject()
+      else clipSlice()
+    }
+    at(Total, function () { if (!(Mode === 'film' && Film === 'success')) Replay.hidden = false })
+  }
+
+  function clipSlice() {
+    Total = 13
+    say('<b>一份 Markdown 文档</b>，先找可切的分隔符。', .2)
+    var Doc = docCard(40, 66, 400, 420, true)
+    anim(Doc, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: .45 })
+    var Cards = []
+    for (var Index = 0; Index < 5; Index += 1) Cards.push(chunkCard(Index, 520, 88 + Index * 78, 440, 76))
+    Cards.forEach(function (Card) { Card.style.opacity = '0' })
+        var Counter = box('f-counter', '<b>16</b> chunks · offsets 0…8421 · 显示 5 块', null, 42, null, null)
+    Counter.style.opacity = '0'
+    say('<b>按标题层级切</b>；每刀落在结构边界。', 3.1)
+    var Blade = box('f-blade', '', 46, 110, 388, null)
+    var CutTops = [136, 181, 226, 286, 331]
+    CutTops.forEach(function (Top, CutIndex) {
+      var Cut = box('f-cut', '', 46, Top, 388, null)
+      at(4 + CutIndex * .32, function () { anim(Cut, [{ opacity: 0 }, { opacity: .9 }], { duration: .2 }) })
+    })
+    at(4, function () {
+      anim(Blade, [{ opacity: 0 }, { opacity: 1 }], { duration: .15 })
+      anim(Blade, [{ transform: 'translateY(0)' }, { transform: 'translateY(250px)' }], { duration: 2.4 })
+      anim(Blade, [{ opacity: 1 }, { opacity: 0 }], { delay: 2.35, duration: .2 })
+    })
+    say('<b>代码块整段保护</b>，不从中间切。', 6.3)
+    var Shield = box('f-shield', '整段保护', 308, 228, null, null)
+    at(6.2, function () { anim(Shield, [{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'none' }], { duration: .3 }) })
+    say('<b>每块带 chunk_index 与起止偏移。</b>', 9)
+    Cards.forEach(function (Card, CardIndex) {
+      at(8.4 + CardIndex * .22, function () {
+        anim(Card, [{ opacity: 0, transform: 'translate(-180px, -40px) scale(.86)' }, { opacity: 1, transform: 'none' }], { duration: .45 })
+      })
+    })
+    at(9.4, function () {
+      anim(Counter, [{ opacity: 0 }, { opacity: 1 }], { duration: .35 })
+    })
+    finish(11.4)
+  }
+
+  function clipVectors() {
+    Total = 10
+    say('<b>16 个 chunk</b> 排队等着算向量。', .2)
+    var Chips = []
+    for (var Index = 0; Index < 5; Index += 1) {
+      var Chip = chunkCard(Index, 40, 90 + Index * 80, 350, 78)
+      Chips.push(Chip)
+    }
+    var Gate = box('f-gate', '<b>embedMany</b><span>qwenembed<br>1024 dims</span>', 430, 150, 180, 270)
+    var Rows = []
+    for (var RowIndex = 0; RowIndex < 5; RowIndex += 1) {
+      Rows.push(vectorRow(RowIndex, 680, 96 + RowIndex * 74, 300))
+    }
+    var MoreRows = box('f-more', '+11 条向量', 680, 470, null, null)
+    Rows.forEach(function (Row) { Row.style.opacity = '0' })
+    MoreRows.style.opacity = '0'
+    var Counter = box('f-counter', '<b>16 / 16</b> · 1024 dims', null, 42, null, null)
+    Counter.style.opacity = '0'
+    say('<b>一次 embedMany</b>，全部 chunk 一起算。', 2)
+    Gate.style.opacity = '0'
+    at(2.2, function () { anim(Gate, [{ opacity: 0, transform: 'scale(.98)' }, { opacity: 1, transform: 'none' }], { duration: .4 }) })
+    Chips.forEach(function (Chip, ChipIndex) {
+      at(2.6 + ChipIndex * .35, function () {
+        anim(Chip, [{ transform: 'translateX(0)' }, { transform: 'translateX(58px)' }], { duration: .28 })
+        anim(Chip, [{ opacity: 1 }, { opacity: .55 }], { duration: .28, fill: 'forwards' })
+      })
+    })
+    say('<b>16 块 → 16 条</b> 1024 维向量；条数必须对齐。', 5.6)
+    Rows.forEach(function (Row, RowIndex) {
+      at(5.5 + RowIndex * .45, function () {
+        anim(Row, [{ opacity: 0, transform: 'translateX(-16px)' }, { opacity: 1, transform: 'none' }], { duration: .32 })
+      })
+    })
+    at(7.8, function () {
+      anim(MoreRows, [{ opacity: 0 }, { opacity: 1 }], { duration: .3 })
+      anim(Counter, [{ opacity: 0 }, { opacity: 1 }], { duration: .35 })
+    })
+    finish(8.5)
+  }
+
+  function clipCommit() {
+    Total = 10
+    say('<b>chunk、向量、ready</b> 必须一起成功。', .2)
+    var Resources = table(40, 100, 280, 'resources', [['status', 'processing'], ['title', '快速上手'], ['error_reason', '—']])
+    var Chunks = table(372, 100, 280, 'chunks', [['rows', '16'], ['chunk_index', '0…15'], ['resource_id', 'fk']])
+    var Embeddings = table(704, 100, 280, 'embeddings', [['rows', '16'], ['dimension', '1024'], ['model', 'qwenembed']])
+    ;[Resources, Chunks, Embeddings].forEach(function (Table, TableIndex) {
+      anim(Table, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { delay: .15 + TableIndex * .12, duration: .4 })
+    })
+    var Status = Resources.querySelector('.f-table-row b')
+    say('<b>先写 chunks 与 embeddings</b>，再改 resources。', 2.4)
+    at(3.4, function () {
+      var Ready = document.createElement('div')
+      Ready.className = 'f-commit'
+      Ready.textContent = 'BEGIN → INSERT ×16 → UPDATE ready'
+      Ready.style.left = '40px'
+      Ready.style.top = '330px'
+      Ready.style.width = '944px'
+      Ready.style.height = '46px'
+      Stage.appendChild(Ready)
+      anim(Ready, [{ opacity: 0, transform: 'scaleX(.8)' }, { opacity: 1, transform: 'none' }], { duration: .4 })
+    })
+    say('<b>同一事务把 status 改成 ready。</b>', 5)
+    at(5.6, function () {
+      Status.textContent = 'ready'
+      Status.classList.add('ok')
+      anim(Status, [{ opacity: .4, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: .3 })
+    })
+    say('<b>COMMIT 封口</b>；任一步失败整笔回滚。', 7.2)
+    at(7.6, function () {
+      var Commit = box('f-commit', 'COMMIT', 40, 400, 944, 42)
+      anim(Commit, [{ opacity: 0, transform: 'scaleX(.7)' }, { opacity: 1, transform: 'none' }], { duration: .35 })
+    })
+    finish(8.6)
+  }
+
+  function clipFailure() {
+    Total = 9
+    var StageName = Params.get('stage') || 'embed'
+    var Reason = Params.get('reason') || (StageName === 'fetch' ? 'fetch_error' : StageName === 'parse' ? '内容为空' : StageName === 'cancel' ? 'cancelled' : 'embedding_error')
+    var HasChunks = StageName === 'embed'
+    var StageLabel = StageName === 'fetch' ? 'fetch' : StageName === 'parse' ? 'parse' : StageName === 'cancel' ? '取消' : 'embedMany'
+    var FailText = StageName === 'cancel' ? '取消信号触发' : StageLabel + ' 抛错'
+    say('<b>资源行先到 processing</b>，失败才有地方留痕。', .2)
+    var Resource = resourceCard(40, 80, 460, 'processing')
+    anim(Resource, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: .35 })
+    var Gate = box('f-gate', '<b>' + safe(StageLabel) + '</b><span>' + safe(Reason) + '</span>', 590, 270, 220, 120)
+    Gate.style.borderColor = 'var(--danger)'
+    Gate.style.background = 'var(--danger-soft)'
+    Gate.style.color = 'var(--danger-ink)'
+    Gate.style.opacity = '0'
+    var Chunk = null
+    var Chunk2 = null
+    if (HasChunks) {
+      Chunk = chunkCard(0, 560, 92, 380, 74)
+      Chunk2 = chunkCard(1, 560, 180, 380, 74)
+      Chunk.style.opacity = '0'
+      Chunk2.style.opacity = '0'
+    }
+    say('<b>' + FailText + '</b>（' + safe(Reason) + '）。', 2)
+    at(1.8, function () {
+      var Elements = HasChunks ? [Chunk, Chunk2, Gate] : [Gate]
+      Elements.forEach(function (Element, Index) {
+        anim(Element, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: Index * .18, duration: .3 })
+      })
+    })
+    say(HasChunks ? '<b>fail() 删除已写 chunk</b>，embeddings 级联清掉。' : '<b>失败发生在写库前</b>：没有 chunk 需要清理。', 4)
+    at(4.2, function () {
+      if (HasChunks) {
+        ;[Chunk, Chunk2].forEach(function (Element, Index) {
+          anim(Element, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(28px)' }], { delay: Index * .12, duration: .35 })
+        })
+      }
+      anim(Gate, [{ transform: 'none' }, { transform: 'scale(.9)' }], { duration: .3 })
+    })
+    var Cleanup = box('f-note', HasChunks ? 'chunks deleted · embeddings cascade · no orphans' : 'no chunks written · status = failed', 560, 420, null, null)
+    Cleanup.style.opacity = '0'
+    say('<b>同一行标 failed</b>，留下 error_reason。', 6.3)
+    at(5.8, function () {
+      anim(Cleanup, [{ opacity: 0 }, { opacity: 1 }], { duration: .3 })
+      var Status = Resource.querySelector('.f-chip.warn')
+      Status.textContent = 'status = failed'
+      Status.classList.remove('warn')
+      Status.classList.add('bad')
+      anim(Status, [{ opacity: .4, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: .3 })
+    })
+    finish(7.8)
+  }
+
+  function clipReject() {
+    Total = 7
+    say('<b>同一个 URL 再次 POST。</b>', .2)
+    var Request = box('f-card', '<div style="padding:16px 18px"><div class="f-kicker">POST /resources</div><div class="f-url">https://weknora…/03-quickstart.html</div><div style="margin-top:9px"><span class="f-chip">重复请求</span></div></div>', 40, 110, 360, null)
+    var Existing = resourceCard(520, 110, 430, 'ready')
+    Existing.style.opacity = '0'
+    anim(Request, [{ opacity: 0, transform: 'translateX(-10px)' }, { opacity: 1, transform: 'none' }], { duration: .35 })
+    anim(Existing, [{ opacity: 0 }, { opacity: 1 }], { delay: .5, duration: .35 })
+    var Barrier = box('', '', 442, 120, null, null)
+    Barrier.style.cssText += 'position:absolute;left:438px;top:112px;width:4px;height:170px;border-radius:2px;background:var(--warning);transform-origin:bottom;opacity:0;'
+    anim(Barrier, [{ opacity: 0 }, { opacity: 1 }], { delay: 1.05, duration: .15 })
+    anim(Barrier, [{ transform: 'scaleY(.3)' }, { transform: 'scaleY(1)' }], { delay: 1.2, duration: .25 })
+    var Token = box('f-token', '', 380, 188, null, null)
+    Token.style.background = 'var(--warning)'
+    Token.style.opacity = '0'
+    at(1.05, function () { anim(Token, [{ opacity: 0 }, { opacity: 1 }], { duration: .15 }) })
+    anim(Token, [{ transform: 'translateX(0)' }, { transform: 'translateX(44px)' }], { delay: 1.1, duration: .4 })
+    say('<b>查重命中 ready/processing。</b>', 2.2)
+    var Badge = box('f-card', '<div style="padding:14px 18px;text-align:center"><div class="f-kicker" style="color:var(--warning-ink)">409</div><div class="f-title">E_DUPLICATE</div><div class="f-sub">不建新行</div></div>', 440, 330, 260, null)
+    Badge.style.opacity = '0'
+    at(2.5, function () { anim(Badge, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: .3 }) })
+    say('<b>直接 409</b>；原资源不受影响。', 4.2)
+    finish(5.6)
+  }
+
+  function filmSuccess() {
+    Total = 49
+    say('<b>一条 URL 进来</b>，先查重。', .3)
+    var Url = urlCard(292, 210, 440)
+    anim(Url, [{ opacity: 0, transform: 'translateY(14px) scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: .5 })
+    say('<b>没有活跃资源</b> → 先建一行 processing。', 4.1)
+    at(4, function () {
+      anim(Url, [{ transform: 'none' }, { transform: 'translate(-252px, -178px) scale(.55)' }], { duration: .6 })
+    })
+    var Resource = resourceCard(430, 80, 470, 'processing')
+    anim(Resource, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { delay: 4.2, duration: .45 })
+    say('<b>同 URL 已有 ready/processing</b> → 409，不建新行。', 6.6)
+    var Duplicate = box('f-card', '<div style="padding:10px 14px"><span class="f-chip warn">409 E_DUPLICATE</span><div class="f-sub">已有活跃资源，不建新行</div></div>', 700, 260, 250, null)
+    Duplicate.style.opacity = '0'
+    at(6.6, function () { anim(Duplicate, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: .3 }) })
+    at(9, function () { anim(Duplicate, [{ opacity: 1 }, { opacity: 0 }], { duration: .35 }) })
+    say('<b>fetch 抓回 HTML</b>，记下最终 URL 与类型。', 9.6)
+    var Fetch = box('f-card', '<div style="padding:14px 16px"><div class="f-kicker">fetch</div><div class="f-title">HttpFetcher</div><div class="f-sub">30s 超时 · 只认 http/https</div></div>', 760, 86, 220, null)
+    Fetch.style.opacity = '0'
+    at(9.2, function () { anim(Fetch, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: .35 }) })
+    var Token = box('f-token', '', 740, 152, null, null)
+    Token.style.opacity = '0'
+    at(9.4, function () { anim(Token, [{ opacity: 0 }, { opacity: 1 }], { duration: .2 }) })
+    at(9.5, function () {
+      anim(Token, [{ transform: 'translateX(0)' }, { transform: 'translateX(90px)' }], { duration: .45 })
+      anim(Token, [{ opacity: 1 }, { opacity: 0 }], { delay: .35, duration: .2 })
+    })
+    var Html = docCard(250, 178, 540, 300, false)
+    Html.style.opacity = '0'
+    anim(Html, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { delay: 9.7, duration: .45 })
+    say('<b>抽正文、转 Markdown</b>；空正文直接失败。', 12.4)
+    at(12, function () { anim(Html, [{ opacity: 1 }, { opacity: 0 }], { duration: .35 }) })
+    var Markdown = docCard(250, 178, 540, 300, true)
+    Markdown.style.opacity = '0'
+    anim(Markdown, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: 12.2, duration: .4 })
+    say('<b>镜头推进文档</b>：按结构切块。', 17.2)
+var ChunkDoc = null
+    at(9.7, function () {
+      ;[Resource, Fetch, Url].forEach(function (Element, Index) {
+        anim(Element, [{ opacity: 1 }, { opacity: 0 }], { delay: Index * .05, duration: .35 })
+      })
+    })
+    at(16.8, function () {
+      anim(Markdown, [{ opacity: 1 }, { opacity: 0 }], { duration: .3 })
+      ChunkDoc = docCard(40, 66, 400, 420, true)
+      anim(ChunkDoc, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: .4 })
+    })
+    var Cards = []
+    for (var Index = 0; Index < 5; Index += 1) {
+      var Card = chunkCard(Index, 540, 84 + Index * 78, 440, 76)
+      Card.style.opacity = '0'
+      Cards.push(Card)
+    }
+    var Counter = box('f-counter', '<b>16</b> chunks · 显示 5 块', null, 42, null, null)
+    Counter.style.opacity = '0'
+    say('<b>分隔符处下刀</b>；代码块整段保护。', 18.8)
+    var Blade = box('f-blade', '', 46, 110, 388, null)
+    var CutMarks = []
+    var CutTops = [136, 181, 226, 286, 331]
+    CutTops.forEach(function (Top, CutIndex) {
+      var Cut = box('f-cut', '', 46, Top, 388, null)
+      CutMarks.push(Cut)
+      at(19 + CutIndex * .28, function () { anim(Cut, [{ opacity: 0 }, { opacity: .9 }], { duration: .2 }) })
+    })
+    at(19, function () {
+      anim(Blade, [{ opacity: 0 }, { opacity: 1 }], { duration: .15 })
+      anim(Blade, [{ transform: 'translateY(0)' }, { transform: 'translateY(250px)' }], { duration: 2 })
+      anim(Blade, [{ opacity: 1 }, { opacity: 0 }], { delay: 1.95, duration: .2 })
+    })
+    var Shield = box('f-shield', '整段保护', 308, 228, null, null)
+    at(21.2, function () { anim(Shield, [{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'none' }], { duration: .3 }) })
+    say('<b>每块带 chunk_index 与起止偏移。</b>', 23.4)
+    Cards.forEach(function (Card, CardIndex) {
+      at(23 + CardIndex * .2, function () {
+        anim(Card, [{ opacity: 0, transform: 'translate(-180px, -40px) scale(.86)' }, { opacity: 1, transform: 'none' }], { duration: .42 })
+      })
+    })
+    at(23.8, function () {
+      anim(Counter, [{ opacity: 0 }, { opacity: 1 }], { duration: .35 })
+    })
+    say('<b>16 块一次 embedMany</b>，算 1024 维向量。', 29.2)
+    at(28.8, function () {
+      Cards.forEach(function (Card, CardIndex) {
+        anim(Card, [{ opacity: 1 }, { opacity: 0 }], { delay: CardIndex * .03, duration: .3 })
+      })
+      anim(Counter, [{ opacity: 1 }, { opacity: 0 }], { duration: .3 })
+      if (ChunkDoc) anim(ChunkDoc, [{ opacity: 1 }, { opacity: 0 }], { duration: .35 })
+      CutMarks.forEach(function (Mark) { anim(Mark, [{ opacity: .9 }, { opacity: 0 }], { duration: .3 }) })
+      anim(Shield, [{ opacity: 1 }, { opacity: 0 }], { duration: .3 })
+    })
+    var Gate = box('f-gate', '<b>embedMany</b><span>qwenembed<br>1024 dims</span>', 440, 148, 180, 260)
+    Gate.style.opacity = '0'
+    at(29.4, function () { anim(Gate, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: .35 }) })
+    var Rows = []
+    for (var RowIndex = 0; RowIndex < 5; RowIndex += 1) {
+      var Row = vectorRow(RowIndex, 690, 92 + RowIndex * 74, 300)
+      Row.style.opacity = '0'
+      Rows.push(Row)
+    }
+    var MoreRows = box('f-more', '+11 条向量', 690, 466, null, null)
+    MoreRows.style.opacity = '0'
+    var VectorCounter = box('f-counter', '<b>16 / 16</b> · 1024 dims', null, 42, null, null)
+    VectorCounter.style.opacity = '0'
+    at(29.4, function () { anim(VectorCounter, [{ opacity: 0 }, { opacity: 1 }], { duration: .35 }) })
+    say('<b>条数必须对齐</b>：16 → 16。', 32)
+    Rows.forEach(function (Row, RowIndex) {
+      at(31.4 + RowIndex * .45, function () {
+        anim(Row, [{ opacity: 0, transform: 'translateX(-16px)' }, { opacity: 1, transform: 'none' }], { duration: .32 })
+      })
+    })
+    at(33.8, function () { anim(MoreRows, [{ opacity: 0 }, { opacity: 1 }], { duration: .3 }) })
+    say('<b>chunk、向量、ready</b> 放进同一个事务。', 37.2)
+    at(36.8, function () {
+      ;[Gate, MoreRows, VectorCounter].forEach(function (Element) { anim(Element, [{ opacity: 1 }, { opacity: 0 }], { duration: .3 }) })
+      Rows.forEach(function (Row, RowIndex) { anim(Row, [{ opacity: 1 }, { opacity: 0 }], { delay: RowIndex * .03, duration: .28 }) })
+    })
+    var Resources = table(40, 74, 280, 'resources', [['status', 'processing'], ['title', '快速上手'], ['error_reason', '—']])
+    var Chunks = table(372, 74, 280, 'chunks', [['rows', '16'], ['chunk_index', '0…15'], ['resource_id', 'fk']])
+    var Embeddings = table(704, 74, 280, 'embeddings', [['rows', '16'], ['dimension', '1024'], ['model', 'qwenembed']])
+    ;[Resources, Chunks, Embeddings].forEach(function (Table, TableIndex) {
+      Table.style.opacity = '0'
+      anim(Table, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { delay: 37 + TableIndex * .12, duration: .4 })
+    })
+    say('<b>同一事务把 status 改成 ready</b>，然后 COMMIT。', 39.6)
+    var Status = Resources.querySelector('.f-table-row b')
+    at(39.4, function () {
+      Status.textContent = 'ready'
+      Status.classList.add('ok')
+      anim(Status, [{ opacity: .4, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: .3 })
+      var Commit = box('f-commit', 'COMMIT · 16 chunks · 16 vectors', 40, 304, 944, 44)
+      anim(Commit, [{ opacity: 0, transform: 'scaleX(.7)' }, { opacity: 1, transform: 'none' }], { duration: .35 })
+    })
+    say('<b>任一步失败</b>：删已写 chunk、标 failed；成功停在 ready。', 42.4)
+    var Ghost = box('f-note', '失败分支 → chunks deleted · embeddings cascade · status = failed', 40, 380, null, null)
+    Ghost.style.opacity = '0'
+    at(42.2, function () { anim(Ghost, [{ opacity: 0 }, { opacity: 1 }], { duration: .35 }) })
+    StepTimes.forEach(function (Time, Step) { at(Time, function () { markStep(Step) }) })
+    finish(45.5)
+  }
+
+  function filmFailure() {
+    Total = 18
+    say('<b>失败链不是另一条管线</b>：同一条资源行，先到 processing。', .3)
+    var Resource = resourceCard(40, 84, 480, 'processing')
+    anim(Resource, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: .4 })
+    say('<b>chunk 写了一半，embed 抛错。</b>', 4)
+    var Chunk = chunkCard(0, 560, 96, 400, 74)
+    var Chunk2 = chunkCard(1, 560, 184, 400, 74)
+    var Gate = box('f-gate', '<b>embedMany</b><span>失败</span>', 600, 280, 240, 120)
+    Gate.style.borderColor = 'var(--danger)'
+    Gate.style.background = 'var(--danger-soft)'
+    Gate.style.color = 'var(--danger-ink)'
+    ;[Chunk, Chunk2, Gate].forEach(function (Element, Index) {
+      Element.style.opacity = '0'
+      anim(Element, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: 4.2 + Index * .18, duration: .3 })
+    })
+    say('<b>fail() 删除已写 chunk</b>，embeddings 级联清掉。', 7)
+    at(7.2, function () {
+      ;[Chunk, Chunk2].forEach(function (Element, Index) {
+        anim(Element, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(30px)' }], { delay: Index * .12, duration: .35 })
+      })
+      anim(Gate, [{ transform: 'none' }, { transform: 'scale(.9)' }], { duration: .3 })
+    })
+    say('<b>同一行标 failed</b>，留下 error_reason。', 10.4)
+    at(10, function () {
+      var Status = Resource.querySelector('.f-chip.warn')
+      Status.textContent = 'status = failed'
+      Status.classList.remove('warn')
+      Status.classList.add('bad')
+      anim(Status, [{ opacity: .4, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: .3 })
+      var Note = box('f-note', 'chunks deleted · embeddings cascade · no orphans', 560, 430, null, null)
+      anim(Note, [{ opacity: 0 }, { opacity: 1 }], { duration: .3 })
+    })
+    say('<b>资源行保留</b>，原因可查；下次还能重抓。', 13)
+    finish(15.5)
+  }
+
+  function filmDuplicate() {
+    Total = 14
+    say('<b>同一个 URL 再次 POST。</b>', .3)
+    var Request = box('f-card', '<div style="padding:16px 18px"><div class="f-kicker">POST /resources</div><div class="f-url">https://weknora…/03-quickstart.html</div><div style="margin-top:9px"><span class="f-chip">重复请求</span></div></div>', 40, 110, 380, null)
+    var Existing = resourceCard(540, 104, 440, 'ready')
+    Existing.style.opacity = '0'
+    anim(Request, [{ opacity: 0, transform: 'translateX(-10px)' }, { opacity: 1, transform: 'none' }], { duration: .35 })
+    anim(Existing, [{ opacity: 0 }, { opacity: 1 }], { delay: .5, duration: .35 })
+    var Barrier = box('', '', 462, 120, null, null)
+    Barrier.style.cssText += 'position:absolute;left:456px;top:112px;width:4px;height:170px;border-radius:2px;background:var(--warning);transform-origin:bottom;opacity:0;'
+    anim(Barrier, [{ opacity: 0 }, { opacity: 1 }], { delay: 1.05, duration: .15 })
+    anim(Barrier, [{ transform: 'scaleY(.3)' }, { transform: 'scaleY(1)' }], { delay: 1.2, duration: .25 })
+    var Token = box('f-token', '', 396, 188, null, null)
+    Token.style.background = 'var(--warning)'
+    Token.style.opacity = '0'
+    at(1.05, function () { anim(Token, [{ opacity: 0 }, { opacity: 1 }], { duration: .15 }) })
+    anim(Token, [{ transform: 'translateX(0)' }, { transform: 'translateX(44px)' }], { delay: 1.1, duration: .4 })
+    say('<b>查重命中 ready/processing。</b>', 3)
+    var Badge = box('f-card', '<div style="padding:14px 18px;text-align:center"><div class="f-kicker" style="color:var(--warning-ink)">409</div><div class="f-title">E_DUPLICATE</div><div class="f-sub">不建新行</div></div>', 420, 340, 300, null)
+    Badge.style.opacity = '0'
+    anim(Badge, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: 3.2, duration: .3 })
+    say('<b>failed 不挡重抓</b>；只有 ready/processing 会被拦。', 6)
+    at(5.9, function () { anim(Badge, [{ opacity: 1 }, { opacity: 0 }], { duration: .3 }) })
+    var Failed = resourceCard(540, 300, 440, 'failed')
+    Failed.style.opacity = '0'
+    anim(Failed, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { delay: 6.2, duration: .35 })
+    say('<b>原资源不受影响</b>，也不会产生第二条活跃资源。', 9.5)
+    finish(11.5)
+  }
+
+  StepNames.forEach(function (Name, Index) {
+    var Button = document.createElement('button')
+    Button.type = 'button'
+    Button.textContent = (Index + 1) + '. ' + Name
+    Button.addEventListener('click', function () { playSegment(Index) })
+    IndexPanel.appendChild(Button)
+  })
+  Prev.addEventListener('click', function () {
+    if (!StepMode) CueIndex = cueForTime(Timeline.now)
+    playCue(CueIndex - 1)
+  })
+  Next.addEventListener('click', function () {
+    if (!StepMode) CueIndex = cueForTime(Timeline.now)
+    playCue(CueIndex + 1)
+  })
+  StepLabel.addEventListener('click', function () {
+    IndexPanel.hidden = !IndexPanel.hidden
+    StepLabel.setAttribute('aria-expanded', String(!IndexPanel.hidden))
+  })
+  Manual.addEventListener('click', function () { playCue(cueForTime(Timeline.now)) })
+  Auto.addEventListener('click', playAuto)
+  Screen.addEventListener('click', function (Event) {
+    if (!StepMode) return
+    if (Event.target.closest('button')) return
+    playCue(CueIndex + 1)
+  })
+  document.addEventListener('keydown', function (Event) {
+    if (Event.target && /INPUT|TEXTAREA|SELECT/.test(Event.target.tagName)) return
+    if (Event.key === 'ArrowLeft') { Event.preventDefault(); playCue(CueIndex - 1) }
+    if (Event.key === 'ArrowRight') { Event.preventDefault(); playCue(CueIndex + 1) }
+  })
+  window.addEventListener('message', function (Event) {
+    if (Event.data && Event.data.type === 'play') play()
+  })
+  window.addEventListener('resize', fit)
+  Replay.addEventListener('click', play)
+  requestAnimationFrame(fit)
+  if (Mode === 'film' && Film === 'success') { ensureCues(); playCue(0) }
+  else play()
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 2.5 两轮追问：历史怎么进模型",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/sequence-multiturn-20261024-235659/multiturn.html"
+  },
+  "participants": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "useChat",
+      "sublabel": "sessionId"
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /chat",
+      "sublabel": "薄路由"
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "ChatService",
+      "sublabel": "历史 + 落库"
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "sessions/messages",
+      "sublabel": "parts 真源"
+    },
+    {
+      "id": "model",
+      "type": "cloud",
+      "label": "Chat model",
+      "sublabel": "自己展开检索词"
+    },
+    {
+      "id": "tool",
+      "type": "backend",
+      "label": "retrieve",
+      "sublabel": "工具"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 330,
+      "label": "第一轮"
+    },
+    {
+      "from": 335,
+      "to": 540,
+      "label": "第二轮追问"
+    }
+  ],
+  "messages": [
+    {
+      "id": "turn1",
+      "from": "client",
+      "to": "route",
+      "y": 160,
+      "label": "turn 1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ask1",
+      "from": "route",
+      "to": "chat",
+      "y": 190,
+      "label": "ask()",
+      "variant": "default"
+    },
+    {
+      "id": "read1",
+      "from": "chat",
+      "to": "store",
+      "y": 220,
+      "label": "读最近 6 轮",
+      "variant": "dashed"
+    },
+    {
+      "id": "rows1",
+      "from": "store",
+      "to": "chat",
+      "y": 250,
+      "label": "text parts",
+      "variant": "return"
+    },
+    {
+      "id": "model1",
+      "from": "chat",
+      "to": "model",
+      "y": 280,
+      "label": "streamText",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tool1",
+      "from": "model",
+      "to": "tool",
+      "y": 310,
+      "label": "retrieve",
+      "variant": "default"
+    },
+    {
+      "id": "save1",
+      "from": "chat",
+      "to": "store",
+      "y": 340,
+      "label": "落 user + assistant",
+      "variant": "dashed"
+    },
+    {
+      "id": "turn2",
+      "from": "client",
+      "to": "route",
+      "y": 380,
+      "label": "turn 2 追问",
+      "variant": "emphasis"
+    },
+    {
+      "id": "read2",
+      "from": "chat",
+      "to": "store",
+      "y": 410,
+      "label": "读最近 6 轮",
+      "variant": "dashed"
+    },
+    {
+      "id": "rows2",
+      "from": "store",
+      "to": "chat",
+      "y": 440,
+      "label": "text parts",
+      "variant": "return"
+    },
+    {
+      "id": "model2",
+      "from": "chat",
+      "to": "model",
+      "y": 470,
+      "label": "模型自建检索词",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tool2",
+      "from": "model",
+      "to": "tool",
+      "y": 500,
+      "label": "retrieve",
+      "variant": "default"
+    },
+    {
+      "id": "save2",
+      "from": "chat",
+      "to": "store",
+      "y": 530,
+      "label": "落新消息",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "parts 真源",
+      "items": [
+        "messages.parts 是唯一真源",
+        "role=user/assistant",
+        "sequence 按会话排序"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "只回灌 text",
+      "items": [
+        "最近 6 轮",
+        "不把上一轮引用当本轮依据",
+        "跨轮 reasoning 不回灌"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "不另设改写",
+      "items": [
+        "模型自己把追问展开成检索词",
+        "不额外调用一次 LLM",
+        "检索仍由 retrieve 工具执行"
+      ]
+    }
+  ]
+}

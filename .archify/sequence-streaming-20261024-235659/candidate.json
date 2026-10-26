@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Story 2.2 一次流式问答的往返",
+    "locale": "zh-CN",
+    "output": ".archify/sequence-streaming-20261024-235659/streaming.html",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "Browser", "sublabel": "useChat" },
+    { "id": "route", "type": "backend", "label": "POST /chat", "sublabel": "薄路由" },
+    { "id": "chat", "type": "backend", "label": "ChatService", "sublabel": "streamText" },
+    { "id": "store", "type": "database", "label": "sessions/messages", "sublabel": "历史 + 落库" },
+    { "id": "model", "type": "cloud", "label": "Chat model", "sublabel": "provider" },
+    { "id": "ui", "type": "frontend", "label": "UI stream", "sublabel": "parts → 界面" }
+  ],
+  "segments": [
+    { "from": 150, "to": 235, "label": "请求与历史" },
+    { "from": 240, "to": 330, "label": "生成" },
+    { "from": 335, "to": 435, "label": "回传与中断" }
+  ],
+  "messages": [
+    { "id": "ask", "from": "user", "to": "route", "y": 160, "label": "POST /chat", "variant": "emphasis" },
+    { "id": "validate", "from": "route", "to": "chat", "y": 190, "label": "ask()", "variant": "default" },
+    { "id": "load-history", "from": "chat", "to": "store", "y": 220, "label": "读历史", "variant": "dashed" },
+    { "id": "history-rows", "from": "store", "to": "chat", "y": 250, "label": "text parts", "variant": "return" },
+    { "id": "model-start", "from": "chat", "to": "model", "y": 280, "label": "streamText", "variant": "emphasis" },
+    { "id": "model-tokens", "from": "model", "to": "chat", "y": 310, "label": "tokens", "variant": "return" },
+    { "id": "ui-chunks", "from": "chat", "to": "ui", "y": 340, "label": "UI chunks", "variant": "emphasis" },
+    { "id": "render", "from": "ui", "to": "user", "y": 370, "label": "逐字渲染", "variant": "return" },
+    { "id": "error", "from": "chat", "to": "ui", "y": 405, "label": "error / abort 帧", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Loading", "items": ["首个 chunk 前显示加载态", "submitted / streaming 都算忙", "错误或中断给可理解提示"] },
+    { "dot": "rose", "title": "不交错", "items": ["同一 Session 只跑一条流", "新提问先停旧流", "半截回答标「未完整」"] },
+    { "dot": "amber", "title": "本页未覆盖", "items": ["首 token / inter-token / 总时长超时仍 deferred", "引用与多轮见 2.3–2.6"] }
+  ]
+}

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Story 3.1 通用端点轨迹壳",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-endpoint-trace-20261024-235659/endpoint-trace.html"
+  },
+  "components": [
+    {
+      "id": "request",
+      "type": "external",
+      "label": "HTTP request",
+      "sublabel": "any route",
+      "pos": [
+        20,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "security",
+      "label": "endpoint shell",
+      "sublabel": "X-Trace-Id + timing",
+      "pos": [
+        220,
+        300
+      ],
+      "size": [
+        180,
+        74
+      ]
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "route handler",
+      "sublabel": "business",
+      "pos": [
+        460,
+        300
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "traces",
+      "type": "database",
+      "label": "traces",
+      "sublabel": "one row per request",
+      "pos": [
+        700,
+        190
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "stages",
+      "type": "database",
+      "label": "trace_stages",
+      "sublabel": "optional stages",
+      "pos": [
+        700,
+        340
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "pino",
+      "type": "messagebus",
+      "label": "pino logs",
+      "sublabel": "ALS trace_id",
+      "pos": [
+        460,
+        480
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "response",
+      "type": "backend",
+      "label": "Response",
+      "sublabel": "SSE / JSON",
+      "pos": [
+        880,
+        300
+      ],
+      "size": [
+        150,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "request trace scope",
+      "wraps": [
+        "shell",
+        "route",
+        "traces",
+        "stages"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "request-shell",
+      "from": "request",
+      "to": "shell",
+      "label": "HTTP",
+      "variant": "default"
+    },
+    {
+      "id": "shell-route",
+      "from": "shell",
+      "to": "route",
+      "label": "next",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route-traces",
+      "from": "route",
+      "to": "traces",
+      "label": "one row",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route-stages",
+      "from": "route",
+      "to": "stages",
+      "label": "stages",
+      "variant": "dashed"
+    },
+    {
+      "id": "shell-pino",
+      "from": "shell",
+      "to": "pino",
+      "label": "trace_id",
+      "variant": "dashed"
+    },
+    {
+      "id": "route-response",
+      "from": "route",
+      "to": "response",
+      "label": "response",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "跳过",
+      "items": [
+        "/health 不记",
+        "/traces 不记",
+        "未匹配路由不记"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "payloads",
+      "items": [
+        "失败记 request + response",
+        "成功只记 request 白名单",
+        "3KB 截断 + header 白名单"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "不阻业务",
+      "items": [
+        "trace 写失败只记日志",
+        "SSE 到响应头收口",
+        "流结束状态交给 3.2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,572 @@
+export default {
+  "out": "/Users/lynx/Documents/Dev/SSE_WeSocket/_Agents/walkthroughs/epic2-story6-retrieve-tool.html",
+  "serverRoot": "/Users/lynx/Documents/Dev/SSE_WeSocket/app/server",
+  "webRoot": "/Users/lynx/Documents/Dev/SSE_WeSocket/app/web",
+  "title": "Epic 2 · Story 2.6 检索工具化 · 带代码逐行讲解",
+  "tocTitle": "Story 2.6",
+  "tocSub": "检索工具化 · 模型自调 · 带代码讲解",
+  "accent": "#92400e",
+  "accent2": "#78350f",
+  "accentDark": "#fcd34d",
+  "content": [
+    {
+      "type": "html",
+      "html": "\n<header class=\"hero\">\n  <div class=\"hero-kicker\"><span>Knowledge Copilot</span><span>·</span><span>Epic 2 · Story 2.6</span><span>·</span><span>2026-10-24</span></div>\n  <h1>Story 2.6：<em>把检索交给模型</em></h1>\n  <p class=\"hero-sub\">把 <code>Retriever.search</code> 包成 AI SDK 的 <code>retrieve</code> 工具，交给 <code>streamText</code>。模型自己决定查不查、用什么词、要几条，然后只依据工具返回的 Chunk 作答。检索出错不再改 HTTP 状态码，而是变成工具 output 里的结构化 error。</p>\n  <div class=\"meta-row\">\n    <span class=\"chip\"><strong>2.6</strong> done · 2026-10-21 收口</span>\n    <span class=\"chip\">tool calling</span>\n    <span class=\"chip\"><code>stepCountIs(5)</code></span>\n    <span class=\"chip\">约 40 分钟</span>\n  </div>\n  <div class=\"trace-pill\"><b>model → tool retrieve → Chunk → answer</b><span>最多 5 步 = 4 次有界重查；错误走 output，不走 409</span></div>\n</header>\n\n<section class=\"section\" id=\"conclusion-and-boundary\">\n  <header class=\"section-head\"><span class=\"kicker\">TL;DR</span><h2>一句话结论与 story 边界</h2><p class=\"section-sub\">2.6 把“先检索、再把结果塞进 prompt”改成了“模型自己调用检索工具”。它练的是 AI SDK 的 tool calling，不是 Agent loop。</p></header>\n\n  <div class=\"summary-grid\">\n    <article class=\"summary-card\"><span class=\"summary-no\">01</span><h3>工具化</h3><p><code>buildRetrieveTool</code> 把 <code>Retriever.search</code> 包成 <code>retrieve</code> 工具；<code>ChatService</code> 在构造期把工具表交给 <code>streamText</code>。</p></article>\n    <article class=\"summary-card\"><span class=\"summary-no\">02</span><h3>有界重查</h3><p><code>stopWhen: stepCountIs(5)</code>：最多 5 步、4 次工具往返。模型可以换词重查，但不会无限循环。</p></article>\n    <article class=\"summary-card\"><span class=\"summary-no\">03</span><h3>错误走 output</h3><p>检索判 <code>E_DIMENSION_MISMATCH</code> 时，<code>/chat</code> 仍是 <b>200</b>；错误以 <code>{ error: { code, message } }</code> 放进 <code>tool-retrieve</code> 的 output，由模型带着原因收场。</p></article>\n  </div>\n\n  <div class=\"callout strong\"><strong>一句话：</strong>2.6 只做“把 retrieve 变成模型可调用的工具，并让回答依据工具返回的 Chunk”；历史、引用渲染、观测、DI 都是别的格子或同日附带的一刀。</div>\n\n  <h3 class=\"block-title\" style=\"margin-top:28px\">这一格真正拥有的东西</h3>\n  <table class=\"file-table\">\n    <thead><tr><th>归属</th><th>内容</th><th>证据</th></tr></thead>\n    <tbody>\n      <tr><td><b>2.6</b></td><td>工具注册：<code>buildRetrieveTool</code> + <code>buildAgentTools</code> 交给 <code>streamText</code></td><td>提交 <code>8c1a326</code></td></tr>\n      <tr><td><b>2.6</b></td><td>模型自己调用、基于工具返回的 Chunk 作答；<code>tool-retrieve</code> part 随 UI Message Stream 下发</td><td><code>spec-2-6</code> Build 1/2</td></tr>\n      <tr><td><b>2.6</b></td><td><code>stopWhen: stepCountIs(5)</code>（2026-10-21 Lynx 从 2 调到 5）</td><td><code>spec-2-6</code> Change Log</td></tr>\n      <tr><td><b>2.6</b></td><td>提示词约束：只依据工具输出；无命中就说库里没有；工具报错逐字复述</td><td><code>INSTRUCTIONS</code></td></tr>\n      <tr><td><b>2.6</b></td><td>检索错误以结构化 output 返回；<code>/chat</code> 200，<code>/retrieve</code> 409 不变</td><td>D6（2026-10-16 Lynx 拍）</td></tr>\n      <tr><td><b>2.6</b></td><td>空库 / 全无 ready / 无相关内容仍是 200 答案体；<code>POST /retrieve</code> 保留</td><td><code>epics.md</code> AC</td></tr>\n      <tr><td><b>2.6</b></td><td><code>/chat</code> body 删掉 <code>limit</code>，条数由模型的 <code>topK</code> 决定（4–19）</td><td><code>spec-2-6</code> #7</td></tr>\n    </tbody>\n  </table>\n\n  <h3 class=\"block-title\" style=\"margin-top:28px\">不属于这一格（页面里见到都带徽章）</h3>\n  <table class=\"file-table\">\n    <thead><tr><th>徽章</th><th>内容</th><th>为什么不算 2.6</th></tr></thead>\n    <tbody>\n      <tr><td><span class=\"badge b-now\">2.3/2.4</span></td><td>前端 <code>referencesOf</code>、<code>[n]</code> 渲染、命中面板/抽屉；<code>RetrievedHit</code> 的完整投影</td><td>2.3/2.4 的引用与展示口径，2026-10-20 同日补；2.6 只要求 Chunk 随流下发</td></tr>\n      <tr><td><span class=\"badge b-now\">2.5</span></td><td>sessions/messages 落库、历史回灌、<code>/chat</code> 收 <code>sessionId</code>、assistant 落库</td><td>多轮会话是 2.5；2.6 落地时 <code>/chat</code> 还只收 <code>{query}</code></td></tr>\n      <tr><td><span class=\"badge b-now\">DI</span></td><td>tsyringe 装配、<code>RetrieverHandle</code> 进程级单例、路由零参 <code>build()</code></td><td>2026-10-20 附带一刀，Lynx 主导，不是 story</td></tr>\n      <tr><td><span class=\"badge b-31\">3.1</span></td><td><code>logError</code>/endpoint trace 壳</td><td>Epic 3 观测地基；只是替换了 2.6 里的 <code>console.error</code></td></tr>\n      <tr><td><span class=\"badge b-32\">3.2</span></td><td>Langfuse、<code>telemetry.functionId</code>、<code>toUIMessageStream</code> 出口、trace 收口</td><td>chat 观测；其中一部分仍是工作区未提交改动</td></tr>\n      <tr><td><span class=\"badge b-33\">3.3</span></td><td>工具里的 <code>createStageSink()</code>、<code>/retrieve</code> 的 DB sink、5 段 stage</td><td>retrieve 观测；工作区未提交</td></tr>\n      <tr><td><span class=\"badge b-34\">3.4</span></td><td>ingest 五段</td><td>与本页无关</td></tr>\n    </tbody>\n  </table>\n\n  <div class=\"callout\"><strong>时间线的一个反直觉点：</strong>编号上 2.5 在 2.6 前面，但实际提交顺序是 DI（10-20 上午）→ 2.6（10-20 14:17，<code>8c1a326</code>）→ 2.5（10-21，<code>b143fc8</code>/<code>2b19bea</code>）。所以 2.6 的代码一出生就长在 DI 装配上，而多轮历史是第二天补进来的。</div>\n</section>\n<section class=\"section\" id=\"story-diagram\">\n  <header class=\"section-head\">\n    <span class=\"kicker\">DIAGRAM · 10</span>\n    <h2>一眼看懂：模型自己调用检索</h2>\n    <p class=\"section-sub\">一次提问最多 5 步：模型决定查不查、查什么、重查几次。</p>\n  </header>\n  <div class=\"meta-row\" style=\"margin:12px 0 14px\"><span class=\"chip\"><strong>5</strong>步上限</span><span class=\"chip\"><strong>4</strong>次重查余量</span><span class=\"chip\"><strong>1</strong>只工具</span></div>\n  <figure style=\"margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)\">\n  <div style=\"overflow-x:auto;-webkit-overflow-scrolling:touch\">\n    <iframe src=\"diagrams/epic2-story6-retrieve-tool.html?theme=light&amp;v=20261025c&amp;iframe=1\" title=\"Story 2.6 模型自己调用检索\" loading=\"lazy\" style=\"display:block;width:100%;min-width:820px;aspect-ratio:969 / 800;border:0;background:var(--panel)\"></iframe>\n  </div>\n</figure>\n  <p class=\"section-sub\" style=\"margin:8px 0 0\"><a href=\"diagrams/epic2-story6-retrieve-tool.html\" target=\"_blank\" rel=\"noreferrer\">打开完整交互版</a> · 点节点看语义护照；小屏可横向滑动；完整版支持缩放 / 动效 / 路由。</p>\n<script>\n(function () {\n  var Frame = document.querySelector('#story-diagram iframe');\n  if (!Frame) return;\n  function sync() {\n    var Theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';\n    var Src = Frame.getAttribute('src') || '';\n    var Next = /theme=(light|dark)/.test(Src)\n      ? Src.replace(/theme=(light|dark)/, 'theme=' + Theme)\n      : Src + (Src.indexOf('?') === -1 ? '?' : '&') + 'theme=' + Theme;\n    if (Next !== Src) Frame.setAttribute('src', Next);\n  }\n  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });\n  sync();\n})();\n</script>\n  <div class=\"callout\" style=\"margin-top:14px\"><strong>读图：</strong><ul style=\"margin:8px 0 0 18px;padding:0\"><li>retrieve 工具由模型调用；工具返回 Chunk，模型据其作答。</li><li>stopWhen: stepCountIs(5)；不串其他工具，不开无限循环。</li><li>检索错误变成结构化 tool output；/chat 仍 200，/retrieve 仍 409。</li></ul></div>\n  <div class=\"callout\" style=\"margin-top:10px\"><strong>图外补充：</strong>图里没画 Langfuse tool span；观测在 3.2。</div>\n</section>\n\n\n<section class=\"section\" id=\"map\">\n  <header class=\"section-head\"><span class=\"kicker\">MAP</span><h2>全局地图：一次提问怎么变成一次工具调用</h2><p class=\"section-sub\">左边是浏览器，中间是 Hono 与 ChatService，右边是工具与检索。注意“状态码”和“流”是两条时间线。</p></header>\n\n  <div class=\"flow-map\">\n    <div class=\"flow-card\">\n      <h3>浏览器</h3>\n      <ul class=\"tree\">\n        <li class=\"root\">/ask 页面</li>\n        <li><code>POST /api/chat</code> body <code>{query, sessionId}</code></li>\n        <li>同一只 Chat 实例收 SSE</li>\n        <li>assistant 消息里出现 <code>tool-retrieve</code> part</li>\n        <li><code>referencesOf</code> 读 output → 面板 / 抽屉</li>\n      </ul>\n      <p class=\"map-note\">前端消费 tool part 是 2.3/2.4 的补丁；2.6 只保证 part 会随流下来。</p>\n    </div>\n    <div class=\"flow-card\">\n      <h3>服务端</h3>\n      <ul class=\"tree\">\n        <li class=\"root\">ChatRoute 校验 body</li>\n        <li>ChatService.ask 读历史、落 user</li>\n        <li><code>streamText({ tools, stopWhen })</code></li>\n        <li>step 1：模型发 tool-call</li>\n        <li>SDK 执行工具，把 output 喂回模型</li>\n        <li>step 2：模型写正文；最多到 step 5</li>\n      </ul>\n      <p class=\"map-note\">“step”= 一次模型调用（含它发起的工具执行）；一次工具往返占 2 步。</p>\n    </div>\n    <div class=\"flow-card\">\n      <h3>工具</h3>\n      <ul class=\"tree\">\n        <li class=\"root\"><code>retrieve</code> 工具</li>\n        <li>入参 <code>{prompt, topK}</code></li>\n        <li><code>Retriever.search(prompt, {limit: topK})</code></li>\n        <li>成功 → <code>hits + counts + error:null</code></li>\n        <li><code>RetrieverError</code> → <code>{ error: { code, message } }</code></li>\n        <li>其他错误 → 记日志后抛</li>\n      </ul>\n      <p class=\"map-note\">工具只转发，不重写检索；阈值与 RRF 仍只有一份。</p>\n    </div>\n  </div>\n\n  <div class=\"callout strong\"><strong>一张图记住：</strong>2.6 把“检索”从路由的前置步骤，挪进了模型的 step 循环；因此检索发生时 SSE 的 200 响应头早已发出，错误只能作为工具 output 回到模型，不能再改 HTTP 状态码。</div>\n</section>\n\n<section class=\"section\" id=\"glossary\">\n  <header class=\"section-head\"><span class=\"kicker\">GLOSSARY</span><h2>小白词典：tool calling 与 step</h2><p class=\"section-sub\">这页只需要八个词；每个都配一句大白话。</p></header>\n\n  <div class=\"glossary\">\n    <div class=\"gloss\"><dt>tool calling</dt><dd>把一张“函数名片”交给模型。模型不执行代码，只输出“我要调用它、参数是什么”；SDK 负责执行，再把结果喂回模型。</dd></div>\n    <div class=\"gloss\"><dt>tool</dt><dd>四件套：名字、description、inputSchema、execute。名字决定前端看到的 part 类型 <code>tool-名字</code>。</dd></div>\n    <div class=\"gloss\"><dt>step</dt><dd>一次模型调用，包含它发起的工具执行。模型调一次工具、拿到结果再答，就是两步。</dd></div>\n    <div class=\"gloss\"><dt>stopWhen</dt><dd>循环的刹车。默认只走 1 步；2.6 显式写 <code>stepCountIs(5)</code>，否则工具刚执行完循环就停了。</dd></div>\n    <div class=\"gloss\"><dt>tool part</dt><dd>UI Message Stream 里表示工具调用的片段，类型是 <code>tool-retrieve</code>。它有 input-streaming / input-available / output-available / output-error 四种 state。</dd></div>\n    <div class=\"gloss\"><dt>UI Message Stream</dt><dd>AI SDK 给前端的 SSE 协议；一条 assistant 消息由 text part 和 tool part 组成，不是一个纯字符串。</dd></div>\n    <div class=\"gloss\"><dt>结构化错误</dt><dd>把错误当成正常 output 返回：<code>{ error: { code, message } }</code>。不是 throw，也不是 HTTP 错误体。</dd></div>\n    <div class=\"gloss\"><dt>SSE 状态码</dt><dd>响应头只发一次。流开始后才发现检索失败，已经无法把 200 改成 409。</dd></div>\n  </div>\n</section>\n"
+    },
+    {
+      "type": "journey",
+      "id": "journey",
+      "kicker": "WALK",
+      "title": "一次提问的旅行",
+      "subtitle": "从 body 校验到前端读 tool part，九步。点一步跳代码。",
+      "hint": "前两步在 HTTP/ChatService，3–7 在模型与工具，8–9 回到流和前端。所有行号来自当前工作区。",
+      "steps": [
+        {
+          "goto": "route-chat:37-45",
+          "title": "校验 body",
+          "note": "query 必填；trim 后为空 400 E_EMPTY_QUERY；limit 已删",
+          "code": "routes/chat L37–45"
+        },
+        {
+          "goto": "chat-stream:57-70",
+          "title": "读历史、落 user",
+          "note": "最近 12 条只回灌 text parts；user 先落库",
+          "code": "chat L57–70"
+        },
+        {
+          "goto": "chat-stream:72-79",
+          "title": "streamText 开跑",
+          "note": "tools + instructions + stopWhen(5) 一起交给模型",
+          "code": "chat L72–79"
+        },
+        {
+          "goto": "tool-file:21-27",
+          "title": "模型看到工具名片",
+          "note": "description 与 inputSchema 决定它怎么调",
+          "code": "retrieve L21–27"
+        },
+        {
+          "goto": "tool-file:28-31",
+          "title": "SDK 执行 execute",
+          "note": "工具把 prompt/topK 转发给 Retriever.search",
+          "code": "retrieve L28–31"
+        },
+        {
+          "goto": "tool-file:32-37",
+          "title": "成功或结构化错误",
+          "note": "RetrieverError 被 catch 成 output；其他错误照旧抛",
+          "code": "retrieve L32–37"
+        },
+        {
+          "goto": "chat-instructions:15-20",
+          "title": "模型读结果作答",
+          "note": "只依据工具输出；无命中就说没有；报错逐字复述",
+          "code": "chat L15–20"
+        },
+        {
+          "goto": "chat-exit:88-92",
+          "title": "流里下发 tool part",
+          "note": "tools 透传给 toUIMessageStream",
+          "code": "chat L88–92"
+        },
+        {
+          "goto": "web-references:99-118",
+          "title": "前端读最后一条 tool part",
+          "note": "四态映射成 running / ready / failed",
+          "code": "web api/chat L99–118"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "html": "\n<section class=\"section\" id=\"files\">\n  <header class=\"section-head\"><span class=\"kicker\">FILES</span><h2>文件地图</h2><p class=\"section-sub\">2.6 的核心只有三个新文件加一条接线；前端与观测文件是上下文。</p></header>\n\n  <table class=\"file-table\">\n    <thead><tr><th>文件</th><th>角色</th><th>2.6 负责什么</th><th>其它补丁</th></tr></thead>\n    <tbody>\n      <tr><td><code>src/agent/tool/tools/retrieve.ts</code></td><td>工具本体</td><td>description / inputSchema / execute / 输出投影</td><td><span class=\"badge b-33\">3.3</span> sink；<span class=\"badge b-31\">3.1</span> logError</td></tr>\n      <tr><td><code>src/agent/tool/contracts.ts</code></td><td>工具 I/O 契约</td><td><code>RetrieveToolInput</code> / <code>RetrieveToolOutput</code></td><td><span class=\"badge b-now\">2.3/2.4</span> 完整 hit 投影</td></tr>\n      <tr><td><code>src/agent/tool/registry.ts</code></td><td>工具登记表</td><td>键名 <code>retrieve</code>，决定 part 类型</td><td>—</td></tr>\n      <tr><td><code>src/agent/chat/chat.ts</code></td><td>生成侧</td><td>工具表、instructions、<code>stopWhen</code></td><td><span class=\"badge b-now\">2.5</span> 历史/落库；<span class=\"badge b-32\">3.2</span> trace；<span class=\"badge b-now\">DI</span> 注入</td></tr>\n      <tr><td><code>src/routes/chat.ts</code></td><td>HTTP 边界</td><td>只收 <code>{query}</code>（limit 已删）、空提问 400、不再映射 409</td><td><span class=\"badge b-now\">2.5</span> sessionId / 404</td></tr>\n      <tr><td><code>src/routes/retrieve.ts</code></td><td>单独验检索</td><td>行为不变；仍是 409 的唯一出口</td><td><span class=\"badge b-33\">3.3</span> DB sink</td></tr>\n      <tr><td><code>app/web/src/api/chat.ts</code></td><td>前端 tool part → References</td><td>不归 2.6；消费 2.6 下发的 part</td><td><span class=\"badge b-now\">2.3</span></td></tr>\n      <tr><td><code>app/web/src/routes/ask.tsx</code></td><td>页面</td><td>不归 2.6；面板 / 引用 / 抽屉</td><td><span class=\"badge b-now\">2.3</span> / <span class=\"badge b-now\">2.5</span></td></tr>\n      <tr><td><code>src/agent/tool/tools/resource.ts</code></td><td>已删除</td><td>不属于 2.6</td><td>2.6 时期是可编译空函数，9efdc22 已删除</td></tr>\n      <tr><td><code>_Agents/implementation-artifacts/spec-2-6-retrieve-as-tool.md</code></td><td>规格与决策</td><td>D1–D6、I/O 矩阵、Change Log</td><td>—</td></tr>\n    </tbody>\n  </table>\n  <p class=\"table-note\">行号是 2026-10-24 当前工作区的真实行号；工作区里混着 Epic 3 未提交改动，页面用徽章标出，不把补丁算进 2.6。</p>\n</section>\n"
+    },
+    {
+      "type": "code",
+      "section": {
+        "id": "code-and-annotations",
+        "kicker": "CODE · 01",
+        "title": "工具层：把 search 包成 tool",
+        "subtitle": "先看工具本体与契约。工具是模型唯一能“碰”到检索的入口。",
+        "body": "<div class=\"callout\">读这段时抓住三件事：名片（description/inputSchema）、转发（execute 调 search）、错误形状（return error，不 throw）。</div>",
+        "blocks": [
+          {
+            "id": "tool-file",
+            "file": "src/agent/tool/tools/retrieve.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                1,
+                62
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "1-8",
+                "title": "文件头：工具的三条规矩",
+                "badge": "2.6",
+                "body": "<p>工具 = 给模型的一张“可调用函数名片”。文件头定下三件事：依赖走闭包、<code>RetrieverError</code> 必须变成 output、<code>topK</code> 只截融合后的条数。</p><p>“进程级 Retriever”是 DI 改造后的形状：每请求不新建，维度在 <code>search()</code> 里现查。</p>"
+              },
+              {
+                "lines": "10-19",
+                "title": "export 置顶 + 显式 Tool 类型",
+                "badge": "前置",
+                "body": "<p>按 AGENTS §四，值导出与类型导出都置顶；函数本身用普通声明。显式写 <code>Tool&lt;Input, Output&gt;</code> 不是装饰：本仓 <code>declaration:true</code> 下，<code>tool()</code> 的推断类型不可命名，会报 TS2883。</p>"
+              },
+              {
+                "lines": "21-27",
+                "title": "名片：模型只看到这些",
+                "badge": "2.6",
+                "body": "<p><code>description</code> 用英文告诉模型“回答用户文档前先调它”；<code>inputSchema</code> 只收 <code>prompt</code> 与 <code>topK</code>。条数不再来自 HTTP 的 <code>limit</code>，而是模型在 4–19 里选。</p><p><code>.gt(3).lt(20)</code> 没有默认值：模型省略 <code>topK</code> 会校验失败。这是 <code>deferred-work.md</code> 里记着的已知缺口，不假装它已解决。</p>"
+              },
+              {
+                "lines": "28-29",
+                "title": "execute 只做转发",
+                "badge": "2.6",
+                "body": "<p><code>execute</code> 把 <code>prompt/topK</code> 交给注入的 <code>Retriever.search</code>，不在这里重写阈值、RRF 或 SQL。检索逻辑仍只有一份，工具只是“模型的手”。</p>"
+              },
+              {
+                "lines": "30-31",
+                "title": "stage sink：让 5 段挂到 tool span",
+                "badge": "3.3",
+                "body": "<p>这两行是 3.3 后加的：有 Langfuse bridge 就创建一个 stage sink，让 <code>search</code> 的 5 个阶段挂到 tool span 下。它是<b>工作区未提交</b>改动；2.6 原本只有 <code>{ limit: Input.topK }</code>。</p>"
+              },
+              {
+                "lines": "32-37",
+                "title": "关键取舍：错误 return，不 throw",
+                "badge": "2.6",
+                "body": "<p><code>RetrieverError</code> 被捕获后 <b>return</b> 成 <code>{ error: { code, message } }</code>，而不是 throw。原因见 contracts 文件头：SDK 的工具错误走 JSON 序列化，<code>Error.message</code> 会消失。</p><p>非 <code>RetrieverError</code> 才记日志再抛——真 bug 不该伪装成“检索失败”。</p>"
+              },
+              {
+                "lines": "36-36",
+                "title": "换成 logError",
+                "badge": "3.1",
+                "body": "<p>3.1 把 <code>console.error(JSON.stringify(...))</code> 换成了 <code>logError</code>，让日志自动带 trace_id；错误码仍是 <code>E_TOOL_RETRIEVE</code>。</p>"
+              },
+              {
+                "lines": "43-45",
+                "title": "成功形状固定",
+                "badge": "2.6",
+                "body": "<p>成功时永远是 <code>hits + vectorCount + lexicalCount + error:null</code>。模型、前端、测试都按这个形状读，不靠猜。</p>"
+              },
+              {
+                "lines": "47-61",
+                "title": "hit 投影：把字段补全",
+                "badge": "2.3/2.4",
+                "body": "<p>2.6 最初只投影 <code>chunkId/resourceId/docTitle/source/content/score</code>；2026-10-20 前端改为直接读 tool output 后，2.3/2.4 的消费与 2.5 的落库把块号、偏移、<code>dataUri</code>、两路分数字段补全（提交 8c1a326/b143fc8）。模型也会看到这些字段，但每条只有几十字节。</p>"
+              }
+            ]
+          },
+          {
+            "id": "tool-contracts",
+            "file": "src/agent/tool/contracts.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                1,
+                40
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "1-9",
+                "title": "为什么错误不能 throw（核心）",
+                "badge": "2.6",
+                "body": "<p>SDK 对 tool error 走 <code>errorMode:&#39;json&#39;</code>；而 <code>Error.message</code> 是非枚举属性，JSON 序列化会把它抹掉。本轮用 node 复现：<code>JSON.stringify(new RetrieverError(...))</code> 只剩 <code>name/code</code>，中文原因消失。</p><p>所以错误必须是<b>正常 output</b>，模型才读得到那句原因。</p>"
+              },
+              {
+                "lines": "13-16",
+                "title": "输入契约",
+                "badge": "2.6",
+                "body": "<p><code>prompt</code> 是检索词，<code>topK</code> 是条数。没有第三个字段——尤其没有从 HTTP 透下来的 <code>limit</code>。</p>"
+              },
+              {
+                "lines": "20-33",
+                "title": "hit 投影：底子与补丁",
+                "badge": "2.3/2.4",
+                "body": "<p>2.6 的底子是 <code>chunkId/resourceId/docTitle/source/content/score</code>；<code>chunkIndex/startOffset/endOffset/dataUri/similarity/lexicalScore</code> 是 2026-10-20 为前端命中面板与抽屉补的。字段名保留原生驼峰，方便模型和前端共用一份。</p>"
+              },
+              {
+                "lines": "35-40",
+                "title": "输出契约",
+                "badge": "2.6",
+                "body": "<p><code>vectorCount/lexicalCount</code> 是“过阈值后的条数”，判“库里没有”要看它们，不能看 <code>hits.length</code>——后者已被 <code>topK</code> 截过。错误非 null 时约定 <code>hits</code> 为空、两个 count 为 0。</p>"
+              }
+            ]
+          },
+          {
+            "id": "tool-registry",
+            "file": "src/agent/tool/registry.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                1,
+                15
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "1-5",
+                "title": "键名即 part 名",
+                "badge": "2.6",
+                "body": "<p>登记表的键名会被 SDK 拼成 <code>tool-${NAME}</code> 下发。改键名必须连前端一起改——2026-10-20 就发生过 <code>retrive</code> 改 <code>retrieve</code>、前端没跟上、面板整整一轮显示“未检索”。</p><p>这里没有 <code>contextSchema</code>：依赖走闭包，<code>toolsContext</code> 被推成 <code>never</code>。</p>"
+              },
+              {
+                "lines": "13-15",
+                "title": "只有一只工具",
+                "badge": "2.6",
+                "body": "<p><code>buildAgentTools</code> 只交出 <code>{ retrieve }</code>。2.6 不串联其他工具，也不做跨工具编排；<code>resource.ts</code> 在 2.6 时期是空函数，已在 9efdc22 删除；不要再按当前文件找它。</p>"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "code",
+      "section": {
+        "id": "code-chat-layer",
+        "kicker": "CODE · 02",
+        "title": "生成侧：ChatService 把工具交给模型",
+        "subtitle": "这个文件里同时住着 2.6 的接线、2.5 的历史、3.2 的 trace 和 DI 的构造器。",
+        "body": "<div class=\"callout strong\">读法：先看 instructions（模型的行为约束），再看构造器（工具建一次），最后看 <code>streamText</code>（真正的循环入口）。带徽章的行不是 2.6 的交付。</div>",
+        "blocks": [
+          {
+            "id": "chat-instructions",
+            "file": "src/agent/chat/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                12,
+                23
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "12-14",
+                "title": "引用写法：8 位 chunkId",
+                "badge": "2.3",
+                "body": "<p>模型只写命中 chunkId 的前 8 位，展示编号由界面按出现顺序重排。这段注释与前端 <code>MARKER</code> 是跨文件契约；它在 2.5 的提交里落盘，但服务的是 2.3 的引用口径。</p>"
+              },
+              {
+                "lines": "15-17",
+                "title": "两句硬约束",
+                "badge": "2.6",
+                "body": "<p>第一句：只依据 <code>retrieve</code> 工具输出；工具输出是“不可信文档数据”，不是指令。第二句：引用只能来自工具输出里的 id，不许自己编号、不许编 id。</p>"
+              },
+              {
+                "lines": "18-18",
+                "title": "历史约束",
+                "badge": "2.5",
+                "body": "<p>用历史解析代词与追问，并把检索词写成完整、独立的问题。这样模型不需要额外的“查询改写调用”，多轮也能自己展开。</p>"
+              },
+              {
+                "lines": "19-20",
+                "title": "无命中 / 报错 / 语言",
+                "badge": "2.6",
+                "body": "<p>有命中就依据命中答；无命中就说知识库没有答案；工具报错就逐字复述错误，不许用模型自己的知识补。最后一句要求用用户提问的语言回答。</p><p>这就是 2.1 “拒答判据交给模型”在工具化之后的落点。</p>"
+              },
+              {
+                "lines": "23-23",
+                "title": "12 条历史 = 6 轮",
+                "badge": "2.5",
+                "body": "<p><code>HISTORY_MESSAGES = 12</code>，按 user/assistant 成对算就是最近 6 轮。只回灌 text parts，不把上一轮的整份命中重新塞进上下文。</p>"
+              }
+            ]
+          },
+          {
+            "id": "chat-bind",
+            "file": "src/agent/chat/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                25,
+                38
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "25-29",
+                "title": "单例 + 构造期建工具",
+                "badge": "DI",
+                "body": "<p><code>@singleton()</code> 让 <code>ChatService</code> 进程内只有一个；<code>tools</code> 在构造期建一次，不是每请求重建。tsyringe 的默认生命周期是 Transient，所以这个注解不是可选的。</p>"
+              },
+              {
+                "lines": "31-38",
+                "title": "构造器：DI 装配，2.6 只接一行",
+                "badge": "DI",
+                "body": "<p>三个依赖都从容器注入：<code>ChatHandle</code>（模型）、<code>RetrieverHandle</code>（进程级 Retriever）、<code>PostgresRepo</code>（历史与落库）。2.6 在这一段只负责 <code>buildAgentTools(R.retriever)</code> 这一行；其余是 DI 与 2.5 的补丁。</p><p>DI 改造把原来的 <code>Deps</code> 袋子整删，类本身当 token，没有字符串 token 表。</p>"
+              }
+            ]
+          },
+          {
+            "id": "chat-stream",
+            "file": "src/agent/chat/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                40,
+                40
+              ],
+              [
+                57,
+                86
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "40-40",
+                "title": "签名：query + sessionId + signal",
+                "badge": "2.5",
+                "body": "<p>2.6 最初是 <code>ask(prompt, signal)</code>；2.5 扩成按会话读历史、落库，并把 <code>sessionId</code> 带进来。取消信号仍一路传到 <code>streamText</code>。</p>"
+              },
+              {
+                "lines": "57-70",
+                "title": "历史与消息组装",
+                "badge": "2.5",
+                "body": "<p>从库里读该会话的消息，截最近 12 条，<code>storedUiMessage</code> 只保留 text parts；user 消息先落库拿到 id，再和组装好的历史一起 <code>convertToModelMessages</code>。上一轮的 tool parts 不回灌，避免 token 爆炸和引用旧 chunk。</p>"
+              },
+              {
+                "lines": "72-79",
+                "title": "streamText：2.6 的正中心",
+                "badge": "2.6",
+                "body": "<p>四个关键参数：<code>model</code>、<code>messages</code>、<code>instructions</code>、<code>tools</code>，外加 <code>stopWhen</code> 与 <code>abortSignal</code>。模型看到工具名片后，自己决定是否在第一步发 tool-call。</p>"
+              },
+              {
+                "lines": "77-77",
+                "title": "为什么必须显式写 5",
+                "badge": "2.6",
+                "body": "<p><code>ai@7</code> 的 <code>streamText</code> 默认 <code>stopWhen = isStepCount(1)</code>（本机 <code>7.0.148</code> 的 <code>dist/index.js:8868</code> 实测）。默认值下模型发完 tool-call、SDK 执行完工具，循环就结束了，工具结果永远进不了模型——表现为“有 tool part，但正文是空的”。</p><p>5 是 2026-10-21 Lynx 拍的上限：最多 5 步、4 次检索往返，允许换词重查，但仍不是 Agent loop。</p>"
+              },
+              {
+                "lines": "79-79",
+                "title": "telemetry：标记 chat",
+                "badge": "3.2",
+                "body": "<p><code>telemetry.functionId=&#39;chat&#39;</code> 让 Langfuse 能把这棵 span 树标成一次 chat。工具、step、generation 都在远程看，本地只留 endpoint 公共行。</p>"
+              },
+              {
+                "lines": "80-84",
+                "title": "onError：只记日志，不改状态码",
+                "badge": "3.2",
+                "body": "<p><code>onError</code> 把错误存进 <code>StreamError</code> 并记一行 <code>E_CHAT_STREAM</code>；客户端只收到固定文案。流已经开始了，这里改不了 HTTP 状态码。</p>"
+              },
+              {
+                "lines": "84-86",
+                "title": "延迟启动",
+                "badge": "2.6",
+                "body": "<p><code>Start()</code> 在这里才真正创建 stream；<code>toUIMessageStream</code> 稍后消费它。这样做是为了让错误处理和流收口都在同一个作用域里。</p>"
+              }
+            ]
+          },
+          {
+            "id": "chat-exit",
+            "file": "src/agent/chat/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                88,
+                99
+              ],
+              [
+                121,
+                137
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "88-92",
+                "title": "tools 透传：tool part 的出口",
+                "badge": "2.6",
+                "body": "<p><code>toUIMessageStream({ stream, tools: this.tools, ... })</code> 里的 <code>tools</code> 是 2.6 的交付机制：SDK 靠它把工具调用序列化成 <code>tool-retrieve</code> part。没有它，前端只看得到正文。</p>"
+              },
+              {
+                "lines": "88-92",
+                "title": "自定义流出口（未提交）",
+                "badge": "3.2",
+                "body": "<p>把原来的 <code>Result.toUIMessageStreamResponse()</code> 换成 <code>toUIMessageStream</code> + <code>createUIMessageStreamResponse</code>，是为了在 <code>onEnd</code> 里收口 trace、落 assistant。当前工作区未提交；3.2 handoff 列了 chat.ts，3.3 handoff 没列。</p>"
+              },
+              {
+                "lines": "94-99",
+                "title": "onEnd 的三态",
+                "badge": "3.2",
+                "body": "<p><code>ok / error / cancelled</code> 由中断标志、<code>outcome.status</code> 和 <code>StreamError</code> 共同判定；这是整条流结束后的最终状态，不是“返回 Response”那一刻。</p>"
+              },
+              {
+                "lines": "121-133",
+                "title": "assistant 落库",
+                "badge": "2.5",
+                "body": "<p>非中断才落 assistant：<code>content</code> 只拼 text parts，<code>parts</code> 保留完整 UI parts（含 tool-retrieve 快照）。中断/取消直接 return，历史里留一条孤立 user——这是 2.5 接受的最简口径。</p>"
+              },
+              {
+                "lines": "137-137",
+                "title": "响应在这里发出",
+                "badge": "3.2",
+                "body": "<p><code>createUIMessageStreamResponse</code> 发出 200 响应头与 SSE 首帧；从这一刻起，后面发生的检索错误都不可能再改状态码。</p>"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "code",
+      "section": {
+        "id": "code-http-layer",
+        "kicker": "CODE · 03",
+        "title": "HTTP 层：两条路，两套状态码",
+        "subtitle": "/chat 负责问答流；/retrieve 负责单独验检索。2.6 让它们的分工第一次真正成立。",
+        "body": "<div class=\"callout\">对照读：<code>/chat</code> 没有 409 分支；<code>/retrieve</code> 的 409 还在。这不是遗漏，是 D6 故意保留的双口径。</div>",
+        "blocks": [
+          {
+            "id": "route-chat",
+            "file": "src/routes/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                37,
+                58
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "37-45",
+                "title": "body 只认 query（limit 已删）",
+                "badge": "2.6",
+                "body": "<p>2.6 把 <code>limit</code> 从 <code>/chat</code> 删掉：条数归模型的 <code>topK</code>。trim 后为空立刻 400 <code>E_EMPTY_QUERY</code>，不进入模型与工具。</p><p><code>sessionId</code> 是 2.5 后加的，所以现在 body 是 <code>{query, sessionId}</code>。</p>"
+              },
+              {
+                "lines": "46-48",
+                "title": "sessionId 必须是 UUID",
+                "badge": "2.5",
+                "body": "<p>非 UUID 直接 400 <code>E_BAD_ID</code>，避免拿一个假 id 去查库。这个校验不属于 2.6。</p>"
+              },
+              {
+                "lines": "50-54",
+                "title": "会话存在才问答",
+                "badge": "2.5",
+                "body": "<p>先确认会话存在或未软删（404 <code>E_SESSION_NOT_FOUND</code>），再交给 <code>ChatService.ask</code>。2.6 落地时这一跳还只传 query。</p>"
+              },
+              {
+                "lines": "55-58",
+                "title": "只兜 500，不再映射 409",
+                "badge": "2.6",
+                "body": "<p>2.6 删掉了 <code>E_DIMENSION_*</code> → 409 的映射：检索已经在工具里、流已开始，状态码改不了。这里只剩未预期错误 → 500 <code>E_CHAT</code>；流内错误由 <code>onError</code> 记 <code>E_CHAT_STREAM</code>。</p>"
+              }
+            ]
+          },
+          {
+            "id": "route-retrieve",
+            "file": "src/routes/retrieve.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                37,
+                81
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "37-42",
+                "title": "limit 只活在 /retrieve",
+                "badge": "2.6",
+                "body": "<p><code>POST /retrieve</code> 仍收 <code>{query, limit?}</code>；<code>limit</code> 不是正整数就忽略，回落 <code>retrievalDefaultLimit</code>。/recall 调试台与手工验检索还靠它（/ask 右栏已改读 tool part）。</p>"
+              },
+              {
+                "lines": "44-47",
+                "title": "注入 DB sink",
+                "badge": "3.3",
+                "body": "<p>3.3 把 <code>Retriever.search</code> 的 5 个阶段写进本地 <code>trace_stages</code>；这一段是工作区未提交改动，2.6 原本直接 <code>search(query, limit)</code>。</p>"
+              },
+              {
+                "lines": "48-65",
+                "title": "响应仍是 12 字段 + 两个 count",
+                "badge": "2.6",
+                "body": "<p>2.6 没动 <code>/retrieve</code> 的响应形状：<code>hits[]</code> 12 个字段，加 <code>vectorCount/lexicalCount</code>。它仍是“单独验检索”的口子，也是 409 的唯一出口。</p>"
+              },
+              {
+                "lines": "66-77",
+                "title": "409 只在这里",
+                "badge": "2.6",
+                "body": "<p><code>E_EMPTY_QUERY</code> → 400，<code>E_DIMENSION_MISMATCH</code> → 409，其余 → 500 <code>E_RETRIEVE</code>。同一个混维错误，走 <code>/chat</code> 是 200 + 工具 output error，走 <code>/retrieve</code> 才是 409——这是 D6 的核心对照。</p>"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "code",
+      "section": {
+        "id": "code-web-layer",
+        "kicker": "CODE · 04",
+        "title": "前端消费：tool part 怎么变成面板",
+        "subtitle": "这段是 2.3 的补丁，不是 2.6 的交付；但它正好暴露一个真实的注释漂移。",
+        "body": "<div class=\"callout\">前端不看 HTTP body，只看同一条 assistant 消息里的 <code>tool-retrieve</code> part。<code>referencesOf</code> 是唯一入口。</div>",
+        "blocks": [
+          {
+            "id": "web-references",
+            "file": "app/web/src/api/chat.ts",
+            "source": "web:src/api/chat.ts",
+            "lang": "ts",
+            "ranges": [
+              [
+                98,
+                119
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "98-98",
+                "title": "注释漂移：还写着 stopWhen 2",
+                "badge": "2.3",
+                "body": "<p>这行注释说“多步（stopWhen 2）”，但服务端当前是 <code>stepCountIs(5)</code>（<code>agent/chat/chat.ts:77</code>）。2026-10-21 review 就抓到同一处不一致；后来 AC 把上限提高到 5，行为合法了，注释却没跟上。</p><p>这是本页唯一确认的“代码与注释对不上”的真实案例：读注释不能代替读实现。</p>"
+              },
+              {
+                "lines": "99-110",
+                "title": "只取最后一条 tool part",
+                "badge": "2.3",
+                "body": "<p>先过滤出所有 <code>tool-retrieve</code>，取最后一条作为面板的“最新战果”；<code>input-streaming</code> / <code>input-available</code> 映射成 <code>running</code>，<code>output-error</code> 映射成 <code>failed</code>。</p>"
+              },
+              {
+                "lines": "111-118",
+                "title": "业务失败与形状校验",
+                "badge": "2.3",
+                "body": "<p><code>output-error</code> 是 SDK 级失败（工具真 throw 了）；而 <code>RetrieverError</code> 被工具 catch 后 part 仍是 <code>output-available</code>，所以还要读 <code>Out.error</code> 才能把界面标成 <code>failed</code>。</p><p>形状校验放在这道边界：<code>hits</code> 不是数组就整条判失败，避免面板 <code>map</code> 把整页抛掉。</p>"
+              }
+            ]
+          },
+          {
+            "id": "web-ask",
+            "file": "app/web/src/routes/ask.tsx",
+            "source": "web:src/routes/ask.tsx",
+            "lang": "ts",
+            "ranges": [
+              [
+                144,
+                167
+              ]
+            ],
+            "notes": [
+              {
+                "lines": "144-150",
+                "title": "页面只认最新一条 assistant",
+                "badge": "2.3",
+                "body": "<p><code>latest = messages.at(-1)</code>，<code>referencesOf(latest)</code> 给出这一轮的面板命中；<code>Hits</code> 是最新一次检索，<code>AllHits</code> 是本条消息里所有 retrieve part 的去重合并。</p>"
+              },
+              {
+                "lines": "151-165",
+                "title": "引用解析会往前找",
+                "badge": "2.5",
+                "body": "<p>面板只列“回答真正引用到的”命中；<code>priorHits</code> 允许 8 位 chunkId 指向更早几轮检索到的块（2026-10-21 模型没调工具也引用了上一轮）。数字名次仍只认本条消息的 <code>Hits</code>，跨轮下标没有意义。</p>"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "html",
+      "html": "\n<section class=\"section\" id=\"decisions-and-pitfalls\">\n  <header class=\"section-head\"><span class=\"kicker\">DECISIONS</span><h2>关键取舍与踩过的坑</h2><p class=\"section-sub\">这些取舍多数在 <code>spec-2-6</code> 里就有记录；坑则是实物逼出来的。</p></header>\n\n  <div class=\"choice-grid\">\n    <article class=\"choice\"><span class=\"choice-no\">D2</span><h3>依赖走闭包，不走 toolsContext</h3><p><code>buildRetrieveTool(Retriever)</code> 在构造期把请求级/进程级 Retriever 烧进 execute；工具不查注册表。DI 之后变的只是 registry 的入参形状，execute 体没动。</p></article>\n    <article class=\"choice\"><span class=\"choice-no\">D3</span><h3>toolChoice 保持 auto</h3><p>不强制 <code>required</code>；用 instructions 约束“先调工具”。代价是模型偶尔可能直接答；<code>required</code> 还会在模型没发 tool-call 时抛 <code>ToolChoiceViolationError</code>，把流变成错误帧。</p></article>\n    <article class=\"choice\"><span class=\"choice-no\">D6</span><h3>错误 return 成 output，不改 409</h3><p>检索发生在 SSE 首帧之后，状态码一次性。结构化 error 让模型能读到中文原因；代价是 part 的 state 永远是 <code>output-available</code>，“失败”要靠读 <code>error</code> 字段。</p></article>\n    <article class=\"choice\"><span class=\"choice-no\">5</span><h3>stepCountIs(5)，不是 2</h3><p>2026-10-21 Lynx 拍：允许模型在有界次数内换检索词。5 步 = 4 次工具往返；仍不开 Agent loop，不串联其他工具。</p></article>\n    <article class=\"choice\"><span class=\"choice-no\">/R</span><h3>POST /retrieve 一字不改</h3><p>它仍是单独验检索的口子、/recall 的调试入口，也是 409 的唯一出口。2.6 只改 /chat 的检索路径。</p></article>\n    <article class=\"choice\"><span class=\"choice-no\">K</span><h3>topK 归模型，limit 归 /retrieve</h3><p>/chat 不再收 limit；工具 schema 收 4–19 的 topK。两个旋钮各管一条路，避免“请求限制”和“模型自选条数”互相打架。</p></article>\n  </div>\n\n  <h3 class=\"block-title\" style=\"margin-top:28px\">坑（按踩到的顺序）</h3>\n  <ul class=\"pitfall-list\">\n    <li><strong>默认单步。</strong><code>ai@7</code> 的 <code>streamText</code> 默认 <code>stopWhen = isStepCount(1)</code>；不显式写 5，工具执行完循环就停。本机 <code>7.0.148</code> 实测仍在 <code>dist/index.js:8868</code>；spec 当时记的是 <code>7.0.141</code>，默认值未变。</li>\n    <li><strong>throw 会抹掉中文原因。</strong>SDK 对 tool error 走 JSON 序列化，<code>Error.message</code> 是非枚举属性。本轮实测：<code>JSON.stringify(new RetrieverError(...))</code> 只剩 <code>name/code</code>；所以工具必须 return 结构化 error。</li>\n    <li><strong>SSE 状态码一次性。</strong><code>createUIMessageStreamResponse</code> 一发出 200 头和首帧，后面检索失败就不能改 409。<code>/chat</code> 的 200 + 工具 error，与 <code>/retrieve</code> 的 409，是同一个错误的两种出口。</li>\n    <li><strong>业务错误没有 output-error。</strong><code>RetrieverError</code> 被 catch 成正常 output 后，part state 仍是 <code>output-available</code>；前端必须读 <code>Out.error</code>。只有非 <code>RetrieverError</code> 真 throw 时才会出现 <code>output-error</code>。</li>\n    <li><strong>键名就是 part 名。</strong>registry 的 <code>retrieve</code> 被拼成 <code>tool-retrieve</code>；历史上 <code>retrive</code> 改名时前端没跟上，面板整轮显示“未检索”。</li>\n    <li><strong>注释漂移。</strong><code>app/web/src/api/chat.ts:98</code> 还写着 <code>stopWhen 2</code>，服务端已是 5；2026-10-21 review 抓到过同款不一致，AC 改 5 后注释没改。读注释不能代替读实现。</li>\n    <li><strong>topK 没有默认值。</strong><code>.gt(3).lt(20)</code> 意味着模型省略或给 3/20 会校验失败；这是 deferred-work 里的已知缺口，不是本页修好的。</li>\n    <li><strong>数字 [n] 只认最后一条 tool part。</strong><code>referencesOf</code> 取 <code>Parts.at(-1)</code> 作为面板与数字名次的来源；8 位 chunkId 前缀走 <code>allHits</code>，仍能打开更早一次重查的块。右栏面板只显示最后一次的命中。</li>\n    <li><strong>三种“没有”仍靠模型一句话。</strong>空库 / 全无 ready / 有库无命中都是 200 答案体，服务端没有按计数分流；这是 2.1 就接受的口径，不是 2.6 引入的。</li>\n    <li><strong>库在流前不可达仍是 500。</strong>DI 删掉 <code>E_DIMENSION_UNKNOWN</code> 后，<code>/chat</code> 在进入工具前如果库不可达，错误会冒到路由 catch；这与“检索错误一律 200”不是同一条路径，已记 deferred。</li>\n  </ul>\n</section>\n\n<section class=\"section\" id=\"verification-commands\">\n  <header class=\"section-head\"><span class=\"kicker\">VERIFY</span><h2>可复制的验证命令</h2><p class=\"section-sub\">先分清两类：历史真跑过的验收，和本轮只读核对。没有重跑的命令会明确标注。</p></header>\n\n  <div class=\"callout strong\"><strong>本轮实际执行（2026-10-24）：</strong>只跑了只读命令——<code>git show/log/status/diff</code>、<code>grep stopWhen</code>、读取 <code>ai/dist</code> 默认值、以及一条 <code>node -e</code> 复现 <code>Error.message</code> 丢失。没有启动服务、没有跑 tsc/vitest/curl，也没有开浏览器。</div>\n\n  <div class=\"test-grid\">\n    <article class=\"test-card\">\n      <h3>1 · 静态核对 stopWhen（本轮真跑）</h3>\n      <pre class=\"snippet\">cd app/server\ngrep -rn \"stopWhen\\|maxSteps\" src\ngrep -rn \"stepCountIs\" src</pre>\n      <p class=\"test-note\">期望：<code>maxSteps</code> 零命中；<code>stopWhen</code> 恰好一处，值为 <code>stepCountIs(5)</code>（<code>src/agent/chat/chat.ts:77</code>）。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>2 · 复现 message 丢失（本轮真跑）</h3>\n      <pre class=\"snippet\">node -e \"class R extends Error { constructor(c,m){super(m);this.name='R';this.code=c} } const e=new R('E_X','中文原因'); console.log(JSON.stringify(e))\"</pre>\n      <p class=\"test-note\">期望输出只剩 <code>{\"name\":\"R\",\"code\":\"E_X\"}</code>，<code>中文原因</code> 不在——这就是工具不许 throw 的实证。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>3 · 类型与测试（历史真跑，未重跑）</h3>\n      <pre class=\"snippet\">cd app/server\nnpx tsc --noEmit\nnpx vitest run</pre>\n      <p class=\"test-note\">2.6 收口记录（2026-10-21）：<code>src/</code> tsc 0 错；vitest 8 文件 / 25 条全过。之后 Epic 3 的 3.2/3.3 记录为 26/31 条；本页不拿后续数字冒充 2.6。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>4 · 起服务 + 建会话</h3>\n      <pre class=\"snippet\">cd app/server\nPORT=3003 npx tsx --env-file=.env src/index.ts\n\nSID=$(curl -s -X POST localhost:3003/sessions \\\n  -H 'content-type: application/json' \\\n  -d '{\"title\":\"2.6 walkthrough\"}' | jq -r .id)\necho \"$SID\"</pre>\n      <p class=\"test-note\">需要真库、真 Ollama、真 chat key。<code>POST /sessions</code> 返回的是裸 session 行，所以 <code>jq -r .id</code>。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>5 · 看一次真实工具调用（历史真跑）</h3>\n      <pre class=\"snippet\">curl -N -X POST localhost:3003/chat \\\n  -H 'content-type: application/json' \\\n  -d \"{\\\"query\\\":\\\"这个知识库里说先启动什么？\\\",\\\"sessionId\\\":\\\"$SID\\\"}\" \\\n  &gt; /tmp/chat.sse\n\ngrep -o '\"type\":\"tool-[a-z-]*\"' /tmp/chat.sse | sort | uniq -c\ngrep -o '\"toolName\":\"retrieve\"' /tmp/chat.sse | head\ngrep -o '\"error\":{[^}]*}' /tmp/chat.sse</pre>\n      <p class=\"test-note\">期望 SSE 依次出现 <code>tool-input-available</code> → <code>tool-output-available</code> → <code>text-delta</code>；命中路径下 <code>error</code> 行应为空。存文件是为了能用 <code>grep -o</code> 看见中间值。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>6 · 空提问 400（历史真跑）</h3>\n      <pre class=\"snippet\">curl -i -X POST localhost:3003/chat \\\n  -H 'content-type: application/json' \\\n  -d \"{\\\"query\\\":\\\"   \\\",\\\"sessionId\\\":\\\"$SID\\\"}\"</pre>\n      <p class=\"test-note\">期望 <b>400</b>，body <code>{\"code\":\"E_EMPTY_QUERY\",\"message\":\"提问不能为空\"}</code>。2026-10-20 实测过；2.5 之后仍保留这条校验。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>7 · 混维：/chat 200 vs /retrieve 409（历史真跑）</h3>\n      <pre class=\"snippet\">cd app/server\nPORT=3004 EMBEDDING_DIMENSIONS=512 npx tsx --env-file=.env src/index.ts\n\ncurl -i -X POST localhost:3004/retrieve \\\n  -H 'content-type: application/json' -d '{\"query\":\"任意\"}'\n\ncurl -N -X POST localhost:3004/chat \\\n  -H 'content-type: application/json' \\\n  -d \"{\\\"query\\\":\\\"任意\\\",\\\"sessionId\\\":\\\"$SID\\\"}\" &gt; /tmp/chat.mismatch.sse\ngrep -o '\"error\":{[^}]*}' /tmp/chat.mismatch.sse</pre>\n      <p class=\"test-note\">前提：库里已有 1024 维向量。期望 <code>/retrieve</code> 409 <code>E_DIMENSION_MISMATCH</code>；<code>/chat</code> HTTP 200，且 SSE 的 tool output 里带同码同中文原因。2026-10-20 真跑过，模型在第二步复述了错误原文。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>8 · 空库 / 无 ready（代码路径）</h3>\n      <pre class=\"snippet\">psql \"$DATABASE_URL\" -c \\\n  \"select status, count(*) from resources group by status order by status;\"\npsql \"$DATABASE_URL\" -c \"select count(*) from chunks;\"\n\ncurl -s -X POST localhost:3003/retrieve \\\n  -H 'content-type: application/json' -d '{\"query\":\"任意\"}'</pre>\n      <p class=\"test-note\">若没有 <code>ready</code> 资源，<code>/retrieve</code> 仍 200、<code>hits=[]</code>、两个 count 为 0；再问 <code>/chat</code>，模型按 instructions 说“知识库没有答案”。这一步本轮未重跑，且回答措辞由模型决定。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>9 · 工具主流程测试（历史真跑，未重跑）</h3>\n      <pre class=\"snippet\">cd app/server\nnpx vitest run test/chat-tool-flow.test.ts</pre>\n      <p class=\"test-note\">真模型 + 真库 + 真 Ollama，不 mock 工具；seed 一条资源、建会话、断言 <code>tool-input-available</code> 的 <code>toolName=retrieve</code>、output 有命中、第二步正文非空。最长 240s。</p>\n    </article>\n\n    <article class=\"test-card\">\n      <h3>10 · 前端 tool part（历史真跑，未重跑）</h3>\n      <pre class=\"snippet\">cd app/web\nnpx vitest run src/api/chat.test.ts</pre>\n      <p class=\"test-note\">覆盖 running / failed / ready 与“取最后一条 tool part”的口径。前端测试是 2026-10-14 起放行的；本页没有改前端，也没有重跑。</p>\n    </article>\n  </div>\n\n  <div class=\"callout\"><strong>怎么读“历史真跑”：</strong>2026-10-20 的混维、空提问、工具错误路径，以及 2026-10-21 的 tsc/vitest 数字，来自 <code>spec-2-6</code> 的 Verification 与 sprint-status 的收口记录。它们是当时的证据，不是本轮新跑的结果；Epic 3 之后代码有补丁，重跑前先按徽章确认你测的是哪一层。</div>\n</section>\n\n<section class=\"section\" id=\"story-continuity\">\n  <header class=\"section-head\"><span class=\"kicker\">NEXT</span><h2>与前后 story 的衔接</h2><p class=\"section-sub\">2.6 是“生成半”的接点；它把 2.1 的检索、2.2 的流、2.3 的引用、2.5 的多轮串成一条链。</p></header>\n\n  <table class=\"file-table\">\n    <thead><tr><th>位置</th><th>交接内容</th><th>和 2.6 的关系</th></tr></thead>\n    <tbody>\n      <tr><td>2.1 检索</td><td><code>Retriever.search</code> 的混合检索、RRF、409 口径</td><td>2.6 把 <code>search</code> 包成工具，不改检索内部</td></tr>\n      <tr><td>2.2 流式</td><td><code>streamText</code> → UI Message Stream</td><td>2.6 在流里增加 tool part</td></tr>\n      <tr><td>2.3/2.4 引用与回链</td><td><code>referencesOf</code>、<code>[n]</code>、面板/抽屉、完整 hit 投影</td><td>2.6 下发 Chunk；2.3/2.4 负责把它们变成引用、面板与原文回链</td></tr>\n      <tr><td>2.5 多轮</td><td>sessionId、历史回灌、user/assistant 落库</td><td>时间上 2.6 先落，2.5 随后把 <code>/chat</code> 从 <code>{query}</code> 扩成 <code>{query, sessionId}</code></td></tr>\n      <tr><td>Epic 3</td><td>3.1 日志壳、3.2 Langfuse、3.3 retrieve 五段、3.4 ingest 五段</td><td>3.2 看 tool span；3.3 给 tool 加 stage sink；都不是 2.6 的交付</td></tr>\n      <tr><td>后续</td><td>Agent loop、skill/persona/mcp、trace 空盒</td><td>2.6 明确不碰；已在 <code>deferred-work.md</code></td></tr>\n    </tbody>\n  </table>\n\n  <div class=\"callout strong\"><strong>收口判断：</strong>2.6 的“做完”不是“回答看起来对了”，而是这四件事同时成立——<code>tool-retrieve</code> part 真的出现、回答能在命中里找到原句、混维时 <code>/chat</code> 200 且模型复述原因、<code>/retrieve</code> 409 仍不变。</div>\n\n  <h3 class=\"block-title\" style=\"margin-top:26px\">还没做 / 别在本格补</h3>\n  <ul class=\"pitfall-list\">\n    <li><strong>Agent loop 的其余能力</strong>：skill / persona / mcp / 跨工具编排 / 无限循环，都不在 2.6；5 步只是有界重查。</li>\n    <li><strong><code>resource.ts</code> 已删除</strong>：2.6 时期为 tsc 收口改成可编译空函数，9efdc22（Epic 3 pre-3.2）删除；不是 2.6 的工具。</li>\n    <li><strong>三种“没有”未分流</strong>：空库 / 全无 ready / 有库无命中仍靠模型一句话；<code>countResourcesByStatus</code> 还没有调用点。</li>\n    <li><strong>前端面板只取最后一条 tool part</strong>：数字 [n] 只认最后一批；8 位 chunkId 走 <code>allHits</code>，仍可引用更早一次重查的块。</li>\n    <li><strong>topK 无默认值</strong>：模型省略会校验失败；要补默认或范围说明，需另开一刀。</li>\n    <li><strong>/chat 库不可达仍可能 500</strong>：这不是工具内错误，不适用“200 答案体”的口径；已记 deferred。</li>\n  </ul>\n\n  <div class=\"next-box\">\n    <p>下一站：Epic 3 之后是 P2 的资源画像与渲染；2.6 留下的工具链会被 3.2 的 Langfuse 与 3.3 的 stage 继续使用。要复核本页，先读 <code>spec-2-6</code> 的 Change Log，再对照 <code>agent/tool/tools/retrieve.ts</code> 与 <code>agent/chat/chat.ts</code> 的当前行号。</p>\n    <div class=\"next-links\">\n      <a href=\"../implementation-artifacts/spec-2-6-retrieve-as-tool.md\">spec-2-6</a>\n      <a href=\"../implementation-artifacts/sprint-status.yaml\">sprint-status</a>\n      <a href=\"../implementation-artifacts/review-2026-10-21-epic2-findings.json\">Epic 2 review</a>\n      <a href=\"../implementation-artifacts/deferred-work.md\">deferred-work</a>\n    </div>\n  </div>\n</section>\n\n<footer class=\"footer\">\n  <p>Story 2.6 走读页 · 生成于 2026-10-24 · 代码来自当前工作区真实文件（含 Epic 3 未提交补丁，均以徽章标注）· 本页未启动浏览器、未重跑前后端测试。</p>\n  <p>行号会随代码漂移；2.6 相关文件再改动时，请在同一次改动里重新生成并校验本页。</p>\n</footer>\n"
+    }
+  ]
+}
