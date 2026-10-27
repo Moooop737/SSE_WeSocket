@@ -68,7 +68,7 @@ graph TD
 
 - **Binds:** FR-1…FR-6, FR-10, FR-11
 - **Prevents:** 同一份事实出现第二个来源；基础层慢慢长出业务判定，变成"什么都放"的抽屉。
-- **Rule:** `adapter/` 只装五类东西：**地址**（`uri`）、**行**（`repo`）、**模型句柄、元信息与 embed 调用封装**（`model`）、**服务商接入**（`provider`）、**连接**（`connection`＝外部服务的到达方式：pg 池、Ollama 的原生地址与探活）。它不含业务判定（不判"该不该作答""够不够相关"）、不认 HTTP 语义、不认"提问"与"会话"。要放第六类，先改本条。**P2 预告**：Epic 5 的 ObjectStore 若落 `adapter/`，就是第六类；开工前先改本条，或把它留在能力片（见 `epics.md` `OQ-5.1-1`），不默认。（`connection/` 是 2026-10-15 由 Lynx 增补的第五类；`ollama.ts` 原先寄在 `provider/`，与本条「服务商接入」混过一格——原生 `/api/tags`、`/api/ps` 探针不是 SDK 网关，归连接。）
+- **Rule:** `adapter/` 只装六类东西：**地址**（`uri`）、**行**（`repo`）、**模型句柄、元信息与 embed 调用封装**（`model`）、**服务商接入**（`provider`）、**连接**（`connection`＝外部服务的到达方式：pg 池、Ollama 的原生地址与探活）、**对象存储**（`storage`＝对象字节与元数据：put/get/stat/delete/presignGet/ensureBucket）。它不含业务判定（不判"该不该作答""够不够相关"）、不认 HTTP 语义、不认"提问"与"会话"。**2026-10-26 拍板**：Epic 5 的 ObjectStore 落 `adapter/storage/`，作为第六类（`epics.md` `OQ-5.1-1`）；它只拥有对象与元数据，不认资源、不判归档失败该不该阻断入库。（`connection/` 是 2026-10-15 由 Lynx 增补的第五类；`ollama.ts` 原先寄在 `provider/`，与本条「服务商接入」混过一格——原生 `/api/tags`、`/api/ps` 探针不是 SDK 网关，归连接。）
 
 ### AD-3 — 库访问唯一归属 [ADOPTED]
 
@@ -97,12 +97,12 @@ graph TD
 
 - **Binds:** FR-1, FR-5, FR-10, FR-11
 - **Prevents:** 一个概念散在多处各拼一套（第一版实况：生成在管线、复制在仓储、带出在检索 SQL、投影在两条路由、落库在消息 jsonb）；来源删除后引用悬空。
-- **Rule:**
-  - 资源级地址由 `uri.mintResourceUri()` 生成：URL 来源用其本身，粘贴内容用 `urn:kc:paste:<uuid>`。
-  - 入库去重的键只由 `uri.canonicalize()` 定义（query、hash 怎么削，别处不得自行裁）。
-  - 引用与回链**只能使用 `uri.composeChunkRef()` 产出的单一字符串**，不得由调用方拿 `chunkId + offset + dataUri` 自行拼装。
-  - `uri.resolveRef()` 返回三态 `ok | deleted | unknown`；FR-5/FR-10 的"来源已删除"降级由 `deleted` 态驱动，不由调用方比字符串或猜。
-  - `uri` 需要读库时只能经 `repo`。
+- **Rule（2026-10-27 as-built）:**
+  - 新资源的原始文件地址由 `adapter/storage/uri.ts` 的 `buildDataUri` 生成：`kc://oss/minio/<bucket>/<实际路径>`；`resources.data_uri` 即此地址，`chunks.resource_uri` 随之为同一值。
+  - `source` 是可复原来源：URL 存原 URL；文件/粘贴存 `data_uri`。旧 P1 的 URL/`urn:kc:paste:` `data_uri` 已清空，不回填。
+  - 文件 key 用实际文件名/相对目录，不加 `resources/<id>`；同名加短后缀；`kc://%` 有唯一索引兜底。
+  - 资源 / chunk / message / trace 的身份 URI **不做**；引用与回链仍靠 `chunkId` + 资源 `data_uri`，不另造一套全局 URI。
+  - URI 解析/签名只经 `adapter/storage/` 与 `adapter/contract.ts`；业务层不拼 presigned URL，也不读本地文件系统。
 
 ### AD-6 — 一盒一扇门 [ADOPTED]
 
@@ -117,7 +117,13 @@ graph TD
 
 - **Binds:** FR-1…FR-5
 - **Prevents:** 多处写状态导致状态机与引用归属对不齐。
-- **Rule:** `processing / ready / failed` 与软删只由 `ingest/` 触发（SQL 仍住 `repo`）。重启遗留清扫是 `repo` 的具名方法，由根文件在 `serve()` **之前 await 完成**（当前落点：`config.ts` 的 `cleanUpOnBoot`，`index.ts` 的启动序列 await 它之后才 `serve()`），不在路由里、不在能力片里散着写。这条"先清后听"是约束不是风格：清扫会 `DELETE FROM chunks`（embeddings 随 FK CASCADE），未 await 的窗口里一个刚提交的真任务会被标 `failed(入库中断)` 并丢掉 chunks——2026-10-20 实测过它被折叠成顶层代码时静默丢掉的过程。
+- **Rule（2026-10-27 as-built）:** 资源状态只由资源用例层触发，SQL 仍住 `repo`；路由只调用用例，不自己拼状态：
+  - `POST /resources` 归档阶段：`uploading → uploaded / upload_failed`（`source/archive.ts`）
+  - `POST /resources/:id/ingest`：`uploaded → processing → ready / process_failed`（`source/ingest.ts`）
+  - `POST /resources/:id/restore`：软删行 → `uploaded`（`source/restore.ts`）
+  - `DELETE /resources/:id`：只软删，保留 MinIO 原对象
+  - 状态枚举：`uploading / uploaded / processing / ready / upload_failed / process_failed`
+  - 重启清扫是 `repo` 的具名方法，由根文件在 `serve()` **之前 await 完成**（`config.ts` 的 `cleanUpOnBoot` → `repo.markStaleOnBoot`）：`processing → process_failed`，超过 24h 的 `uploading → upload_failed`。这条"先清后听"是约束不是风格：清扫会 `DELETE FROM chunks`（embeddings 随 FK CASCADE），未 await 的窗口里一个刚提交的真任务会被标失败并丢掉 chunks。
 
 ### AD-8 — 混合检索的行为不变量 [ADOPTED]
 

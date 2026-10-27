@@ -264,7 +264,7 @@ html[data-theme="dark"] { --accent: #6bb6ff; }
     <p class="toc-brand">Epic 3 · Walkthrough</p>
     <p class="toc-title">Story 3.4</p>
     <p class="toc-sub">ingest 五段 · 带代码逐行讲解</p>
-    <nav id="toc"><a href="#summary" data-toc="summary">先给结论</a><a href="#story-diagram" data-toc="story-diagram">一眼看懂：ingest 五段与失败短路</a><a href="#map" data-toc="map">两条入库路径，后三段共用</a><a href="#shapes" data-toc="shapes">五段形状</a><a href="#glossary" data-toc="glossary">小白词典</a><a href="#journey" data-toc="journey">一次入库的旅行</a><a href="#files" data-toc="files">文件地图</a><a href="#stage-names" data-toc="stage-names">共享 runner：3.4 只加了五个名</a><a href="#db-sink" data-toc="db-sink">DB sink：入库也写同一张 trac</a><a href="#ingest-contracts" data-toc="ingest-contracts">契约：options 与 fetch 元</a><a href="#ingest-core" data-toc="ingest-core">Ingest.run：五个 runSta</a><a href="#http-fetcher" data-toc="http-fetcher">HttpFetcher：把响应元数据带回</a><a href="#passthrough" data-toc="passthrough">PassthroughFetcher：内</a><a href="#embed-chunks" data-toc="embed-chunks">embedChunks：入库向量不送 L</a><a href="#resources-post" data-toc="resources-post">POST /resources：DB s</a><a href="#backfill" data-toc="backfill">回填的两层：Repo 方法 + 接口</a><a href="#choices" data-toc="choices">八个设计选择</a><a href="#tests" data-toc="tests">自测清单</a><a href="#pitfalls" data-toc="pitfalls">容易踩的坑</a><a href="#next" data-toc="next">下一步</a></nav>
+    <nav id="toc"><a href="#as-built-2026-10-27" data-toc="as-built-2026-10-27">Story 5.2 拆分后的修正</a><a href="#summary" data-toc="summary">先给结论</a><a href="#story-diagram" data-toc="story-diagram">一眼看懂：ingest 五段与失败短路</a><a href="#map" data-toc="map">两条入库路径，后三段共用</a><a href="#shapes" data-toc="shapes">五段形状</a><a href="#glossary" data-toc="glossary">小白词典</a><a href="#journey" data-toc="journey">一次入库的旅行</a><a href="#files" data-toc="files">文件地图</a><a href="#stage-names" data-toc="stage-names">共享 runner：3.4 只加了五个名</a><a href="#db-sink" data-toc="db-sink">DB sink：入库也写同一张 trac</a><a href="#ingest-contracts" data-toc="ingest-contracts">契约：options 与 fetch 元</a><a href="#ingest-core" data-toc="ingest-core">Ingest.run：五个 runSta</a><a href="#http-fetcher" data-toc="http-fetcher">HttpFetcher：把响应元数据带回</a><a href="#passthrough" data-toc="passthrough">PassthroughFetcher：内</a><a href="#embed-chunks" data-toc="embed-chunks">embedChunks：入库向量不送 L</a><a href="#resources-post" data-toc="resources-post">POST /resources：DB s</a><a href="#backfill" data-toc="backfill">回填的两层：Repo 方法 + 接口</a><a href="#choices" data-toc="choices">八个设计选择</a><a href="#tests" data-toc="tests">自测清单</a><a href="#pitfalls" data-toc="pitfalls">容易踩的坑</a><a href="#next" data-toc="next">下一步</a></nav>
     <div class="toc-actions">
       <button type="button" id="theme-toggle">深色</button>
       <button type="button" id="expand-all">展开代码</button>
@@ -283,6 +283,23 @@ html[data-theme="dark"] { --accent: #6bb6ff; }
   </div>
   <div class="trace-pill"><b>fetch → parse → chunk → embed → write</b><span>本地 5 行 stage；resource_id 回填；embed telemetry off</span></div>
 </header>
+<section class="section" id="as-built-2026-10-27">
+  <header class="section-head">
+    <span class="kicker">AS-BUILT · 2026-10-27</span>
+    <h2>Story 5.2 拆分后的修正</h2>
+    <p class="section-sub">本页保留 Story 3.4 在 2026-10-23 的实现；两段式改变了 stage 的父 trace 与 fetch 的输入。</p>
+  </header>
+  <div class="callout strong">
+    <strong>先看这一条：</strong>
+    <ul>
+      <li>五段不变，但现在写在 <code>POST /resources/:id/ingest</code> 的 trace 下；<code>POST /resources</code> 只负责归档，trace 有 0 段。</li>
+      <li><code>fetch</code> 段改用 <code>StorageFetcher</code> 从 MinIO 读 <code>data_uri</code>，不再抓 URL；URL 抓取移到了归档阶段。</li>
+      <li>下方代码与示意图是 3.4 当时实现的讲解，保留作历史；新的入口与 AC 见 <code>epics.md › Story 5.2</code>。</li>
+      <li>RunWatch / <code>/ingest-runs</code> 已改读新 ingest 路由；归档请求不显示阶段。</li>
+    </ul>
+  </div>
+</section>
+
 
 <section class="section" id="summary">
   <header class="section-head"><span class="kicker">TL;DR</span><h2>先给结论</h2><p class="section-sub">3.4 复用 3.3 的 runner 和 DB sink，把入库内部拆成 5 段，并把这次 trace 与资源行关联起来。</p></header>

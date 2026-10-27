@@ -29,8 +29,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-09-2026 14:30
-last_updated: 10-25-2026 20:40
-# Sprint focus (2026-10-24)：P1 已结束（Epic 1–3 全 done；Epic 3 review findings 见 review-2026-10-24-epic3.md）；P2 已拆 9 格（Epic 4/5），全部 backlog，待 OQ 拍板后开工。
+last_updated: 10-27-2026
+# Sprint focus (2026-10-27)：P1 已结束；Epic 5 · 5.2 review（原始归档/两段式 ingest/下载/恢复/前端已落码，待浏览器验收；CORS 已实测默认放行，只剩 HTTPS 预览的 mixed content）；5.3 review（去重/两段式/回收站/重入库全部落码，2026-10-27 补 confirm-upload 与资源页批量软删；后端 110/110、前端 613/613；待浏览器验收 + 走读页）；5.4 review（Build 1/2/3 全落：后端 110/110、前端 613/613、build 绿；S3 reader 块缓存修复高 entryIndex 预览超时；待浏览器验收 + 走读页）；Epic 4 · 4.1 暂缓（OQ-4.1-1..3 未决）。
 # 2026-10-25 前端工程项（非 Epic 4/5）：PWA 主屏入口 A 案已落 —— manifest + iOS meta + 不缓存的空 SW；只做 standalone，不含 display:fullscreen / viewport-fit / safe-area。交付与验证见 app/web/Agent/summary/summary-2026-10-25-pwa-standalone.md。
 project: Knowledge Copilot
 project_key: NOKEY
@@ -108,13 +108,28 @@ development_status:
   4-5-表格渲染-csv下载: backlog
   epic-4-retrospective: optional
 
-  epic-5: backlog
+  epic-5: in-progress
   # 2026-10-24 追加：P2 工程支线（MinIO 文件管理）；代码分析/代码 RAG 不在本 Epic。
-  # 两轨：资源文件 5.1 → 5.2 → 5.3；代码库 ZIP 5.1 → 5.4。开工前先拍 OQ-5.1-1（ObjectStore 归属 AD-2 第六类 vs 能力片）。
-  5-1-minio-适配器-配置: backlog
-  5-2-资源原始归档-下载: backlog
-  5-3-markdown-纯文本-上传: backlog
-  5-4-代码库-zip-上传: backlog
+  # 两轨：资源文件 5.1 → 5.2 → 5.3；代码库 ZIP 5.1 → 5.4。
+  # 2026-10-26 5.1 实现完成：OQ-5.1-1..4 全收口；config S3 六位 + adapter/storage + 启动检查 + 10 条真实 MinIO 集成（含 presignPut、建桶）+ 3 条 config 失败路径 + /health s3.bucket；tsc 0、后端 45/45、前端 587/587、boot I_OBJECT_STORE + /health 200。详细 AC 见 epics.md Story 5.1 与 handoff-2026-10-26-epic5-story1-minio-adapter.md。review 完成（review-2026-10-26-epic5-story1.md），无阻塞代码缺陷；P1 专用用户/HeadBucket 权限上公网前处理。待 Lynx 收口/走读页。
+  # 2026-10-26 收口：review + 走读页完成（review-2026-10-26-epic5-story1.md、walkthroughs/epic5-story1-minio-adapter.html）；health 保持全绿才 200（Lynx 拍板 A）；P1 专用用户/HeadBucket → 5.2。
+  # 2026-10-27 5.2 实现完成，待 review/浏览器验收：两段式（POST /resources 归档/发 presign PUT 目标 → POST /:id/ingest）、六状态、kc:// data_uri、GET /original 302、restore；后端 89/89、前端 594/594、build 绿。AC 与 OQ 收口见 epics.md Story 5.2；CORS 已实测默认放行（2026-10-27，无需配桶 CORS），HTTPS 预览的 mixed-content 仍是部署前置。
+  # 2026-10-27 5.3 重定义：SHA-256 内容去重（全表唯一，软删命中恢复）、前端全部上传后统一 ingest、回收站+彻底删除、ready 重入库；详细方向/OQ 见 epics.md Story 5.3。
+  # 2026-10-27 step2：后端 SHA-256 去重门已落（迁移 14/0；archive 三入口命中零写入；active 200 duplicate / 软删恢复 / E_ORIGINAL_LOST；并发撞唯一索引重查）；定向 26 + 后端全量 91/91。前端文件上传需带 hash，下一步 ingest 复算 + 前端预检。MinIO 薄层子系统按 Lynx 2026-10-27 决定「之后做」。
+  # 2026-10-27 step3：ingest 完整性复核已落（storage fetcher 在读取 Buffer 时复算 SHA-256；与 resources.content_hash 比对；不一致 E_HASH_MISMATCH → process_failed，不删对象/不清 hash）；后端 93/93、tsc 0 错。OQ-5.3-4 已收口，OQ-5.3-5 仍待拍。
+  # 2026-10-27 step4：前端 SHA-256 预检 + 整批两段式已落（文件提交前 Web Crypto 算 hash；同批同 hash 只留第一项；200 duplicate 只提示不 ingest，200 restored 不重传仍 ingest；先全部归档/上传再统一 ingest）；前端 63 文件 598 tests、build 绿、tsc 0 错。浏览器手测待 Lynx。
+  # 2026-10-27 step5：回收站 + 彻底删除已落（GET /resources/deleted 分页/搜索；DELETE /:id/purge 只接软删行，先幂等删 MinIO 对象再删行，content_hash 随行释放；资源页底部回收站卡片，恢复=restore+ingest，彻底删除两步确认）；后端 17 文件 98 tests、前端 64 文件 603 tests、build 绿；真实冒烟 204/1/204/0。OQ-5.3-5 已收口。
+  # 2026-10-27 step6：ready 重入库已落（去掉 ready 409；markResourceUploaded 允许 ready 回落 uploaded；写入事务先按资源行 FOR UPDATE 串行化、再删旧 chunks/embeddings、插新；失败 process_failed 且旧 chunks 不保留，门禁失败 upload_failed 也清旧 chunks；资源页 ready 显示“重新入库”）；后端 100/100、前端 603/603、build 绿；真实冒烟 两次 201、chunk id overlap=0。5.3 实现完成，转 review。
+  # 2026-10-27 5.3 走读页：walkthroughs/epic5-story3-dedup-recycle-reingest.html（13 sections / 20 code / 55 notes / 11 journey；validate OK；index 已加卡片并更新统计）；待 Lynx 浏览器验收后转 done。
+  # 2026-10-27 5.3 补：文件 PUT 后 POST /:id/confirm-upload 先 stat/门禁转 uploaded，阶段一每项 onProgress，全部 uploaded 后才阶段二 ingest；资源页加本页勾选/全选 + 两步批量软删（复用 DELETE，进回收站）。后端 110/110、前端 68 文件 613/613、build 绿。
+  # 2026-10-27 5.4 开工清单：OQ-5.4-1/2/3/4 全部收口；详细 AC 已写进 epics.md。领域与知识库分离；无沙箱不直接解压/不落盘；只设 ZIP 100MB；文件树 + 单文件预览；manifest 持久化 codebases.manifest jsonb；不复用 resources/content_hash/回收站。
+  # 2026-10-27 5.4 Build 1 完成：迁移 applied（15/0）、schema 已含 codebases、drizzle filter/schema 脚本同步；新增 yauzl/yazl 依赖；CodebaseArchive（presign -> complete/stat/temp ZIP/yauzl central-directory 校验/manifest -> ready/failed）、PostgresCodebaseRepo、/codebases list/read/create/complete（list/detail/complete 响应不返回 manifest，树留给 Build 2）、config cleanUpOnBoot 内 codebase 清扫；后端 18 文件 104 tests。Build 2 完成：GET /:id/tree（扁平 entries）、GET /:id/files/:entryIndex（S3 range reader，文本/代码 text/plain + nosniff，?download=1 attachment，实际解压字节 100MB 截断）、GET /:id/original 302、DELETE /:id（processing 409，先对象后行）；OpenAPI Codebases 路径与 schema；后端 18 文件 108 tests。
+  # 2026-10-27 预览修复：高 entryIndex 超时。根因 yauzl 每读一条中央目录记录走一次 reader.read（46B），S3ZipReader 对每个小 read 发一次 Range GET，1493 条目 ZIP 点后面的文件要排队上千次请求；给 S3ZipReader 加 1MB 块缓存，中央目录小读取命中缓存，条目正文仍单次 Range GET。新增 120 条目高 entryIndex 测试；后端 18 文件 109 tests；真实 ZIP entry 761/916/1294/1492 均 200。
+  # 2026-10-27 5.4 Build 3 完成：前端 /codebases 页面（create→PUT→complete 上传、列表/搜索/分页、文件树、文本/代码 <pre> 预览、二进制下载、原 ZIP 302、两步硬删）；导航「开发 → 代码库」+ routeTree；前端 67 文件 611 tests、build 绿、tsc 干净。5.4 实现完成，转 review；Build 4 = 浏览器验收 + 走读页。
+  5-1-minio-适配器-配置: done
+  5-2-资源原始归档-下载: review
+  5-3-资源批量-去重-回收站-重入库: review
+  5-4-代码库-zip-上传: review
   epic-5-retrospective: optional
 
 action_items:

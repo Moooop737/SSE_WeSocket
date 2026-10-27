@@ -452,3 +452,23 @@
 - 前端 ingest 阶段只做了“能显示”，没有浏览器手测。
 - `Ingest.batch` 的 sink 没有调用方；批量入库的 trace 归属还没设计。
 - Epic 3 四格实现完，待统一 review/提交。
+
+## 2026-10-26 · Story 5.1 对象存储适配器
+
+### 学到的
+
+- **presign 是本地签名，不是“向服务端注册 URL”。** `getSignedUrl(client, new GetObjectCommand(...))` 只在本地走序列化 + SigV4；MinIO 在请求到来时才验签。Host、路径、方法、query 被签；`Range` 没被签，所以同一个 GET URL 可以反复发 Range。
+- **Host 是签名的一部分。** 同一个 MinIO，用域名签、用 IP 请求就是 `SignatureDoesNotMatch`；反代必须保留 Host。
+- **过期是请求入口校验一次。** URL 过期后新请求 403；已建立的流不会中途断（官方文档；本轮未做慢速限速实测）。错误码是泛化的 `AccessDenied` + `Request has expired`，不要解析文案。
+- **presignPut 的 body 不签。** 默认只签 host；给 `contentType` 时用 `signableHeaders` 显式签 `content-type`，错类型才会 403。key 必须后端生成、TTL 要短、上传后 HEAD 校验。
+- **S3 兼容服务要关默认 checksum。** `requestChecksumCalculation/responseChecksumValidation = 'WHEN_REQUIRED'`，否则 SDK 默认附加的 CRC 头可能不被 MinIO 接受。
+- **boot non-blocking 与 health all-green 是两种语义。** 启动建桶失败只 `W_OBJECT_STORE` 继续；`/health` 仍全绿才 200，所以 MinIO 挂了整体 503（Lynx 拍板 A）。
+- **配置缺项检查必须放在所有必需 env 读取之后。** 本轮 review 抓到一个顺序 bug：`missing` 检查早于 `DATABASE_URL`/`OLLAMA_BASE_URL`/`S3_*` 读取，导致缺这些变量不报 `E_CONFIG_MISSING`；用子进程测试钉住。
+- **`ObjectStoreError` 只把“对象不存在”归为 null。** 桶不存在/无权限/网络失败必须抛错，不能伪装成业务空值。
+
+### 还没碰
+
+- 公网下载鉴权（登录/退出吊销、per-IP、一次性 token、边缘反代）→ P5。
+- MinIO 专用用户与 `HeadBucket` 权限 → 5.2。
+- `test/` 仍被 gitignore；health 测试与 env loader 修复不在版本控制。
+- 前端 health 三卡布局与页面视觉由 Lynx 手测。

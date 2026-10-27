@@ -663,6 +663,8 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 
 ## Epic 5: 文件与存储（P2 工程支线）
 
+> **2026-10-27 状态**：5.1 done；5.2 review（原始归档、两段式 ingest、下载、恢复、前端已落码，待浏览器验收；CORS 已实测默认放行，只剩 HTTPS 预览的 mixed content）；5.3 已重定义为资源批量 story（SHA-256 去重、整批两段式、回收站/彻底删除、ready 重入库），backlog；5.4 backlog。
+
 > **阶段定位（2026-10-24）**：为资源和代码库补「原始文件」层。Epic 5 只做文件管理，不做代码分析、不做代码 RAG。
 > **边界**：不改入库分块/检索语义；不接 PDF/Word 等新格式；不做 AST/依赖图；不做批量上传/后台队列；不做 tenant。
 > **依赖轨道**：轨 A · 资源文件 5.1 → 5.2 → 5.3；轨 B · 代码库 ZIP 5.1 → 5.4。两轨独立。
@@ -671,80 +673,235 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 ### Story 5.1: MinIO 适配器与配置
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-26 补）:**
 
-**方向**
-- 用 S3 API 接 MinIO（`@aws-sdk/client-s3` + `forcePathStyle`）；定义 ObjectStore 契约（put/get/delete/stat）。
-- 加 `S3_*` 配置与 fail-fast；启动时 bucket 检查/创建；不打印密钥。
-- 只做适配器与配置；不接 ingest、不开路由。
+**架构与归属**
+**And** 新增 `app/server/src/adapter/storage/`，作为 AD-2 的第六类「对象存储」；AD-2 已同步改为六类
+**And** 对外只经 `adapter/contract.ts` 交出 `ObjectStoreHandle`（`@singleton()`）与 `ObjectStore` 类型；别盒不 import `@aws-sdk/*`、不 import `adapter/storage/` 内部文件
+**And** 本格不改表、不加迁移、不开路由、不接 ingest、不做前端
+
+**契约（`ObjectStore`）**
+**And** `put(Key, Body, ContentType)`：Body 为 `Uint8Array`（含 Buffer）
+**And** `stat(Key)`：返回 `{ size, contentType, etag } | null`；对象不存在返回 null
+**And** `get(Key, { range? })`：返回 `{ body: Readable, contentType, contentLength, etag } | null`；对象不存在返回 null
+**And** `delete(Key)`：幂等；对象不存在也算成功
+**And** `presignGet(Key, { expiresIn, responseContentDisposition?, responseContentType? })`：返回签名 URL；`expiresIn` 限 1–604800 秒
+**And** `presignPut(Key, { expiresIn, contentType? })`：返回 PUT URL；给了 `contentType` 就把它签进 `X-Amz-SignedHeaders`，上传时必须带同一个值；`expiresIn` 限 1–604800 秒
+**And** `ping()`：只读 `HeadBucket`，2 秒上界，不建桶（/health 用）
+**And** `ensureBucket()`：`HeadBucket` 不存在则 `CreateBucket`；幂等，且有 3 秒上界
+**And** 非「不存在」的失败统一抛 `ObjectStoreError`（`code='E_OBJECT_STORE'`），SDK 错误类型不泄出 adapter
+
+**配置与启动**
+**And** `AppConfig` 新增 `s3Endpoint / s3Bucket / s3AccessKeyId / s3SecretAccessKey / s3Region / s3ForcePathStyle`；前四项缺失走 `E_CONFIG_MISSING` + exit(1)，`S3_REGION` 默认 `us-east-1`，`S3_FORCE_PATH_STYLE` 默认 `true`
+**And** `S3_ENDPOINT` 必须等于浏览器访问 MinIO 的同一个 host（presign 的 Host 必须一致）；当前 `.env` 用 `http://aliyun2c2g300mbps.tail8d0baa.ts.net:9000`
+**And** 启动时在 `serve()` 前尝试 `ensureBucket()`：成功打 `I_OBJECT_STORE`；失败打 `W_OBJECT_STORE` 并继续启动，不阻塞
+**And** `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` 不出现在任何日志、错误、trace payloads 里
+
+**真跑验收**
+**And** 对真实 MinIO 跑 `put → stat → get → delete`，内容与 Content-Type 一致；删后 `stat` 返回 null
+**And** `presignGet` 的 URL 用 `curl -I` 得 200，带 `Accept-Ranges: bytes` 与（传了参数时）`Content-Disposition: attachment`
+**And** 同一 URL 用 `curl -r 0-99` 得 206 + `Content-Range`
+**And** `expiresIn=2` 的 URL 等 3 秒后请求得 403，证明 TTL 生效
+**And** 用 IP 签名、用域名请求（或反过来）得 `SignatureDoesNotMatch`，证明 Host 约束
+**And** `ensureBucket` 对不存在的临时桶能创建、再调一次仍成功
+**And** `presignPut` 带 `contentType` 的 URL：正确类型 PUT 得 200、内容可读；换类型得 403
+**And** `GET /health` 增加 `s3.bucket` 探针：真实 MinIO 下 `s3.bucket.ok=true`；MinIO 不可达时 `s3.ok=false`、整体 `degraded/503`
+**And** `npx tsc --noEmit` 0 错；`npx vitest run` 全部通过（含既有 31 条）
+
+**不做**
+**And** 不做多桶、多后端、OSS/其它存储、预签名下载 UI、nginx、桶公开读；这些都不进 5.1
+
+**OQ 收口（2026-10-26，Lynx 拍）:**
+- `OQ-5.1-1` → `adapter/storage/` 第六类；开工前先改 AD-2（已改）
+- `OQ-5.1-2` → 远程 MinIO：`aliyun2c2g300mbps`（Tailscale `100.113.172.47`），Docker，数据 `/data/minio`，Console `http://aliyun2c2g300mbps.tail8d0baa.ts.net:9001`；本机不装
+- `OQ-5.1-3` → 自动建桶 + 失败只告警（不阻塞服务）；桶名 `kbfile`
+- `OQ-5.1-4` → presigned URL，TTL 3600 秒，5.2 用 302 直连下载；`presignGet` 进本格契约，`get` 留给服务端读；presigned 从 P2 Deferred 解冻
 
 **Depends:** 无
 
-**Open questions:**
-- `OQ-5.1-1` ObjectStore 的架构归属：放 `adapter/` 属 AD-2 的**第六类**，开工前须先改 AD-2；若住能力片则不受 AD-2 约束。二选一，不默认。
-- `OQ-5.1-2` 本机 MinIO 怎么起（当前 shell 无 docker/minio）。
-- `OQ-5.1-3` bucket 自动创建还是预创建；启动检查是否阻塞服务。
-- `OQ-5.1-4` 下载走后端代理还是 presigned（presigned 在 P2 Deferred 里，若要首期做需改边界）。
+**Deferred:** 多存储后端、多桶（未排期）；~~预签名 URL~~ 已解冻进 5.1/5.2（2026-10-26，OQ-5.1-4）。
 
-**Deferred:** 多存储后端、多桶、预签名 URL。
+> **2026-10-26 收口**：实现 + review + 走读页完成；findings 见 `review-2026-10-26-epic5-story1.md`；页面 `_Agents/walkthroughs/epic5-story1-minio-adapter.html`。`/health` 维持全绿才 200（Lynx 拍板 A）；P1 专用用户 / `HeadBucket` 权限 → 5.2。
 
-### Story 5.2: 资源原始归档与下载
+### Story 5.2: 资源原始归档、两段式入库与下载
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-27 as-built）:**
 
-**方向**
-- `resources` 增加 `storage_key / storage_content_type / storage_size_bytes / original_file_name`。
-- ingest 增加 `store` 段：URL 存原始 HTML、粘贴存原文；归档失败不阻断入库，以 warning 呈现（待确认）。
-- `GET /resources/:id/original` 下载原文；`DELETE /resources/:id` 时清对象。
-- **与 3.4 的衔接**：若 `store` 落成独立 stage，`StageName` 要加 `store`，Story 3.4 的「恰好 5 段」AC 与走读页同批改成 6 段；也可折进 `write` 段，二选一。
-- 下载 URL 入库的原始 HTML 必须强制 `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff`，不得同源 inline 打开。
+**数据与 URI**
+**And** `resources.status` 为六态：`uploading / uploaded / processing / ready / upload_failed / process_failed`；默认 `uploading`
+**And** `resources.content_type` 存 MIME（`text/html / text/markdown / text/plain`），不再存 `url / markdown / plaintext`
+**And** `resources.storage_size_bytes` 存原始对象字节数；旧行可为 null
+**And** 新资源 `data_uri = kc://oss/minio/<bucket>/<实际路径>`；路径保留文件名/相对目录，不加 `resources/<id>`；同名加短后缀
+**And** `source` 只记外部来源：URL 存原始 URL，文件/粘贴存 null；`kc://` 内部归档地址只放 `data_uri`；`data_uri` 有 `kc://%` 唯一索引
+**And** `chunks.resource_uri` 随 `data_uri`；不新增 `original_file_name / storage_content_type / storage_key` 列
+**And** 旧 29 行资源已由 `20261026172000_truncate_existing_data.sql` 清空（sessions/messages 保留）；新数据从空库开始
+
+**建资源 / 归档**
+**And** `POST /resources` 只接受 `url` / `content` / `filename` 恰好一个；`filename` 仅 `.md/.markdown/.txt`，先返回 `{resource, upload:{url, method:'PUT', contentType}}`，不读文件字节
+**And** 文件 `presignPut` 的 `Content-Type` 被签；前端直传 MinIO；文件行保持 `uploading`，等 ingest 的 `stat` 确认
+**And** URL 走 http/https 抓取并写入 MinIO；重复 `source` 返回 409；空正文、不支持 MIME、超过 10 MiB 均转 `upload_failed`
+**And** 粘贴只接受 `text/markdown` / `text/plain`，空正文/超限在建行前拒绝；成功直接 `uploaded`
+**And** 归档失败在建行后转 `upload_failed` 并返回带 resource 的 422；输入错误 400；文件声明超限 413；未预期 500
+**And** key 分配同时查 DB `data_uri` 与 MinIO `stat`；唯一索引兜底并发，冲突加短后缀
+
+**ingest**
+**And** `POST /resources/:id/ingest` 只处理 active 资源；`processing` / `ready` 返回 409；`uploading / uploaded / upload_failed / process_failed` 可重试
+**And** 先 `stat` 原始对象：不存在 / 0 字节 / 超过 10 MiB / MIME 与资源不一致 → 删除错对象并转 `upload_failed`，返回 422
+**And** 通过后写 size，状态 `uploaded → processing → ready`；失败 `process_failed`；返回 `{resource, chunk_count, warning?}`
+**And** ingest 的 fetch 段从 MinIO 读 `data_uri`，不再抓 URL；不新增 `store` 段，3.4 的五段（fetch/parse/chunk/embed/write）口径不变
+**And** 旧数据行或 `data_uri` 不是 `kc://` 时，ingest / download / restore 返回 `E_NO_ORIGINAL`，不做回填
+
+**下载**
+**And** `GET /resources/:id/original` 返回 302 到 1h presigned GET；302 与对象响应均 `Cache-Control: no-store`
+**And** 对象响应强制 `attachment`（RFC 5987 `filename*=UTF-8''` + ASCII fallback）、资源 MIME、文件名取 key basename
+**And** 原对象不存在 / 旧 URI / bucket 不一致 → 404 `E_NO_ORIGINAL`；不记 Location / 完整 presigned URL
+
+**删除 / 恢复**
+**And** `DELETE /resources/:id` 软删行、删 chunks（embeddings 随 FK），**保留 MinIO 原对象**
+**And** `POST /resources/:id/restore` 只接软删行；先 `stat` 原对象，清 `deleted_at` 回 `uploaded` 并写 size；无原对象 409 `E_NO_ORIGINAL` 且行保持软删
+**And** restore 不自动 ingest；前端随后调 `/ingest`
+
+**前端**
+**And** 入库页队列支持文字/网站/文件/文件夹；提交时文字/URL 走归档+ingest，文件走 presign PUT+ingest，文件夹按相对路径逐文件
+**And** 资源页六状态筛选/徽标/状态分布；抽屉显示下载、开始/重试入库；删除后提供「恢复并重新入库」撤销条
+**And** 状态分布六态；概览/图表仍用 ready/processing/failed 三档聚合映射
+**And** 入库观测 RunWatch / `/ingest-runs` 按 `POST /resources/:id/ingest` 取 trace（归档 `POST /resources` 的 trace 0 段）；每完成一个文件/一次 ingest 刷新最近入库、六状态分布与 RunWatch
+
+**真跑验收**
+**And** 迁移 `20261026163000_resource_storage_lifecycle.sql`、`20261026172000_truncate_existing_data.sql` 已 applied（13/13）
+**And** 真 MinIO + 真库集成：粘贴、URL、文件 presign PUT、缺对象、错类型、0 字节、restore、download 302、重复 ingest 409
+**And** `npx tsc --noEmit` 0 错；后端 16 文件 / 89 条、前端 63 文件 / 594 条通过；前端 build 绿
+**And** 浏览器手测待 Lynx：CORS 已实测放行（2026-10-27：MinIO 默认对任意 Origin 回 `200` + `Allow-Methods: PUT` + `Allow-Headers: Content-Type`，无签名 PUT 的 403 也带 ACAO，无需配桶 CORS；收紧 Origin 时再验）；唯一会挡的是 HTTPS 预览页直传 `http://MinIO` 的 mixed content，手测用 `http://localhost:5173` 规避
+
+**不做**
+**And** 资源/chunk/message/trace 的身份 URI、`data_uri` 回填、回收站列表、从 URL 自动重抓恢复、multipart 上传、批量队列、ZIP（5.4）、原文件版本/retention/purge
+
+**OQ 收口（2026-10-27，Lynx 拍板/实现定）:**
+- `OQ-5.2-1` → 归档失败硬失败 `upload_failed`，不做 warning 入库
+- `OQ-5.2-2` → key 用实际路径；同名加后缀；类型/大小不符删对象；软删保留对象；对象删除失败只记日志
+- `OQ-5.2-3` → 不新增 `store` 段；fetch 改为读 MinIO，3.4 仍是五段
+- `OQ-5.2-4` → 无 `storage_key`；`data_uri` 就是文件 URI；缺失/旧 URI 统一 `E_NO_ORIGINAL`，不回填
+- `OQ-5.2-5` → 文件上传用 presign PUT（非 multipart），前端直传 MinIO；原 5.3 的单文件上传已被本格覆盖；5.3 已重定义为资源批量 story
 
 **Depends:** 5.1
 
-**Open questions:**
-- `OQ-5.2-1` 归档失败走 warning 还是硬失败。
-- `OQ-5.2-2` 对象 key / 文件名规则；删除对象失败怎么处理。
-- `OQ-5.2-3` `store` 是独立 stage 还是折进 `write`（影响 3.4 的 AC/走读页）。
-- `OQ-5.2-4` 无 `storage_key` 的资源请求原文返回什么（404 / 回填策略）。
+**Deferred:** 回收站/软删列表（需 list-deleted 端点）；文件 PUT 失败后的 `uploading` 行清理（现靠 24h 启动清扫/手动删）；URL 页面标题覆盖 hostname 占位（需记录 title 是否用户显式提供）；从 `source` 自动重抓恢复；MinIO HTTPS/TLS 部署项（HTTPS 预览下 mixed content；CORS 实测默认放行，不再算部署前置）；5.3 合并决定；5.4 ZIP。
 
-**Deferred:** 原始文件版本/迁移；生成的表格/文件落 MinIO 的 artifact 模式。
-
-### Story 5.3: Markdown / 纯文本文件上传
+### Story 5.3: 资源批量：内容去重、整批上传/入库、回收站与重入库
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-27 方向级；开工前补详细 AC）:**
 
-**方向**
-- multipart 上传单个 `.md/.txt`（首期不做一次多文件，批量入库仍归 P3 工程项），复用现有 text parser；入库页增加「文件」模式；原文件按 5.2 归档。
-- 前端 accept 与后端后缀校验同口径（`.md/.markdown/.txt`）。
+**内容哈希与去重（SHA-256）**
+**And** `resources` 增 `content_hash` text；对非空 hash 建**全表唯一索引（含软删行）**；旧资源已在 2026-10-27 清空，不 backfill，只对新行算 hash
+**And** 文件在浏览器算 SHA-256，URL/粘贴服务端算；哈希对象是**归档原始字节**（文件字节 / HTML / UTF-8 文本），不含文件名和标题
+**And** **去重门在 DB 建行与 MinIO 写入之前**：命中时 `resources` 与 bucket 两边都不写；只有未命中才 create/put
+**And** 进入上传阶段前，先对队列里所有文件算 SHA-256；同 hash 只留一项，其余标「队列内已存在」，**不 create、不 presign、不 PUT**
+**And** 文件 presign PUT 完成后调用 `POST /resources/:id/confirm-upload`，服务端 stat/类型/大小门禁后转 `uploaded`；整批全部确认后再开始 ingest，阶段一每完成一项也回调 `onProgress`
+**And** URL/粘贴先取内容/算 hash 再查重；命中**不写对象、不建行**（URL 仍可能为算 hash 抓一次）
+**And** 建行/发 presign 前查重，原则是**hash 命中一律不重传对象**：
+  - active 命中（不管状态）→ 返回已有 resource + duplicate 标记，前端只提示“库里有这个资源”并显示它的状态；**不自动 ingest、不等待、不新建、不上传**，用户去资源页处理
+  - soft-deleted 命中且对象完整 → **直接恢复该 resource**（清 `deleted_at`、回 `uploaded`）并纳入后续 ingest，不重传对象
+  - soft-deleted 命中但对象损坏/丢失 → 返回 `E_ORIGINAL_LOST`，引导去回收站彻底删除；彻底删除前不再上传
+**And** 并发冲突由唯一索引兜底；客户端 hash 只用于早跳过，ingest 时服务端**强制复核**：对从 MinIO 读回的对象字节复算 SHA-256，不一致不进入 parse/chunk/embed，落 `process_failed`（`E_HASH_MISMATCH`）
 
-**Depends:** 5.1、5.2
+**整批两段式（前端，无后端队列）**
+**And** 上传队列先做文件 hash 预检并合并同内容项；对剩余唯一项执行 create + 上传/归档（文件 presign PUT；URL/粘贴归档；软删命中走恢复），收集 resource ids；**全部上传结束后**再逐个 ingest；active 命中只提示，不加入本批
+**And** 单项失败不阻断其余；每完成一项 `onProgress`，页面刷新最近资源、六状态分布与 RunWatch
+**And** 不建服务端任务表/worker/Redis/批量端点；刷新页面队列即丢
+
+**批量删除（资源页，2026-10-27 补）**
+**And** 资源页支持本页勾选与全选，工具条出现「删除选中 n」两步确认；复用现有 `DELETE /resources/:id`，与逐条删除一样是软删并进入回收站
+**And** 筛选 / 翻页 / 搜索变化时清空勾选；批量删除逐条执行、404 视为已不存在，完成后刷新列表与计数
+
+**回收站 / 软删 / 彻底删除**
+**And** 软删资源进入回收站；`GET /resources/deleted`（分页/搜索，按 deleted_at 倒序）列出软删资源并恢复
+**And** 彻底删除走 `DELETE /resources/:id/purge`，服务端只接软删行；active 行 409 `E_NOT_DELETED`
+**And** restore 仍先 `stat` 原对象：完整则清 `deleted_at`、status `uploaded`，再 ingest；损坏 409 `E_NO_ORIGINAL`
+**And** **彻底删除**只在回收站执行（两步确认）：先幂等删 MinIO 原对象，再删 `resources` 行（chunks/embeddings 随 FK），释放 `content_hash`；对象已经丢失也允许清行
+**And** active 资源必须先软删再彻底删；不提供直接硬删 active（防误操作）
+
+**重入库**
+**And** `POST /resources/:id/ingest` 允许 `ready` 重跑；状态 `ready → processing`
+**And** 写入事务里替换旧 chunks/embeddings（覆盖删掉），成功后 `ready`；失败 `process_failed`，旧 chunks/embeddings 不保留
+**And** 资源页对 ready 显示“重新入库”；回收站恢复后可重新入库
+
+**不做**
+**And** 批量下载 / ZIP（2026-10-27 去掉，不在本格）；后端批量队列；代码库 ZIP（5.4）；直接硬删 active；PDF 等新格式。
 
 **Open questions:**
-- `OQ-5.3-1` 单文件大小上限、编码校验、文件名/标题规则。
+- ~~`OQ-5.3-1` 旧资源 hash 回填~~ — **2026-10-27 Lynx 拍：旧资源直接清空（resources/chunks/embeddings），不做 hash 回填；sessions/messages 保留。**
+- ~~`OQ-5.3-3` 重入库失败：旧 chunks 保留（避免搜索空窗）还是清掉转 process_failed~~ — **2026-10-27 Lynx 拍：覆盖删掉，失败 process_failed，旧 chunks/embeddings 不保留。**
+- ~~`OQ-5.3-4` 客户端 hash 是否在 ingest 时强制复核；不一致如何处置~~ — **2026-10-27 拍：强制复核。storage fetcher 对 MinIO 读回的同一份 Buffer 复算 SHA-256，与 `resources.content_hash` 比对；不一致不 parse/chunk/embed，落 `process_failed`（`E_HASH_MISMATCH`）。不顺手删对象、不清 hash；对象生命周期清理归之后的 MinIO 薄层子系统。**
+- ~~`OQ-5.3-5` 回收站列表的 API 形状（新端点 vs GET /resources 过滤）与硬删后的审计留痕~~ — **2026-10-27 拍：用新端点 `GET /resources/deleted?page=&per_page=&search=`（按 deleted_at 倒序）与 `DELETE /resources/:id/purge`；purge 只接软删行，先幂等删 MinIO 对象再删行，对象已丢失也允许清行；active 行 409 `E_NOT_DELETED`。硬删审计留痕归 P5（本轮只留 trace）。**
 
-**Deferred:** 一次多文件上传（P3 批量）；PDF、Word、Excel、EPUB 等格式解析。
+**Depends:** 5.2
+
+> **as-built（2026-10-27）**：去重门 / ingest 完整性复核 / 前端 hash 预检+两段式 / 回收站+彻底删除 / ready 重入库已全部落码；后端 100/100、前端 603/603、build 绿。ready 重入库在写入事务里 `SELECT ... FOR UPDATE` 锁资源行、先删旧 chunks/embeddings 再插新；失败 `process_failed` 且旧 chunks 不保留，门禁失败也清旧 chunks。待 Lynx 浏览器验收 + story 走读页后转 done。
+
+**Deferred:** 批量下载/ZIP（本轮去掉）；后端批量队列（P3）；硬删 audit/retention（P5）；批量软删（可选批次操作，待定）；purge/restore 并发行锁（5.3 收口后 / 未排期）。
 
 ### Story 5.4: 代码库 ZIP 上传与文件管理
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-27 详细；Build 1–3）:**
+
+**领域与数据**
+**And** 新 `codebases` 表：`id uuid PK`、`title`、`original_filename`、`data_uri`、`content_type` 固定 `application/zip`、`status` check（`uploading / processing / ready / failed`）、`error_reason`、`storage_size_bytes`、`manifest jsonb NOT NULL DEFAULT '[]'`、`file_count int`、`declared_uncompressed_bytes bigint`、`created_at / updated_at`；无 `deleted_at`（硬删，不进资源回收站），无 `content_hash` 唯一索引；`data_uri` 唯一。
+**And** `manifest` 是扁平条目数组：`path / entry_index / is_dir / compressed_size / uncompressed_size / compression_method`；树由 path 合成；不存正文。
+**And** 迁移走 dbmate；`schema.ts` 由 `npm run db:schema` 重新生成，不手改生成文件。
+**And** 新能力盒 `src/codebase/`（archive / zip-validate / reader / purge）与 `src/routes/codebases.ts`；repo 住 `adapter/repo/codebase.ts`，经 `adapter/contract.ts` 单一门交出；不复用 Resource/Repo 的资源领域方法。
+
+**上传与校验**
+**And** `POST /codebases` `{ filename, size?, title? }`：只收 `.zip`；size 若给必须 ≤ 104857600；签 `presignPut(application/zip)`；建 `uploading` 行；返回 `{ codebase, upload }`。
+**And** `POST /codebases/:id/complete`：只接 `uploading`；stat 对象；缺失/0 字节/>100MB/类型不符 → 删错对象（若在）+ `failed` + 422；否则转 `processing`。
+**And** complete 把 ZIP 下载到受控临时文件（≤100MB），用 `yauzl` 只读中央目录；**不解压条目、不写条目文件、不执行仓库内容**；finally 删临时文件。
+**And** ZIP 校验拒绝：`..`、绝对路径、盘符、反斜杠、控制字符、空路径、规范化后重名、符号链接/设备/管道/套接字；默认忽略 `.git`、`node_modules`、`dist`、`build`（常量可维护）。
+**And** 条目只存元数据；`entry_index` 用 yauzl 原始序号；`file_count` / `declared_uncompressed_bytes` 由清单求和。
+**And** 校验成功写 manifest + status `ready`；失败删对象 + status `failed` + `error_reason`，行保留可看原因，可 DELETE 清行。
+**And** 启动清扫：`processing → failed`（「校验中断」）；`uploading` 超过 24h → `failed`（与资源启动清扫同口径）。
+
+**接口**
+**And** `GET /codebases?page&per_page&search`：按 `created_at` 倒序；search title/original_filename；返回 `{ codebases, pagination }`。
+**And** `GET /codebases/:id`：元数据，不含 manifest。
+**And** `GET /codebases/:id/tree`：返回扁平 entries；前端合成树。
+**And** `GET /codebases/:id/files/:entryIndex`：只接 ready；entryIndex 必须在 manifest；目录 400；流式读条目；默认 `inline`，`?download=1` 为 `attachment`；文本/代码 `text/plain; charset=utf-8` + `X-Content-Type-Options: nosniff`；实际解压字节超过 100MB 中止（413/422）；不落盘；不把 HTML/SVG 当页面执行。
+**And** `GET /codebases/:id/original`：302 到 presigned GET 原 ZIP（`attachment` + `no-store`），不记 Location。
+**And** `DELETE /codebases/:id`：`processing` 409；先幂等删 MinIO 对象，再删行；对象已丢失也允许清行；对象删除失败 500 且行保留；无软删/回收站。
+
+**前端**
+**And** 独立 `/codebases` 页面与导航入口；上传 ZIP（presign PUT → complete）、列表（状态/大小/文件数/时间）、详情文件树 + 预览、下载原 ZIP、删除两步确认。
+**And** 预览文本/代码用 `<pre>`，不渲染 HTML/SVG；文件名/路径按文本转义；二进制显示「不可预览」+ 下载。
+**And** 刷新页面不保留上传队列；不混入资源列表/资源回收站/状态分布。
+**And** 前端测试覆盖 API 客户端、树构建、预览纯文本、删除两步、错误映射；不测像素。
+
+**验证**
+**And** 后端 Vitest 真 MinIO/DB + ZIP fixtures：正常树、重复路径、`..`、绝对路径、反斜杠、符号链接、对象缺失、>100MB 拒绝、preview 实际字节截断、删除清对象。
+**And** `npx tsc --noEmit` 0、后端全量绿、前端 `npm test` / `npm run build` 绿。
+**And** 浏览器手测由 Lynx：上传、树、预览、下载、删除、错误提示。
+
+**不做**
+**And** 解压到磁盘、执行仓库内容、AST/代码 RAG、Git 克隆、增量更新/版本对比、资源回收站、content_hash 去重、ZIP 批量下载。
 
 **方向**
-- 独立 `codebases` 领域，不进 `resources`、不进 ingest；上传 zip 存 MinIO，读条目清单（文件树是否首期展示见 OQ），单文件按需读，下载原 zip，删除清对象。
-- 安全：拒绝 `..` / 绝对路径 / 符号链接 / 设备文件；限制总解压大小、文件数、单文件大小、压缩比、目录深度；**按实际解压字节计数**，不信任中央目录虚报；拒绝反斜杠/盘符/重名条目；不执行仓库里的脚本或 hook。
+- 独立 `codebases` 领域，与知识库分离（2026-10-27 Lynx 拍），不进 `resources`、不进 ingest；上传 zip 存 MinIO 的独立前缀，**不做直接解压/不把条目落到文件系统**，只读条目清单（文件树是否首期展示见 OQ）、单文件按需流式读，下载原 zip，删除清对象；不复用 `resources.content_hash` 去重或资源回收站。
+- 安全：拒绝 `..` / 绝对路径 / 符号链接 / 设备文件；**ZIP 上传限 100MB**；单条目读取按实际解压字节上限（同一个 100MB）截断，不信任中央目录虚报；不另设文件数/压缩比/深度细限额；拒绝反斜杠/盘符/重名条目；不执行仓库里的脚本或 hook。
+- 文件树：上传校验成功后把**扁平条目清单**（path / entry_index / is_dir / compressed_size / uncompressed_size / compression_method）写进 `codebases.manifest` jsonb；列表与文件树读清单，不在每次请求时重新解析 ZIP；单文件按需读时用 entry_index 回到 ZIP 流。
+- 单文件预览：首期文件树 + 预览都做；预览走 `GET /codebases/:id/files/:entryIndex`（`Content-Disposition: inline`），文本/代码统一按 `text/plain; charset=utf-8` + `X-Content-Type-Options: nosniff` 返回，前端用 `<pre>` 渲染；**绝不把 ZIP 条目当 HTML/SVG 内联执行**。二进制/图片首期给元信息 + 下载；图片内联预览若需要再加。
 - 默认忽略 `.git`、`node_modules`、构建产物。
 
 **Depends:** 5.1
 
 **Open questions:**
-- `OQ-5.4-1` 「解压」是长期解压到受控工作区，还是只做安全校验 + 按条目读取（当前倾向后者）。
-- `OQ-5.4-2` 限额具体值（zip 上传大小、总解压、文件数、单文件、压缩比、深度）。
-- `OQ-5.4-3` 首期是否包含文件树/单文件预览，还是只做上传、列表、下载。
-- `OQ-5.4-4` `codebases` 是新领域（新表 + 新能力盒 + 新路由）还是 `resources` 的 subtype；归属先拍。
+- ~~`OQ-5.4-1` 「解压」是长期解压到受控工作区，还是只做安全校验 + 按条目读取（当前倾向后者）~~ — **2026-10-27 Lynx 拍：目前无沙箱，不能直接解压。5.4 不把条目解压到文件系统，也不执行任何仓库内容；ZIP 留在 MinIO，只做安全校验 + 条目清单 + 按条目流式读取。以后确需工作树 / AST / 执行时再上沙箱（P3 后另立）。**
+- ~~`OQ-5.4-2` 限额具体值（zip 上传大小、总解压、文件数、单文件、压缩比、深度）~~ — **2026-10-27 Lynx 拍：不做那套细限额；只设 ZIP 上传 100MB 上限。实现时单条目读取按同一 100MB 实际解压字节截断，作为读接口的内存保护，不另设文件数/压缩比/深度限额。**
+- ~~`OQ-5.4-3` 首期是否包含文件树/单文件预览，还是只做上传、列表、下载~~ — **2026-10-27 Lynx 拍：文件树 + 单文件预览都做。预览按需流式读条目（不落盘），文本/代码以纯文本渲染；二进制/图片首期给元信息 + 下载，图片内联预览若需要再加。**
+- ~~`OQ-5.4-4` `codebases` 是新领域（新表 + 新能力盒 + 新路由）还是 `resources` 的 subtype；归属先拍~~ — **2026-10-27 Lynx 拍：代码与知识库分离。`codebases` 是独立领域：新表 + 新能力盒 + `/codebases` 路由，原 ZIP 存 MinIO 的独立前缀；不进 `resources`、不进 ingest、不写 chunks/embeddings、不进检索。只复用基础设施（DB/ObjectStore/config/日志/观测）。首期不把代码库混进资源列表或资源回收站；代码库自己的去重/删除语义另定。**
 
-**Deferred:** AST 依赖图分析（接 `_Agents/dependency-graph/analyze.mjs`）；代码 RAG；Git URL 克隆；sandbox 执行；增量更新、版本对比、下载单文件。
+**Deferred:** AST 依赖图分析（接 `_Agents/dependency-graph/analyze.mjs`）→ 另立 Epic（代码图）；代码 RAG → 另立 Epic；Git URL 克隆 → 未排期；sandbox 执行 → P3 后；增量更新 / 版本对比 → 5.4 后续 / 未排期。单文件下载已由本轮预览接口 `?download=1` 覆盖，不再单列。
+
+> **as-built（2026-10-27）**：Build 1/2/3 已落码：独立 `codebases` 表 + repo/archive/reader/purge + `/codebases` 六类端点；前端 `/codebases` 页面与「开发」导航入口。后端 108/108、前端 611/611、build 绿。待 Lynx 浏览器验收 + story 走读页。
 
 > **Epic 5 · 未决项汇总**：逐格 OQ/Deferred 见上；不在 P2 的能力见文末「P2 · 未决项」。本节不再另抄一份。
 
@@ -758,5 +915,6 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 - eval、prompt 管理：先记 backlog，不排阶段。
 - sandbox：P3 Agent loop 之后；最小版本是子进程 + 超时 + 断网 + 目录白名单。
 - tenant / auth / RLS：最后再做；现在保持单用户，不加占位 `tenant_id`。
+- 公网下载鉴权（登录 / 退出吊销、请求 IP 绑定、一次性 token、边缘反代）：**P5 部署阶段**；P2 只做私有桶 + tailnet + presigned 直连，不绑 IP、不做 token 表。
 - 代码依赖图分析、代码 RAG：各自另立 Epic。
 - PDF/Word/Excel 等格式、批量上传/后台队列（P3 工程项）。

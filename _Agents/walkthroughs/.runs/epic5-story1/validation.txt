@@ -1,0 +1,1 @@
+OK /Users/lynx/Documents/Dev/SSE_WeSocket/_Agents/walkthroughs/epic5-story1-minio-adapter.html | sections=16 | code=10 | notes=40 | journeys=8 | style=1/1
