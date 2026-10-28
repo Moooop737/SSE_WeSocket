@@ -17,12 +17,12 @@ export default {
   <h1>同一份内容，<em>只存一次</em></h1>
   <p class="hero-sub">5.3 把“上传”从单文件动作变成一条资源批处理链路：浏览器先算 SHA-256，后端在写 DB/MinIO 之前拦重复；整批先归档/直传，再统一 ingest；软删资源进回收站，彻底删除才释放 hash；ready 可以重跑并原子替换旧分块。</p>
   <div class="meta-row">
-    <span class="chip"><strong>后端</strong>100 / 100</span>
-    <span class="chip"><strong>前端</strong>603 / 603</span>
+    <span class="chip"><strong>后端</strong>115 / 115</span>
+    <span class="chip"><strong>前端</strong>612 / 612</span>
     <span class="chip"><strong>真跑</strong>MinIO + DB + Ollama</span>
-    <span class="chip"><strong>状态</strong>review</span>
+    <span class="chip"><strong>状态</strong>done</span>
   </div>
-  <div class="trace-pill">verification: <b>tsc 0</b> · <b>backend 100</b> · <b>frontend 603</b> · <b>build green</b> · <b>live smoke</b></div>
+  <div class="trace-pill">verification: <b>tsc 0</b> · <b>backend 115</b> · <b>frontend 612</b> · <b>build green</b> · <b>live smoke</b></div>
 </header>`,
     },
     {
@@ -63,9 +63,10 @@ export default {
       <tr><td><code>src/resource/ingest.ts</code></td><td>ingest 门禁、ready 重跑、失败清旧 chunks</td></tr>
       <tr><td><code>src/adapter/repo/chunk.ts</code></td><td>写入事务里 FOR UPDATE、删旧、插新</td></tr>
       <tr><td><code>src/resource/purge.ts</code></td><td>彻底删除：只接软删行，先对象后行</td></tr>
+      <tr><td><code>src/adapter/repo/resource.ts</code></td><td>软删列表与排序、只删软删行、失败行可回落 uploaded</td></tr>
+      <tr><td><code>src/adapter/model/embed-chunks.ts</code></td><td>入库向量按 32 条分批，避免单批超 30s</td></tr>
       <tr><td><code>app/web/src/components/upload-panel/</code></td><td>浏览器 SHA-256、同批预检、整批两段式</td></tr>
-      <tr><td><code>app/web/src/components/recycle-bin/</code></td><td>回收站列表、恢复、两步彻底删除</td></tr>
-      <tr><td><code>app/web/src/routes/resources.tsx</code></td><td>ready 资源显示“重新入库”</td></tr>
+      <tr><td><code>app/web/src/routes/resources.tsx</code></td><td>单工具栏「已删除」筛选、批量软删/恢复/彻底删除、重入库</td></tr>
     </tbody>
   </table>
   <p class="table-note">代码块里的 <span class="badge b-pre">前置</span> 标记属于 5.2 已交付的骨架；没有角标的是 5.3 新增/改写的部分。</p>
@@ -148,7 +149,9 @@ export default {
         { goto: 'panel-submit:364-390', title: '两段式', note: '全部 prepare 完，再统一 ingest', code: 'panel L364–390' },
         { goto: 'purge-service:60-71', title: '彻底删除', note: '只接软删行；先对象后行', code: 'purge L60–71' },
         { goto: 'chunk-write:90-99', title: '重入库替换', note: '锁行、删旧、插新，一个事务', code: 'chunk L90–99' },
-        { goto: 'ready-ui:457-466', title: 'ready 的按钮', note: '显示“重新入库”，不再是不可动', code: 'resources L457–466' },
+        { goto: 'repo-uploaded:194-202', title: '失败可重试', note: 'process_failed 也能回落 uploaded', code: 'repo L194–202' },
+        { goto: 'embed-batching:18-36', title: '分批嵌入', note: '32 条一批，逐批超时、按批序拼接', code: 'embed L18–36' },
+        { goto: 'ready-ui:653-671', title: '重入库按钮', note: 'ready 重新入库；process_failed 重试入库', code: 'resources L653–671' },
       ],
       hint: '每一步都对应真实代码；先点“唯一键”，再顺着往下走。',
     },
@@ -334,11 +337,12 @@ export default {
             file: 'app/web/src/api/client.ts',
             source: 'web:src/api/client.ts',
             lang: 'ts',
-            ranges: [[297, 314], [415, 424], [723, 733]],
+            ranges: [[346, 368], [471, 483], [797, 807]],
             notes: [
-              { lines: '297-314', title: '响应标记', body: '<p><code>duplicate/restored</code> 是 200 的语义标记；<code>upload</code> 改成可选，因为命中/恢复时后端不重签 PUT。前端不能假设 upload 一定存在。</p>' },
-              { lines: '415-424', title: '回收站查询', body: '<p><code>GET /resources/deleted</code> 只带 page/per_page/search，与活动列表分开。</p>' },
-              { lines: '723-733', title: '文件必带 hash', body: '<p><code>createFileResource</code> 把 <code>content_hash</code> 放进请求体；后端缺它直接 400 <code>E_BAD_HASH</code>。</p>' },
+              { lines: '346-358', title: '响应标记', body: '<p><code>duplicate/restored</code> 是 200 的语义标记；<code>upload</code> 改成可选，因为命中/恢复时后端不重签 PUT。前端不能假设 upload 一定存在。</p>' },
+              { lines: '360-367', title: 'upload 可选', body: '<p><code>FileResourceAccepted</code> 只在新文件时带 <code>upload</code>；<code>IngestResult</code> 复用同一组资源字段再加 <code>chunk_count</code>。</p>' },
+              { lines: '471-483', title: '回收站查询', body: '<p><code>GET /resources/deleted</code> 支持 page/per_page/search/sort/order；前端把统一的 <code>ResourceSort</code> 翻成字段与方向，默认按删除时间倒序。活动列表与已删除列表仍是两个端点。</p>' },
+              { lines: '797-807', title: '文件必带 hash', body: '<p><code>createFileResource</code> 把 <code>content_hash</code> 放进请求体；后端缺它直接 400 <code>E_BAD_HASH</code>。</p>' },
             ],
           },
         ],
@@ -357,10 +361,11 @@ export default {
             id: 'repo-deleted',
             file: 'src/adapter/repo/resource.ts',
             lang: 'ts',
-            ranges: [[107, 138]],
+            ranges: [[107, 141], [143, 150]],
             notes: [
-              { lines: '107-129', title: '列软删行', body: '<p>只查 <code>deleted_at IS NOT NULL</code>，title/source ILIKE，按 <code>deleted_at DESC, id DESC</code> 稳定分页；计数与列表分开查。</p>' },
-              { lines: '131-138', title: '只删软删行', body: '<p>SQL 自带 <code>deleted_at IS NOT NULL</code>；active 行即使绕过路由也删不掉。chunks/embeddings 随 FK CASCADE，content_hash 随行释放。</p>' },
+              { lines: '107-113', title: '排序列白名单', body: '<p><code>sort</code> 是用户输入，不能直接拼进 ORDER BY；白名单把五个合法列映射成固定字符串，非法值回落到 <code>deleted_at</code>。</p>' },
+              { lines: '115-141', title: '列软删行', body: '<p>只查 <code>deleted_at IS NOT NULL</code>，title/source ILIKE，按白名单列 + id 稳定分页；计数与列表分开查。</p>' },
+              { lines: '143-150', title: '只删软删行', body: '<p>SQL 自带 <code>deleted_at IS NOT NULL</code>；active 行即使绕过路由也删不掉。chunks/embeddings 随 FK CASCADE，content_hash 随行释放。</p>' },
             ],
           },
           {
@@ -379,22 +384,23 @@ export default {
             id: 'routes-recycle',
             file: 'src/routes/resources.ts',
             lang: 'ts',
-            ranges: [[75, 100], [121, 139]],
+            ranges: [[76, 101], [127, 145]],
             notes: [
-              { lines: '75-99', title: 'GET /deleted', body: '<p>分页参数与 chunks 同一口径；页码越界时先收敛到末页再查，避免返回自相矛盾的空页。</p>' },
-              { lines: '121-139', title: 'DELETE /:id/purge', body: '<p>UUID 校验后调 <code>ResourcePurge</code>；成功 204，404/409/500 分别映射；trace 回填 resource_id。</p>' },
+              { lines: '76-101', title: 'GET /deleted', body: '<p>分页参数与 chunks 同一口径；<code>sort/order</code> 先过白名单再下传；页码越界时先收敛到末页再查，避免返回自相矛盾的空页。</p>' },
+              { lines: '127-145', title: 'DELETE /:id/purge', body: '<p>UUID 校验后调 <code>ResourcePurge</code>；成功 204，404/409/500 分别映射；trace 回填 resource_id。</p>' },
             ],
           },
           {
-            id: 'recycle-frontend',
-            file: 'app/web/src/components/recycle-bin/recycle-bin.tsx',
-            source: 'web:src/components/recycle-bin/recycle-bin.tsx',
+            id: 'deleted-batch-ui',
+            file: 'app/web/src/routes/resources.tsx',
+            source: 'web:src/routes/resources.tsx',
             lang: 'ts',
-            ranges: [[86, 126], [182, 203]],
+            ranges: [[186, 270], [379, 395]],
             notes: [
-              { lines: '86-105', title: '恢复 = restore + ingest', body: '<p>恢复成功后自动 ingest；ingest 失败保留恢复结果给 warning。成功后刷新回收站并通知资源页刷新活动列表。</p>' },
-              { lines: '107-126', title: '彻底删除', body: '<p>调 purge；404 视为已经不在了；409 说明并发恢复，刷新列表；所有分支都重取当前页。</p>' },
-              { lines: '182-203', title: '两步确认', body: '<p>行里“彻底删除”由 <code>TwoStepButton</code> 承担，第一次只装填，第二次才发请求；这个动作只出现在回收站卡片，不出现在活动列表。</p>' },
+              { lines: '186-214', title: '批量软删', body: '<p>活动列表勾选后逐条调用 <code>DELETE /resources/:id</code>；404 视为已不在（幂等成功），其余失败计数汇报，不因一条失败中断整批。</p>' },
+              { lines: '216-245', title: '批量恢复 = restore + ingest', body: '<p>已删除列表勾选后逐条 restore，成功后再 ingest；入库失败单独计数，恢复成功不会因为入库失败而回滚。</p>' },
+              { lines: '247-270', title: '批量彻底删除', body: '<p>逐条 purge；失败只计数。两步确认由工具条上的 <code>TwoStepButton</code> 承担，第一次只装填，第二次才发请求。</p>' },
+              { lines: '379-395', title: '单行彻底删除', body: '<p>抽屉/列表行内同样走 purge；成功移除本地行并刷新。活动行不出现这个动作，只有「已删除」筛选下才有。</p>' },
             ],
           },
         ],
@@ -406,18 +412,41 @@ export default {
         id: 'reingest',
         kicker: 'CORE · 06',
         title: 'ready 重入库：原子替换旧分块',
-        subtitle: '允许 ready 重跑；写入事务里锁行、删旧、插新。',
-        body: '<div class="callout"><strong>为什么需要行锁：</strong>chunks 没有 (resource_id, chunk_index) 唯一约束，两个并发重入库会各自删旧插新，最后留下两份 chunks。FOR UPDATE 把同一资源的写入串行化。</div>',
+        subtitle: '允许 ready/process_failed 重跑；向量分批；写入事务里锁行、删旧、插新。',
+        body: '<div class="callout"><strong>为什么需要行锁：</strong>chunks 没有 (resource_id, chunk_index) 唯一约束，两个并发重入库会各自删旧插新，最后留下两份 chunks。FOR UPDATE 把同一资源的写入串行化。</div><div class="callout strong"><strong>重试要能真的重来：</strong>process_failed 行必须重新走门禁（<code>markResourceUploaded</code> 白名单）；同一次入库的 118 块也不能塞进一个 30s 的 embed 调用（按 32 条分批）。两处缺一，界面上的“重试入库”就只会反复失败。</div>',
         blocks: [
           {
             id: 'resource-ingest',
             file: 'src/resource/ingest.ts',
             lang: 'ts',
-            ranges: [[57, 107], [117, 124]],
+            ranges: [[58, 88], [122, 127], [137, 144]],
             notes: [
-              { lines: '57-60', title: 'processing 拒绝，ready 放行', body: '<p>只有正在处理的资源 409；ready 不再拒绝。重入库仍走同一套 stat/类型/大小门禁。</p>' },
-              { lines: '94-95', title: 'ready 回落 uploaded', body: '<p><code>markResourceUploaded</code> 现在允许 ready 状态；门禁确认对象可读后回落 uploaded，随后 <code>runExisting</code> 立即转 processing。</p>' },
-              { lines: '117-124', title: '门禁失败也清旧 chunks', body: '<p>对象缺失/类型错/为空等门禁失败落 <code>upload_failed</code>，但先把旧 chunks 删掉，避免旧内容继续被检索。</p>' },
+              { lines: '58-61', title: 'confirmUpload 只确认', body: '<p>文件 PUT 完成后先调这个入口：只 stat/验类型/大小并转 uploaded，不解析正文。阶段一全部确认后，阶段二才 ingest。</p>' },
+              { lines: '63-77', title: 'ingest 入口', body: '<p>门禁通过后按 content_type 选 parser、装 Recipe，交给 <code>runExisting</code> 跑五段管线。</p>' },
+              { lines: '79-88', title: '一张门，两套白名单', body: '<p>processing 一律 409；<code>confirmUpload</code> 只接 uploading/uploaded/upload_failed；<code>ingest</code> 还允许 ready/process_failed 重跑。</p>' },
+              { lines: '122-127', title: 'rowCount=0 就是 GONE', body: '<p>门禁最后把行回落 uploaded；返回 false 说明行被删或状态不在白名单。process_failed 曾在白名单外，导致重试 0.4s 就 <code>E_RESOURCE_GONE</code>（本轮修复）。</p>' },
+              { lines: '137-144', title: '门禁失败也清旧 chunks', body: '<p>ready 重入库时对象缺失/类型错/为空等门禁失败落 <code>upload_failed</code>，但先把旧 chunks 删掉，避免旧内容继续被检索。</p>' },
+            ],
+          },
+          {
+            id: 'repo-uploaded',
+            file: 'src/adapter/repo/resource.ts',
+            lang: 'ts',
+            ranges: [[193, 203]],
+            notes: [
+              { lines: '193-199', title: '重试入口的状态白名单', body: '<p><code>markResourceUploaded</code> 不只接首次上传；<code>process_failed</code> 与 <code>ready</code> 也是合法起点。首轮 embed 超时落 process_failed 后，重试必须能再次回落 uploaded，否则会立刻 <code>E_RESOURCE_GONE</code>。</p>' },
+              { lines: '200-203', title: 'rowCount 是唯一判据', body: '<p>返回 false 表示行被删或状态不允许，调用方统一映射成 <code>E_RESOURCE_GONE</code>；repo 自己不抛业务错误。</p>' },
+            ],
+          },
+          {
+            id: 'embed-batching',
+            file: 'src/adapter/model/embed-chunks.ts',
+            lang: 'ts',
+            ranges: [[1, 37]],
+            notes: [
+              { lines: '5-7', title: '为什么自己分批', body: '<p>SDK 只按 <code>maxEmbeddingsPerCall</code>（2048）拆，不考虑单批耗时；30s 是入库自己的超时。实测 qwenembed ≈ 480ms/条，118 条一次调用正好在 30.0s 被中断。</p>' },
+              { lines: '15-23', title: '32 条一批，各带超时', body: '<p>每批重新起 <code>AbortSignal.timeout(30s)</code> 并合成调用方信号；任一批超时仍算整次入库失败，重试从头再来（当前取舍）。</p>' },
+              { lines: '25-36', title: '串行拼接', body: '<p>逐批 await、按批序 <code>push</code>；顺序与条数同入参，向量与 chunks 的下标由同一顺序保证。本机单卡 Ollama 不并行，避免互相拖慢。</p>' },
             ],
           },
           {
@@ -437,10 +466,10 @@ export default {
             file: 'app/web/src/routes/resources.tsx',
             source: 'web:src/routes/resources.tsx',
             lang: 'ts',
-            ranges: [[90, 95], [450, 468]],
+            ranges: [[93, 96], [653, 671]],
             notes: [
-              { lines: '90-95', title: 'ready 也可入库', body: '<p><code>canIngest</code> 加入 ready；下载仍只对 uploaded/processing/ready/process_failed 开放。</p>' },
-              { lines: '450-468', title: '按钮文案三档', body: '<p>uploaded → 开始入库；ready → 重新入库；process_failed → 重试入库；processing 仍只显示取消。</p>' },
+              { lines: '93-96', title: 'ready 也可入库', body: '<p><code>canIngest</code> 加入 ready；下载仍只对 uploaded/processing/ready/process_failed 开放。</p>' },
+              { lines: '653-671', title: '按钮文案三档', body: '<p>uploaded → 开始入库；ready → 重新入库；process_failed → 重试入库；processing 仍只显示取消。</p>' },
             ],
           },
         ],
@@ -473,8 +502,8 @@ export default {
     </article>
     <article class="choice">
       <div class="choice-no">DECISION 04</div>
-      <h3>回收站用独立端点</h3>
-      <p>没有给 <code>GET /resources</code> 加 deleted 过滤。活动列表、状态计数、分页保持“库里有什么”的语义；软删行单独走 <code>/resources/deleted</code>，也方便以后加审计/保留策略。</p>
+      <h3>回收站用独立端点，界面不设第二套卡</h3>
+      <p>后端没有给 <code>GET /resources</code> 加 deleted 过滤：活动列表、状态计数、分页保持“库里有什么”的语义，软删行单独走 <code>/resources/deleted</code>。前端把「已删除」当成状态筛选的一档，复用同一个工具栏与批量动作，不再有回收站页签/卡片。</p>
     </article>
   </div>
   <ul class="pitfall-list">
@@ -482,6 +511,7 @@ export default {
     <li><strong>软删行仍占 hash：</strong>同内容上传会恢复原行，而不是新建；这是唯一索引包含软删行的直接结果，想真正重传必须先 purge。</li>
     <li><strong>Web Crypto 需要安全上下文：</strong>localhost / HTTPS 可用；普通 HTTP 局域网拿不到 <code>subtle</code>，当前直接报错，没有 JS SHA-256 兜底。</li>
     <li><strong>并发重入库会留下两份 chunks：</strong>chunks 没有 (resource_id, chunk_index) 唯一约束；没有 <code>FOR UPDATE</code> 时两个事务各自删旧插新，最终各插一份。行锁是这里的正确性来源。</li>
+    <li><strong>“重试入库”反复失败可能有两处根因：</strong>状态门把 <code>process_failed</code> 挡在外面（0.4s 就 <code>E_RESOURCE_GONE</code>），或 118 块一次 embed 超过 30s（整次超时）。前者改白名单，后者按 32 条分批；只修一处仍会失败。</li>
     <li><strong>测试夹具顺序变过：</strong>两文件用例从“上传 A → 入库 A → 上传 B”改成“上传 A → 上传 B → 入库 A → 入库 B”，因为两段式是契约变化；不是测试迁就实现。</li>
     <li><strong>purge/restore 还有极小并发窗口：</strong>purge 先删对象再删行；若同一行在这两步之间被 restore 抢先，可能“已恢复但对象已删”。单用户下几乎不可见，已记 deferred，待用行锁事务收口。</li>
   </ul>
@@ -499,19 +529,19 @@ export default {
   <div class="test-grid">
     <article class="test-card">
       <h3>后端</h3>
-      <p><code>npx tsc --noEmit</code> 0 错；<code>npx vitest run</code> → 17 文件 / 100 例全过。覆盖去重命中/恢复/并发唯一索引、ingest hash 不一致、回收站只列软删、active 409、purge 释放 hash、ready 重入库替换与失败清理。</p>
+      <p><code>npx tsc --noEmit</code> 0 错；<code>npx vitest run</code> → 19 文件 / 115 例全过。覆盖去重命中/恢复/并发唯一索引、ingest hash 不一致、回收站只列软删与排序、active 409、purge 释放 hash、ready/process_failed 重试、embed 32 条分批与信号透传。</p>
     </article>
     <article class="test-card">
       <h3>前端</h3>
-      <p><code>npx tsc --noEmit</code> 0 错；<code>npm test</code> → 64 文件 / 603 例全过；<code>npm run build</code> 绿。覆盖 SHA-256 向量、同批预检、duplicate/restored、两段式顺序、回收站恢复与两步删除。</p>
+      <p><code>npx tsc --noEmit</code> 0 错；<code>npm test</code> → 67 文件 / 612 例全过；<code>npm run build</code> 绿。覆盖 SHA-256 向量、同批预检、duplicate/restored、两段式顺序、已删除筛选、批量恢复/彻底删除。</p>
     </article>
     <article class="test-card">
       <h3>真实冒烟</h3>
-      <p>本机 3000 真服务：create → soft delete 204 → deleted 列表 1 → purge 204 → 列表 0；另一条：同一资源两次 ingest 都 201，chunk id overlap = 0。</p>
+      <p>本机 3000 真服务：create → soft delete 204 → deleted 列表 1 → purge 204 → 列表 0；同一资源两次 ingest 都 201，chunk id overlap = 0；process_failed 的 <code>epics</code>（118 块）点重试 → 201 / 45.6s / ready，chunks 118、embeddings 118。</p>
     </article>
     <article class="test-card">
       <h3>未真跑</h3>
-      <p>浏览器手测未做：文件 hash 预检、同批重复提示、回收站卡片、ready“重新入库”按钮。按约定由 Lynx 打开 <code>http://localhost:5173</code> 验收。</p>
+      <p>浏览器手测未做：文件 hash 预检、同批重复提示、「已删除」筛选与批量恢复/彻底删除、ready「重新入库」、失败资源「重试入库」。按约定由 Lynx 打开 <code>http://localhost:5173</code> 验收。</p>
     </article>
   </div>
   <p class="test-note">复现命令（从仓库根）：</p>
@@ -536,16 +566,16 @@ npm run build</pre>
     <p class="section-sub">5.3 不是从零开始：归档、ingest、恢复、下载、六状态都是 5.2 的底座。</p>
   </header>
   <div class="next-box">
-    <p><strong>上一格 · 5.2：</strong>presigned PUT 文件归档、URL/粘贴归档、六状态、<code>kc://</code> data_uri、<code>POST /:id/ingest</code>、302 下载、restore。5.3 在它上面加内容身份、批量顺序、回收站和重入库。<br><strong>下一格 · 5.4：</strong>代码库 ZIP 上传与文件管理，仍 backlog；不进 <code>resources</code>、不进 ingest。</p>
+    <p><strong>上一格 · 5.2：</strong>presigned PUT 文件归档、URL/粘贴归档、六状态、<code>kc://</code> data_uri、<code>POST /:id/ingest</code>、302 下载、restore。5.3 在它上面加内容身份、批量顺序、回收站和重入库。<br><strong>旁支 · 5.4：</strong>代码库 ZIP 上传与文件管理，已随 Epic 5 收口转 done；独立 <code>codebases</code> 域，不进 <code>resources</code>、不进 ingest。</p>
     <div class="next-links">
       <a href="./epic5-story1-minio-adapter.html">Story 5.1 · MinIO 适配器</a>
       <a href="./epic3-story4-ingest-stages.html">Story 3.4 · ingest 五段</a>
     </div>
   </div>
   <ul class="pitfall-list">
-    <li><strong>5.2 仍 review：</strong>浏览器四种来源/六状态/下载/撤销恢复手测未收；5.3 的页面与实现不替代 5.2 的验收。</li>
+    <li><strong>5.2 已随 Epic 5 收口转 done：</strong>归档、下载、恢复的细节看 5.2 页；本页只讲 5.3 在骨架上加的规则。</li>
     <li><strong>deferred 仍在：</strong>purge/restore 并发行锁、文件 PUT 失败留下的 uploading 行、URL 标题覆盖、从 source 自动重抓、硬删审计（P5）、MinIO 薄层子系统。</li>
-    <li><strong>数据现状：</strong>旧资源已清空，不做 hash 回填；sessions/messages 保留。迁移 14 applied / 0 pending。</li>
+    <li><strong>数据现状：</strong>旧资源已清空，不做 hash 回填；sessions/messages 保留。迁移 16 applied / 0 pending。</li>
   </ul>
 </section>`,
     },
@@ -554,7 +584,7 @@ npm run build</pre>
       html: `
 <footer class="footer">
   <p>Story 5.3 · 资源批量去重 / 两段式 / 回收站 / 重入库 · 代码来自当前工作区真实文件；行号由 <code>_Agents/walkthroughs/.runs/epic5-story3/walkthrough.config.mjs</code> 重建。</p>
-  <p>状态：review。浏览器验收与 story 收口由 Lynx 决定；本页不替代 5.2 的验收。</p>
+  <p>状态：done（Epic 5 收口）。归档与下载语义见 Story 5.2 页。</p>
 </footer>`,
     },
   ],

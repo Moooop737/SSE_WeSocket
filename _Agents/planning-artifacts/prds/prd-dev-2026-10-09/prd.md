@@ -229,6 +229,7 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 - **P2（2026-10-24 定）** 结构化输出与渲染 + 文件与存储 —— `generateText + Output.object`（`generateObject` 已弃用）、GFM/CSV 客户端渲染、MinIO 原始文件归档与 `.md/.txt`/ZIP 上传。落点见 `_Agents/planning-artifacts/epics.md` Epic 4/5。原路线图的「多轮会话管理」已在 P1 交付，不再计入 P2。
 - **P3** 联网工具 + Agent loop —— tool calling、agents。检索工具化已由 P1 Story 2.6 提前交付，P3 只剩联网工具与多步 Agent 编排。
   - **P3 工程项（与能力主线并行，不占同一轮）**：**批量入库 + 后台队列 + 跨进程取消**。多文件一次提交；入库从"占着 HTTP 请求跑完"改成交给后台队列（**Redis 在此引入**，作队列存储，参照 WeKnora 的 asynq 用法——它自己的 Redis 就是队列不是取消信箱）；任务带超时/重试/死信；取消信号跨进程可达，取代 P1 的进程内 `InflightRegistry`。练的是并发、队列与幂等，**不是 AI SDK 能力**，故不挤占 P3 主线那一轮。P1 已留好接口位：`Pipeline.batch(KBData[])` 已实现但没有任何端点调用它。
+- **P3 前置工程支线（2026-10-28 立）** 评测（eval）—— 以 Langfuse Datasets / Experiments 为载体，golden set + 检索指标（recall@k / MRR / nDCG）+ LLM-as-judge；落点 `_Agents/planning-artifacts/epics.md` Epic 7。目的：在 Agent loop 改动回答链路前建立可复现基线，并把 SM-2 的人工抽样升级为可重复指标；不占 P3 主线的 AI SDK 能力点，不自建 eval 表 / 面板。
 - **P4** 回答内渲染图表 / 交互卡片 —— `streamUI`、React Server Components（简历亮点；对前端选型有约束，见 `addendum.md` A）。
 - **P5** MCP 集成 + 多模态输入（图片/音频入库）+ 部署上线 —— MCP client、multimodal、生产部署。
 
@@ -242,7 +243,7 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 
 **Primary**
 - **SM-1**：使用留存 — Lynx 每周实际用它查询资料 ≥ 2 次，且 P1 完成一个月后仍在用（未弃坑）。验证 FR-6, FR-8, FR-10。
-- **SM-2**：答案可信度 — 抽样 10 个知识库内有依据的问题，≥ 8 个 Answer 正确且带可核对引用。**MVP 判定口径**：答案的关键事实能对应到其引用 Chunk 的原文即算正确（由 Lynx 本人判定）。验证 FR-6, FR-10, FR-11。`[NOTE FOR PM] MVP 后需引入更系统的评测指标（如准确率/召回）替换此人工口径。`
+- **SM-2**：答案可信度 — 抽样 10 个知识库内有依据的问题，≥ 8 个 Answer 正确且带可核对引用。**MVP 判定口径**：答案的关键事实能对应到其引用 Chunk 的原文即算正确（由 Lynx 本人判定）。验证 FR-6, FR-10, FR-11。`[NOTE FOR PM] MVP 后需引入更系统的评测指标（如准确率/召回）替换此人工口径。2026-10-28：Epic 7 承接。`
 
 **Secondary**
 - **SM-3**：入库成功率 — **符合 P1 抓取范围的来源**（静态正文可达、非登录/非 JS-only）中，成功入库并转为"已就绪"的比例 ≥ 80%；被排除类来源不计入分母（单列"明确告知不支持"）。验证 FR-1, FR-2, FR-3, FR-4。

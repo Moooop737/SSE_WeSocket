@@ -2,7 +2,7 @@
 
 > 来自各轮 code review / retrospective 的已知但本轮不动的项。每条记来源与"什么证据能定论"。
 >
-> **2026-10-24 分配**：每条 deferred 都归到目标 story 或阶段；**先看「去向索引」，再看批次正文（正文只放证据）**。P1 已收口、Epic 3 已收口；P2 进行中（Epic 5 · 5.2 review / 5.3 in-progress）。
+> **2026-10-24 分配**：每条 deferred 都归到目标 story 或阶段；**先看「去向索引」，再看批次正文（正文只放证据）**。P1 已收口、Epic 3 已收口；Epic 5 已收口；Epic 4 · 4.1 暂缓；Epic 7（评测）2026-10-28 已立，7.0 评测库隔离 = ready-for-dev（OQ-7.0-1..3 已收口）。
 
 ## 去向索引（2026-10-24）
 
@@ -11,7 +11,7 @@
 | 去向 | 从这里接手 |
 |---|---|
 | **P2 · 4.4 聊天 Markdown / 引用** | 前端只取最后一条 `tool-retrieve` part；`hits` 缺 `chunkId` 会抛；`chat-thread` 二次 `plain` + `indexOf`；`/ask` 状态机三处；标题截断切 emoji；来源删除提示待 Lynx 手测；`find-field` 焦点 |
-| **P2 · 4.5 / Epic 5** | 表格导出、MinIO、上传的未决项以 `epics.md` 的 `OQ-4.5-*` / `OQ-5.*` 为准；5.1 done；5.2 review（文件 PUT 失败 uploading 行、URL 标题覆盖、source 重抓、MinIO mixed-content/TLS；CORS 已实测默认放行）；5.3 in-progress（去重/两段式/回收站+彻底删除已落，ready 重入库待做；purge/restore 并发行锁 → 5.3 收口后）；5.4 backlog；多存储后端/多桶 → 未排期；MinIO 专用用户/HeadBucket 权限 → 上公网前；MinIO 薄层子系统（对象生命周期/校验/清理统一）→ 5.3 后另立 P2 工程项（未排期） |
+| **P2 · 4.5 / Epic 5** | 表格导出、MinIO、上传的未决项以 `epics.md` 的 `OQ-4.5-*` / `OQ-5.*` 为准；Epic 5 done（5.1–5.4）。收口后遗留：文件 PUT 失败 uploading 行、URL 标题覆盖、source 重抓、MinIO mixed-content/TLS → 未排期；purge/restore 并发行锁 → 未排期；多存储后端/多桶 → 未排期；MinIO 专用用户/HeadBucket 权限 → P5 上公网前；MinIO 薄层子系统（对象生命周期/校验/清理统一）→ P2 工程项（未排期）；代码图/代码 RAG → 另立 Epic |
 | **P2 · 跨格（无 story）** | D3：`/resources/stats`、chunks 分页+内容搜索、资源浏览页消费方——已建，但不属于 3.2–3.4 / Epic 4/5 的 AC；单独记账，别混进验收；PWA B 案（安卓沉浸模式 + 贴边 safe-area） |
 | **P3 · 主线（Agent loop / 检索硬化）** | ReAct 两工具位；Agent loop 与 `agent/{skill,persona,mcp}`；三态提示不可区分；入库不校验向量长度；向量检索不按 model 过滤；topK schema 无默认；embed 无超时/取消；中断不落 assistant；Story 2.2 超时三旋钮；config 维度列表；检索未加 `status='ready'` 谓词；minSimilarity/BM25 标定；AD-6 依赖反向；`adapter/uri` + `Hit.ref`；D6 三处手抄 |
 | **P3 · 工程项（批量/队列/启动/长文档）** | 批量入库+后台队列+跨进程取消；多行 INSERT 分批；`rollbackOrLog` 收敛；`chunks.deleted_at` 前提；`cleanUpOnBoot` 时间下界；`I_MODELS` 日志在构造器；`Ingest.batch` sink；`traces`/`trace_stages` 保留策略 |
@@ -19,7 +19,7 @@
 | **跨阶段 · 测试基础设施** | `test/` 被 gitignore；`legacy.test.ts` 被排除；无 `typecheck` 脚本；Epic 2/3 的验证缺口；hydrate 测试与实现不一致 |
 | **跨阶段 · API 契约 / 错误码** | `POST /sessions` 坏 JSON；OpenAPI 读取在 try 外；`/chat` 流内错误无稳定 code；`/chat` 500 vs 200；会话 DELETE 语义；`not-a-uuid` 500；404 码 `NOT_FOUND`；`/resources/stats` 未进 OpenAPI；3.1 nullable 混用 |
 | **跨阶段 · 文档 / 流程** | SPINE Structural Seed；Epic 1 retro 7 条；3.1 LEARNING 段；D1 的正式范围变更；P2 产品面夹带记账 |
-| **P4 / P5 / 未排期** | P4 Generative UI；P5 MCP/多模态/部署；eval/prompt；sandbox（P3 后）；tenant（最后）；公网下载鉴权（stateful token + client_ip + used_at + 边缘反代 → P5）；代码图/代码 RAG（另立 Epic）；PDF/Word/Excel/EPUB（backlog）；服务端 artifact（P2 4.5 的 Deferred）；健康探针 version 明细 / chat provider 探针（2026-10-25） |
+| **P4 / P5 / 未排期** | P4 Generative UI；P5 MCP/多模态/部署；prompt 管理（eval 已于 2026-10-28 立为 Epic 7）；sandbox（P3 后）；tenant（最后）；公网下载鉴权（stateful token + client_ip + used_at + 边缘反代 → P5）；代码图/代码 RAG（另立 Epic）；PDF/Word/Excel/EPUB（backlog）；服务端 artifact（P2 4.5 的 Deferred）；健康探针 version 明细 / chat provider 探针（2026-10-25） |
 | **已解决 / 作废** | AD-1 v1 箭头、AC 行号、两路皆空死分支、资料不足信号、DI 改造、AI SDK 接入、env setup、`trace_stage_id` 文档漂移、`kbtrace` 文档漂移、3.2/3.3/3.4 的代码提交、Epic 3 review 收口、5.1 presigned 解冻 |
 
 ## Deferred from: Story 5.1 规划与 OQ 收口 (2026-10-26)
@@ -38,24 +38,24 @@
 
 - source_spec: `review-2026-10-26-epic5-story1.md`
   summary: MinIO 专用应用用户与最小权限策略（含 `HeadBucket` 所需的 `s3:ListBucket`）。
-  evidence: 当前 `.env` 用 root；`ensureBucket` / `pingBucket` 走 `HeadBucket`，只有对象读写权限的用户会 403。**去向：P2 · 5.2 收口前/上公网前**（加 Put/Delete 时一并建用户/策略；生产预建桶、不给 `CreateBucket`）。
+  evidence: 当前 `.env` 用 root；`ensureBucket` / `pingBucket` 走 `HeadBucket`，只有对象读写权限的用户会 403。**去向：P5 上公网前（未排期）**（加 Put/Delete 时一并建用户/策略；生产预建桶、不给 `CreateBucket`）。
 
 ## Deferred from: Story 5.2 implementation (2026-10-27)
 
-- ~~**回收站 / 软删列表**~~ — **2026-10-27 已由 5.3 落**：`GET /resources/deleted` 分页/搜索 + 资源页回收站卡片 + `DELETE /resources/:id/purge`（只接软删行，先幂等删 MinIO 对象再删行）。
-- **文件 PUT 失败后的 `uploading` 行** — 文件先建 `uploading` 行再直传；PUT 失败时面板只把队列项标失败，资源行会留到 24h 启动清扫或手删。**去向：P2 · 5.2 后续**；修法是失败时调 DELETE 软删占位行，或加 mark-upload-failed 端点。
-- **URL 页面标题不覆盖 hostname 占位** — `POST /resources` 的 URL 行 title 先用 hostname；ingest 不覆盖已有 title（无法区分用户显式 title）。**去向：P2 · 5.2 后续/5.3**；需要记录 `title` 是否用户显式提供，或加 title 来源列。
-- **原对象丢失时不从 `source` 自动重抓** — restore 只 `stat`，缺失返回 `E_NO_ORIGINAL`；URL 资源本来可用 `source` 重抓。**去向：P2 · 5.2 后续**；先定是否接受页面已变更。
-- **MinIO mixed-content / TLS 部署项** — CORS 已不阻塞：2026-10-27 实测 MinIO 默认对任意 Origin 放行 `PUT` + `Content-Type`，403 响应也带 ACAO，无需配桶 CORS。剩余问题只有一个：HTTPS 前端直传 HTTP MinIO 会被 mixed content 拦。**去向：P2 · 5.2 收口前**（手测走 `http://localhost:5173` 可规避）；TLS/反代不在 P2。
+- ~~**回收站 / 软删列表**~~ — **2026-10-27 已由 5.3 落**：`GET /resources/deleted` 分页/搜索/排序 + 资源页「已删除」筛选（不再单独设回收站卡片）+ `DELETE /resources/:id/purge`（只接软删行，先幂等删 MinIO 对象再删行）。
+- **文件 PUT 失败后的 `uploading` 行** — 文件先建 `uploading` 行再直传；PUT 失败时面板只把队列项标失败，资源行会留到 24h 启动清扫或手删。**去向：未排期（Epic 5 已收口）**；修法是失败时调 DELETE 软删占位行，或加 mark-upload-failed 端点。
+- **URL 页面标题不覆盖 hostname 占位** — `POST /resources` 的 URL 行 title 先用 hostname；ingest 不覆盖已有 title（无法区分用户显式 title）。**去向：未排期（Epic 5 已收口）**；需要记录 `title` 是否用户显式提供，或加 title 来源列。
+- **原对象丢失时不从 `source` 自动重抓** — restore 只 `stat`，缺失返回 `E_NO_ORIGINAL`；URL 资源本来可用 `source` 重抓。**去向：未排期（Epic 5 已收口）**；先定是否接受页面已变更。
+- **MinIO mixed-content / TLS 部署项** — CORS 已不阻塞：2026-10-27 实测 MinIO 默认对任意 Origin 放行 `PUT` + `Content-Type`，403 响应也带 ACAO，无需配桶 CORS。剩余问题只有一个：HTTPS 前端直传 HTTP MinIO 会被 mixed content 拦。**去向：P5 部署阶段（TLS/反代，未排期）**；当前手测走 `http://localhost:5173` 可规避。
 - ~~**5.3 与 5.2 重叠**~~ — **2026-10-27 已解决**：原单文件 `.md/.txt` presign PUT + ingest 已由 5.2 覆盖；5.3 重定义为「资源批量：SHA-256 去重、整批两段式、回收站/彻底删除、ready 重入库」；批量下载已去掉。
 
 ## Deferred from: Story 5.3 回收站 / 彻底删除 (2026-10-27)
 
-- **purge 与 restore 并发的行锁** — purge 按 AC 先幂等删 MinIO 对象、再删 resources 行；若同一软删行在这两步之间被 restore 抢先（stat 已过、UPDATE 未执行），存在“已恢复但对象已删”的极小窗口。单用户单页下几乎不可见。**去向：P2 · 5.3 收口后 / 未排期**；定论方式：把 purge 包进 `SELECT ... FOR UPDATE` 事务，持行锁跨对象删除，restore 的 UPDATE 会等锁并在行删除后拿到 0 行。
+- **purge 与 restore 并发的行锁** — purge 按 AC 先幂等删 MinIO 对象、再删 resources 行；若同一软删行在这两步之间被 restore 抢先（stat 已过、UPDATE 未执行），存在“已恢复但对象已删”的极小窗口。单用户单页下几乎不可见。**去向：未排期（Epic 5 已收口）**；定论方式：把 purge 包进 `SELECT ... FOR UPDATE` 事务，持行锁跨对象删除，restore 的 UPDATE 会等锁并在行删除后拿到 0 行。
 
 ## Deferred from: Story 5.3 去重 / ingest 复核 (2026-10-27)
 
-- **MinIO 薄层子系统（对象生命周期/校验/清理统一）** — 2026-10-27 Lynx 明确「之后做，现在先不做」。5.3 及当前实现继续直接用 `ObjectStoreHandle`；ingest 复算 hash 失败只落 `process_failed`，不顺手删 MinIO 对象、不清 `content_hash`。坏行占 hash、多租户下的 dedup oracle / hash squatting 一并归这里或后续阶段。**去向：P2 工程项（5.3 收口后另立 / 未排期）**；定论证据：先盘清哪些对象生命周期策略（删除/重试/校验/清理）该收口，再定薄层边界。
+- **MinIO 薄层子系统（对象生命周期/校验/清理统一）** — 2026-10-27 Lynx 明确「之后做，现在先不做」。5.3 及当前实现继续直接用 `ObjectStoreHandle`；ingest 复算 hash 失败只落 `process_failed`，不顺手删 MinIO 对象、不清 `content_hash`。坏行占 hash、多租户下的 dedup oracle / hash squatting 一并归这里或后续阶段。**去向：P2 工程项（未排期）**；定论证据：先盘清哪些对象生命周期策略（删除/重试/校验/清理）该收口，再定薄层边界。
 
 ## Deferred from: 2026-10-25 PWA 主屏入口 A 案（standalone）— 归 P2 工程项（无 story）
 
@@ -85,7 +85,7 @@ Lynx 定：下面三件**不再分开拖**，合成一刀做，落点是 **PRD �
   - 定论证据：真打一次 `deepseek-chat` 带 `tools` 的请求，看返回里 `tool_calls` 是否稳定出现（此家的 function calling 尚未实测，不凭文档承诺）。
 - **`minSimilarity` / BM25 阈值都依赖语料分布，P1 交付的默认值不是标定值** — 上面那条实测就是证据：同一句垃圾串在 27 块单文档 vs 多篇混合语料下，top1 相似度差 0.05+。落码定位是「只兜字符噪声」：`RETRIEVAL_MIN_SIMILARITY` 实际交付默认 **0.42**（Lynx 2026-10-14 拍），BM25 只去 `score=0`，不承诺语义过滤能力。0.35 只是当时的建议值、未采用 —— 评审 P8 就是把这处两处真相抹平。定论证据：等真实资料灌到几十篇量级，重跑 `app/server/test/probe-retriever.ts` 看分布再调。
 - ~~**`AC: epics.md:187` 那句「低于默认下限 ⇒ 未找到」与实现各说一半**~~ — **2026-10-24 已改**：`epics.md` Story 2.1 的 AC 已改为「检索 0 命中 ⇒ 未找到；有命中交模型判断；阈值只兜字符噪声」。
-- ~~**[未决] 模型「资料不足」这个判定，后端怎么机器可辨地读出来**~~ — **2026-10-21 已消解**：2.6 把检索工具化后，判定由模型在工具结果上直接完成，后端不需要读信号。两个候选（固定话术 / 首行标记）仅留作历史；若将来做 eval 再另立 story。
+- ~~**[未决] 模型「资料不足」这个判定，后端怎么机器可辨地读出来**~~ — **2026-10-21 已消解**：2.6 把检索工具化后，判定由模型在工具结果上直接完成，后端不需要读信号。两个候选（固定话术 / 首行标记）仅留作历史；若将来要做「答/不答」的机器可判字段，归 Epic 7 的答案评测（见 `OQ-7.3-1`）。
 
 ## Deferred from: code review of epic2-story2.1 (2026-10-14)
 
@@ -202,7 +202,8 @@ Lynx 定：下面三件**不再分开拖**，合成一刀做，落点是 **PRD �
 
 ### 不排进 P2
 
-- **eval / prompt 管理** — 不进 P2，也不排具体阶段。eval 先做检索指标 + LLM judge；prompt 先做 typed registry + 版本；不照搬 WeKnora 的 Parquet/BLEU/ROUGE。
+- ~~**eval**~~ — **2026-10-28 已立为 Epic 7（P3 前置工程支线）**：载体 2026-10-28 当天改为**本地表 + 自建 `/evals` 面板**（原 Langfuse Datasets / Experiments 不采用），golden set + 检索指标 + LLM judge；范围与 OQ 见 `epics.md` Epic 7。原判据保留（先做检索指标 + LLM judge，不照搬 WeKnora 的 Parquet/BLEU/ROUGE）。
+- **prompt 管理** — 仍不进 P2、不排阶段；先做 typed registry + 版本。
 - **sandbox** — 放 P3 Agent loop 之后；最小版为子进程 + 超时 + 断网 + 目录白名单；技能包/终端/桌面不碰。
 - **tenant / auth / RLS** — 最后再做；现在保持单用户，不加占位 `tenant_id`；真转多租户时统一迁移并改 PRD §5 非目标。
 - **代码依赖图分析** — 从 ZIP 解压后跑 `_Agents/dependency-graph/analyze.mjs`；另立 Epic，不塞进 Epic 5。

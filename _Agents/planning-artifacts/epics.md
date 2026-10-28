@@ -8,13 +8,15 @@ inputDocuments:
   - _Agents/legacy/architecture/architecture-dev-2026-10-09/ARCHITECTURE-SPINE.md   # v1，仅历史；AD 编号一律以 v2 为准
 ---
 
-# Knowledge Copilot - Epic Breakdown（P1 MVP + P2 方向）
+# Knowledge Copilot - Epic Breakdown（P1 MVP + P2 方向 + 评测支线）
 
 ## Overview
 
 本文件把 P1 的需求（PRD FR-1…FR-12）、架构不变量（ARCHITECTURE-SPINE AD-1…AD-11）拆成可实现的故事。项目单人自用、以学习 Vercel AI SDK 为第一目标。UI 走 `app/web` 的 Geist 设计系统（见 UX Design Requirements）。
 
 **2026-10-24：P1（Epic 1–3）已收口**，Epic 1/2/3 全部 story `done`；同日追加 P2 的 Epic 4/5（方向级，详细 AC 待 story 开工前补）。
+
+**2026-10-28：立 Epic 7「评测（eval）」**，定位为 P3 前置工程支线（Lynx 拍）；载体当天从 Langfuse Datasets / Experiments 改为**本地表 + 自建 `/evals` 面板**；旧 Epic 6（文件 URI）已于 2026-10-27 取消并折回 Story 5.2，本文件不复用该号。
 
 > **AD 编号口径**：本文件提到的 AD-1…AD-11 一律指 2026-10-15 版 SPINE。v1 已归档，同号不同义（例：v2 AD-11 才是本地安全边界）。
 
@@ -83,6 +85,7 @@ inputDocuments:
 - Epic 3: 无新增 FR（P1.x 工程支线：观测与 trace）
 - Epic 4: 无新增 P1 FR（P2：结构化输出与渲染）
 - Epic 5: 无新增 P1 FR（P2：文件与存储）
+- Epic 7: 无新增 P1 FR（P3 前置工程支线：评测，服务 SM-2 / NFR-2）
 
 ## Epic List
 
@@ -101,7 +104,12 @@ inputDocuments:
 ### Epic 5: 文件与存储（P2 工程支线）
 **Covers:** 无新增 P1 FR；MinIO 原始文件归档、文件上传、代码库 ZIP（仅文件管理）
 
+### Epic 7: 评测（eval）（P3 前置工程支线）
+**Covers:** 无新增 P1 FR；本地表 + 自建 `/evals` 面板，把 SM-2 的人工抽样升级为可复现指标，为 P3 Agent loop / 联网工具改动提供前后对照
+
 > **2026-10-24 追加**：Epic 4/5 为 P2 方向级条目；本文件只写到方向与未决项，详细 AC 在 story 开工前再补。Epic 3 收口后再开工。
+>
+> **2026-10-28 追加**：Epic 7 为 P3 前置工程支线（评测），同为方向级；每格开工前按 §二 收口 `OQ-7.x-n` 并补详细 AC。
 
 ---
 
@@ -359,7 +367,7 @@ So that 回答真依据我的知识库，同时练通 AI SDK 的 tool calling。
 >
 > **表（2026-10-21，按 endpoint 拆 + stage 合并；2026-10-22 增 payloads）**：本地 **2 张表**——`traces`（公共 11 列 + `langfuse_trace_id` + `payloads jsonb`，一次 endpoint 请求一行）+ `trace_stages`（1:N 阶段表，`input/output` 用 jsonb，形状按 stage 固定）。两张表已落在 `app/server/db/migrations/20261021150000_create_observation_tables.sql`；后续 story 只写数据，不再建表/加列，除非设计变更。**chat 的全部 trace（模型/step/tool/embed/检索）交给远程 Langfuse**，本地不建 `chat_traces`；本地只留 `/chat` 的 endpoint 公共行和 `langfuse_trace_id` 外链。`pipeline` 不落列：`trace_id` join `traces.route` 就知道是 retrieve 还是 ingest。不建 `observations`/`spans`/`retrieve_traces`/`ingest_traces`/`chat_traces`/`feedback`/`eval` 表。`trace_stages` 是**阶段专用**表，不是通用 attributes：只放 query/URL/ids/计数/分数，不写 chunk 正文、不写完整 embedding 向量。Langfuse 外部存储不算 app 迁移。
 >
-> **不在本 Epic**：反馈、golden set、recall@k/MRR、LLM-as-judge 等 evaluation 能力——先只把 observation 做扎实，评测另立 Epic。
+> **不在本 Epic**：反馈、golden set、recall@k/MRR、LLM-as-judge 等 evaluation 能力——先只把 observation 做扎实，评测另立 Epic（2026-10-28：已立为 Epic 7）。
 >
 > **顺序**：3.1 通用 endpoint 壳（middleware + repo + route + 公共列 + 日志 helper）→ 3.2 chat 专属 → 3.3 retrieve 专属 → 3.4 ingest 专属。
 >
@@ -500,7 +508,7 @@ So that 我能按 `dimension_check → embed_query → vector_recall → bm25_re
 **And** `rrf_fusion.output.hits` 就是最终输出；不另记一条空的 `output` stage，避免重复
 **And** 不建 `retrieval_count/hit_count/top_similarity` 汇总列；需要汇总时从 stage 行算
 **And** `trace_stages` 已在迁移中；3.3 只写它（3.4 复用），不建 `retrieve_traces` 独立表
-**And** 本 story 不做 golden set、recall@k/MRR、feedback/score；这些 evaluation 能力另立 Epic，不塞进 observation
+**And** 本 story 不做 golden set、recall@k/MRR、feedback/score；这些 evaluation 能力另立 Epic（2026-10-28：已立为 Epic 7），不塞进 observation
 **And** 不改 `RETRIEVAL_MIN_SIMILARITY` 等阈值默认值；这里只记录实际发生的检索
 
 > **2026-10-23 实现注**：stage 由 `Retriever.search` 的 5 段 runner 产出，sink 由 caller 传：`/retrieve` → DB sink（本地 `trace_stages`、embed telemetry off）；chat tool → Langfuse sink（tool span 下的 child spans、telemetry on）。`/traces/:id` 改自定义读返回 `{trace, stages}`（原 hono-crud read 移除）。OTel 除 TracerProvider 外还必须注册 `AsyncLocalStorageContextManager`，否则 tool span 不是 active context，stage span 会被导成独立根 trace。前端 `/traces` 抽屉改读 `{trace, stages}`。
@@ -663,7 +671,7 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 
 ## Epic 5: 文件与存储（P2 工程支线）
 
-> **2026-10-27 状态**：5.1 done；5.2 review（原始归档、两段式 ingest、下载、恢复、前端已落码，待浏览器验收；CORS 已实测默认放行，只剩 HTTPS 预览的 mixed content）；5.3 已重定义为资源批量 story（SHA-256 去重、整批两段式、回收站/彻底删除、ready 重入库），backlog；5.4 backlog。
+> **2026-10-27 状态**：**Epic 5 已收口，5.1–5.4 全部 done**。5.2 原始归档/两段式 ingest/下载/恢复；5.3 资源批量（SHA-256 去重、整批两段式、已删除筛选/彻底删除、ready/失败重入库）；5.4 代码库 ZIP（独立域、不解压、文件树 + 预览、硬删）。四份 story 走读页均已补齐（`_Agents/walkthroughs/`）。
 
 > **阶段定位（2026-10-24）**：为资源和代码库补「原始文件」层。Epic 5 只做文件管理，不做代码分析、不做代码 RAG。
 > **边界**：不改入库分块/检索语义；不接 PDF/Word 等新格式；不做 AST/依赖图；不做批量上传/后台队列；不做 tenant。
@@ -812,14 +820,15 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 **And** 不建服务端任务表/worker/Redis/批量端点；刷新页面队列即丢
 
 **批量删除（资源页，2026-10-27 补）**
-**And** 资源页支持本页勾选与全选，工具条出现「删除选中 n」两步确认；复用现有 `DELETE /resources/:id`，与逐条删除一样是软删并进入回收站
-**And** 筛选 / 翻页 / 搜索变化时清空勾选；批量删除逐条执行、404 视为已不存在，完成后刷新列表与计数
+**And** 资源页支持本页勾选与全选（全选在工具栏最左），活动资源出现「删除选中 n」两步确认；复用现有 `DELETE /resources/:id`，与逐条删除一样是软删
+**And** 「已删除」筛选下同样显示 checkbox，支持批量恢复（restore→ingest）与批量彻底删除（purge，两步确认）
+**And** 筛选 / 翻页 / 搜索变化时清空勾选；批量操作逐条执行、404 视为已不存在，完成后刷新列表与计数
 
 **回收站 / 软删 / 彻底删除**
-**And** 软删资源进入回收站；`GET /resources/deleted`（分页/搜索，按 deleted_at 倒序）列出软删资源并恢复
+**And** 软删资源默认从活动列表隐藏；资源列表的状态筛选增加「已删除」，走 `GET /resources/deleted`（分页/搜索/排序）查看并恢复，不再单独做回收站卡/页签
 **And** 彻底删除走 `DELETE /resources/:id/purge`，服务端只接软删行；active 行 409 `E_NOT_DELETED`
 **And** restore 仍先 `stat` 原对象：完整则清 `deleted_at`、status `uploaded`，再 ingest；损坏 409 `E_NO_ORIGINAL`
-**And** **彻底删除**只在回收站执行（两步确认）：先幂等删 MinIO 原对象，再删 `resources` 行（chunks/embeddings 随 FK），释放 `content_hash`；对象已经丢失也允许清行
+**And** **彻底删除**只在「已删除」筛选内执行（两步确认）：先幂等删 MinIO 原对象，再删 `resources` 行（chunks/embeddings 随 FK），释放 `content_hash`；对象已经丢失也允许清行
 **And** active 资源必须先软删再彻底删；不提供直接硬删 active（防误操作）
 
 **重入库**
@@ -838,7 +847,7 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 
 **Depends:** 5.2
 
-> **as-built（2026-10-27）**：去重门 / ingest 完整性复核 / 前端 hash 预检+两段式 / 回收站+彻底删除 / ready 重入库已全部落码；后端 100/100、前端 603/603、build 绿。ready 重入库在写入事务里 `SELECT ... FOR UPDATE` 锁资源行、先删旧 chunks/embeddings 再插新；失败 `process_failed` 且旧 chunks 不保留，门禁失败也清旧 chunks。待 Lynx 浏览器验收 + story 走读页后转 done。
+> **as-built（2026-10-27）**：去重门 / ingest 完整性复核 / 前端 hash 预检+两段式 / 软删「已删除」筛选+彻底删除 / ready 重入库已全部落码；文件 PUT 后先 confirm-upload 转 uploaded 再统一 ingest；资源页单工具栏含全选、批量软删/恢复/彻底删除，已删除资源默认隐藏；后端 112/112、前端 612/612、build 绿。ready 重入库在写入事务里 `SELECT ... FOR UPDATE` 锁资源行、先删旧 chunks/embeddings 再插新；失败 `process_failed` 且旧 chunks 不保留，门禁失败也清旧 chunks。待 Lynx 浏览器验收 + story 走读页后转 done。
 
 **Deferred:** 批量下载/ZIP（本轮去掉）；后端批量队列（P3）；硬删 audit/retention（P5）；批量软删（可选批次操作，待定）；purge/restore 并发行锁（5.3 收口后 / 未排期）。
 
@@ -901,9 +910,302 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 
 **Deferred:** AST 依赖图分析（接 `_Agents/dependency-graph/analyze.mjs`）→ 另立 Epic（代码图）；代码 RAG → 另立 Epic；Git URL 克隆 → 未排期；sandbox 执行 → P3 后；增量更新 / 版本对比 → 5.4 后续 / 未排期。单文件下载已由本轮预览接口 `?download=1` 覆盖，不再单列。
 
-> **as-built（2026-10-27）**：Build 1/2/3 已落码：独立 `codebases` 表 + repo/archive/reader/purge + `/codebases` 六类端点；前端 `/codebases` 页面与「开发」导航入口。后端 108/108、前端 611/611、build 绿。待 Lynx 浏览器验收 + story 走读页。
+> **as-built（2026-10-27）**：Build 1/2/3 已落码：独立 `codebases` 表 + repo/archive/reader/purge + `/codebases` 六类端点；前端 `/codebases` 页面与「开发」导航入口。后端 112/112、前端 612/612、build 绿。走读页 `epic5-story4-codebases.html` 已补；Epic 5 已收口，5.4 done。
 
 > **Epic 5 · 未决项汇总**：逐格 OQ/Deferred 见上；不在 P2 的能力见文末「P2 · 未决项」。本节不再另抄一份。
+
+---
+
+## Epic 7: 评测（eval）— 把「答得好不好」变成可复现的数字
+
+> **2026-10-28 立格（Lynx 拍）**：P3 前置工程支线，不占 P3 主线的 AI SDK 能力点。P3 的 Agent loop + 联网工具会重塑回答链路；先建立可复现的度量，之后每次改动（loop、工具、检索参数）都有前后对照。同时把 PRD SM-2 的人工抽样口径升级为可重复指标。
+>
+> **载体当天改口径（2026-10-28，Lynx 拍）**：原定「Langfuse Datasets / Experiments 为载体」推翻，改为 **本地表 + 自建 `/evals` 工作站面板**。三条理由：① 运行配置、测评配置、配置快照都是自定义结构，Langfuse 的 dataset/experiment 装不下；② 面板要按 case 筛、按 run 并排、按配置回溯，都是关系型查询；③ 题集是产品数据，不锁在观测工具里。Langfuse 继续只做 trace 观测，不接 datasets。
+>
+> **编号**：不复用已取消的旧 Epic 6（文件 URI，2026-10-27 折回 Story 5.2），避免同号不同义。
+>
+> **评测对象边界**：只评知识库问答链路（检索 + 回答）；不评入库抽取质量、不评代码库、不评前端视觉。
+>
+> **工具边界**：不引入第三方 eval 框架（Ragas / promptfoo 等）；指标计算与判分住自己的代码。
+
+**两个颗粒度（2026-10-28 拍）**
+
+| 颗粒度 | 评什么 | 成本 | 判分 |
+|---|---|---|---|
+| **召回** | gold chunk 有没有进前 k | 秒级、零 LLM | 全自动 |
+| **对话** | 回答对不对、引用有没有依据 | 分钟级、有 LLM 成本 | 断言 > HITL > judge |
+
+颗粒度不单独选：**由测评配置是否含 judge 决定**——没配 judge 就只算召回，配了才去评回答。
+
+**三个入口（侧栏「评测」组）**
+
+| 路由 | 视图 | 三栏内容 |
+|---|---|---|
+| `/evals` | 运行 | 左 run 历史 · 中 逐条结果 · 右 case 详情 |
+| `/evals-cases` | 题集 | 左 数据集 · 中 case 表 · 右 case 定义 |
+| `/evals-configs` | 配置 | 左 配置清单 · 中 配置字段 · 右 用过它的 run |
+
+**Run = 数据集 × 运行配置 × 测评配置（2026-10-28 拍）**
+- 模型、k、temperature、rrf、vectorTopK、lexicalTopK、minSimilarity 全部归**运行配置**
+- judge 模型、rubric 版本、指标集归**测评配置**
+- 两种配置都是**整套命名预设**，不逐项勾选
+
+**指标口径（2026-10-28 拍）**
+- **全部百分比**：`recall@k = 命中 gold 数 / gold 总数`；`MRR = 1 / 名次`。
+- **成败两极**：正例 gold 全中找到 = 满；负例一条都不命中 = 成功。部分命中不算失败，用百分比表达程度。
+- **不做自动 diff**：两次 run 并排摆数字，变好退化由人看，系统不下判决。
+
+**Epic 级 DoD**
+**And** 对一个数据集，点一次「运行」就能跑出逐条结果与聚合百分比。
+**And** 任意一次历史 run 都能打开当时的完整题集与配置快照。
+**And** 同一数据集的两份 run 能并排看逐条数字。
+**And** 删掉一个跑过 run 的数据集会被拒绝，先删关联 run 才允许。
+**And** eval 不污染聊天历史与会话统计；共享模式下评测 trace 进主库但带 `/eval` 前缀，可按 route 过滤。
+
+**UI 底座（2026-10-28 已落地，mock 只读）**
+三个页面已按工作站三栏做出来，读 `app/web/src/lib/evals-demo.ts` 的假数据：`/evals`、`/evals-cases`、`/evals-configs`。接入真接口时只换数据来源，不改形状。
+
+---
+
+### Story 7.0: 评测连接（默认主库，可选隔离库）
+
+**Implements:** 无 FR；为 Epic 7 提供「评测跑主库或独立库」的连接选择
+**Depends:** 无
+
+As a Lynx，
+I want 评测默认直接跑在主库上，也能凭一份配置切到独立评测库，
+So that 平时不折腾；不想让评测语料/实验影响生产检索时，一条配置就能隔离；以后要把「多知识库」做成功能时，这条连接抽象能直接延用。
+
+**Acceptance Criteria:**
+
+**Given** 没有 `EVAL_DATABASE_URL`
+**When** 启动服务
+**Then** 评测世界与主世界共用同一个 pg pool 与同一份数据（**共享模式**）；主应用照常启动
+**And** `GET /eval/status` 返回 `{ mode: 'shared', reachable, corpus }`；评测三页照常可用，不因缺 URL 被禁用
+
+**Given** 设置了 `EVAL_DATABASE_URL`
+**When** 启动服务
+**Then** 评测世界使用独立的 pg pool 连评测库（**隔离模式**）；主应用照常启动
+**And** 评测库跑同一套 dbmate 迁移（表结构与主库一致）；`npm run eval:db:setup` 可建 `ragdb_eval` 并迁移
+**And** 评测库的维度校验、partial HNSW 与主库同一条规则（AD-4 / AD-9），不做第二套语义
+
+**Given** 隔离模式
+**When** 往评测库灌语料
+**Then** 走现有 ingest 链路，写入的是评测库的 resources / chunks / embeddings；`scripts/eval-seed.ts` 能把主库 ready 资源按份重灌过去（对象按新 key 复制，不共享主库对象）
+**And** 主库与评测库互相看不见对方的数据：两边的资源列表与检索结果不交叉
+**And** 连接池各管各的：评测跑批不会占满主库连接
+
+**Given** 共享模式
+**When** 评测跑批
+**Then** 评测与主库共用连接与语料是显式取舍，不另做隔离；评测产生的资源/痕迹会出现在主库里，按 `/eval` 路由前缀可识别
+**And** 主库的 `/ask`、`/resources`、`/retrieve` 行为不变
+
+**Given** 评测产生 trace（任一模式）
+**When** 看观测
+**Then** trace 写进评测世界选中的那个库；route 带 `/eval` 前缀（或 `EVAL ...`），能按 route 过滤；不混进正常聊天统计
+**And** 不加 `origin` 列
+
+**方向**
+- 评测世界 = 主世界换一个 pgpool：共享模式直接复用主库那套服务；隔离模式手工构造第二套。不把 repo 改造成多实例容器。
+- 选择放 env（启动时定），不做 UI 热切换；`/eval/status` 只摆 mode 与计数。
+- 之后要把多知识库做成产品功能时，这条连接抽象直接延用，不在 7.0 里提前做 namespace。
+
+**Open questions（2026-10-28 已收口）**
+- ~~`OQ-7.0-1` 评测库的库名与创建方式~~ → **隔离模式**用 `ragdb_eval`；`scripts/eval-db-setup.ts` + `npm run eval:db:setup` 一键建库并跑同一套 dbmate 迁移（`--no-dump-schema`）。连接串只走环境变量，不进 argv；共享模式不需要建库。
+- ~~`OQ-7.0-2` eval trace 的标记放哪~~ → **两库同构：同一套迁移、同一套 traces 行为；评测 trace 写评测世界选中的库，标记沿用 route 前缀（`METHOD /eval/...`），不加 `origin` 列。** 主库端点壳跳过 `/eval*`，评测子应用自带一层 trace。
+- ~~`OQ-7.0-3` 评测库的语料是否允许和主库重复~~ → **隔离模式允许两库各一份**（对象也复制成新 key）；共享模式天然同一份。`content_hash` 去重是库内作用域。
+
+**Deferred:** 多知识库 / namespace → P3 之后作为独立功能；评测库的独立备份策略 → 未排期。
+
+> **开工清单（2026-10-28，Lynx 拍）**：7.0 的 OQ 已全收口，可进 `ready-for-dev`。详细口径：
+> - **模式选择**：`EVAL_DATABASE_URL` 是可选开关。不设 = 共享模式（评测世界直接用主库的 pool/repo/服务）；设了 = 隔离模式（第二个 pool + 一套同构服务）。两种模式主应用都照常启动；评测三页都不禁用。
+> - **建库（只隔离模式）**：`npm run eval:db:setup` 读 `EVAL_DATABASE_URL`，缺库时连同实例的 `postgres` 库建 `ragdb_eval`，再用 dbmate 跑同一套迁移；重复执行幂等。
+> - **装配**：评测世界 = 主世界换一个 pgpool。共享模式复用主库的 `PostgresRepo`/`RetrieverHandle`；隔离模式新增 `EvalDbHandle` + `EvalPostgresRepo`，`EvalAssembly` 用同一批服务类手工构造。共享 `ObjectStoreHandle` / `EmbeddingHandle` / `IngestFactory` / `InflightRegistry`；不改 Repo 为多实例容器。7.1 的 eval_* 表随同一套迁移走：共享模式在主库，隔离模式在评测库（setup 时跑同一套迁移）。
+> - **出口**：7.0 只挂 `GET /eval/status` 与验证用的 `POST /eval/retrieve`（复用 `RetrieveRoute`）。不挂 `/eval/resources`：隔离语料用 `eval:seed`，避免两条写入口径；四表 CRUD、chat、codebases 不镜像。
+> - **语料（只隔离模式）**：`scripts/eval-seed.ts` 把主库 `status='ready'` 且未软删的资源复制对象到评测库自己的 key（`keyForUpload`/`allocateKey`），建行后用现有 ingest 链路（storage fetcher → parse → chunk → embed → write）重灌；不共享主库对象，主库 purge 不影响评测。seed 前先 `markStaleOnBoot`。
+> - **观测**：主库端点壳 `SKIP_PREFIXES` 加 `/eval`；评测子应用用 `createEndpointTrace(选中库的 repo)`，route 模板带 `/eval` 前缀，作为标记与过滤依据（`GET /traces?route=...` 已支持 route 过滤）；`/eval/status` 不记 trace。
+> - **健康探针（2026-10-28 追加）**：`/health` 增加 `eval` 组；shared 恒 ok + `mode=shared`，isolated 真 ping + `mode=isolated`/reachable；隔离库不可达按现有全绿口径 degraded；前端健康页自动出第 4 张卡（骨架 3→4）。
+> - **前端**：三个评测页读 `/eval/status`，在页头显示「共享主库 / 隔离库」徽标；不做缺库禁用。
+> - **Deferred 去向**：多知识库 / namespace → P3 之后独立功能；评测库独立备份 → 未排期。本格不转出其他 deferred。
+
+> **as-built（2026-10-28，review）**：shared/isolated 连接、`EvalRoute`、health eval 组、页头徽标、`eval:db:setup` / `eval:seed` 已落；后端 21 文件 124 tests、前端 73 文件 639 tests、build 绿；隔离库 45 篇 / 949 块与主库逐篇一致；走读页 `walkthroughs/epic7-story0-eval-connection.html`。Lynx 2026-10-28 判定完成（done）。
+
+---
+
+### Story 7.1: 题集与配置底座
+
+**Implements:** 无 FR；服务 SM-2 / NFR-2（P3 前置工程支线）
+**Depends:** 7.0（评测库）
+
+As a Lynx，
+I want 把题集、运行配置、测评配置存进自己的库并能在面板里维护，
+So that 每次运行都引用同一份题集和同一套参数，题集改了也不影响历史运行。
+
+**Acceptance Criteria:**
+
+**Given** 迁移已执行
+**When** 查库
+**Then** 新增 `eval_datasets`（id / name / note / baseline_run_id）、`eval_cases`（id / dataset_id / case_key / level / query / negative / note / gold jsonb）、`eval_configs`（id / kind / name / config jsonb）+ `eval_runs` 最小骨架（见下条 AC）
+**And** 运行配置与测评配置合并成一张表，配置体只放 `config` jsonb：run 的 `{model, k, temperature, rrf, vector_top_k, lexical_top_k, min_similarity}`、metric 的 `{judge_model, rubric, metrics}`；数值与模型合法性在 API 层校验，DB 只保 jsonb 是对象
+**And** `eval_cases.gold` 存 `[{ data_uri, chunk_index, content_prefix }]`——用可读路径 + 块号定位，不存随机 uuid
+**And** 一个 query 可以标多条 gold；负例的 gold 为空数组
+
+**Given** `/evals-cases` 页面
+**When** 新建 / 编辑 / 删除 case
+**Then** 改动立刻落库，题集表与右栏定义同步刷新
+**And** 复制数据集会带走全部 case 的深拷贝；复制单条 case 会以它为模板打开新建表单
+
+**Given** 一个数据集已经跑过 run
+**When** 尝试删除它
+**Then** 拒绝并提示「先删掉关联的 N 次运行」
+**And** 复制不受限制
+**And** 7.1 的迁移同时建 `eval_runs` 最小骨架（id / dataset_id / status / created_at），只服务删除守卫与 `baseline_run_id` 指向；快照与逐条结果列由 7.2 在同表 ALTER 补上
+
+**Given** 仓库里已有 `app/server/scripts/eval-cases.json`
+**When** 跑一次种子导入
+**Then** 那 15 条进入第一个数据集 `probe-2026-10-28`，`case_key` 沿用 L1-01…L5-03
+
+**Given** `/evals-configs` 页面
+**When** 新建 / 编辑 / 复制运行配置或测评配置
+**Then** 名称为空时拒绝；`model` 必须是 `/models` 在册的键
+**And** 改配置不影响任何历史 run——历史 run 读的是自己的快照
+
+**方向**
+- 导入导出：JSON 整包进出（数据集 + case），先 CLI 或按钮都行
+- 数据集不做版本号：滚动更新，历史由 run 快照兜住
+
+**Open questions（已收口）**
+- `OQ-7.1-1` 相关性粒度 → **chunk 级**，一个 query 多条 gold；不做 resource 级
+- `OQ-7.1-2` 题集来源 → 人工从现有 45 篇出题；LLM 只生成候选，入库前人工确认；首批 15 条已就位
+- `OQ-7.1-3` 数据承载 → **本地表**（D1=A，2026-10-28 拍）
+- `OQ-7.1-4` 数据集版本 → 不做版本号，**run 存快照**
+- `OQ-7.1-5` runs 表归属 → **7.1 建最小骨架**（id / dataset_id / status / created_at），7.2 同表 ALTER 加快照与结果；删除守卫走 `dataset_id` 外键 RESTRICT + 计数提示；`baseline_run_id` 只是可空 uuid、不加外键（循环 FK 会让生成的 drizzle schema 推断崩），采纳基线时按同数据集校验
+
+**Deferred:** 多标注者与一致性 → 不做（单人项目）；自动出题不经确认 → 未排期。
+
+> **开工清单（2026-10-28，Lynx 拍）**：7.1 的 OQ 已全收口，可进 `ready-for-dev`。详细口径：
+> - **表**：`eval_datasets` / `eval_cases` / `eval_configs` 三张 + `eval_runs` 最小骨架；配置体只放 `config` jsonb，run 与 metric 用 `kind` 区分；同一套 dbmate 迁移，主库与评测库各跑一次（评测库用 `npm run eval:db:setup`）。
+> - **gold**：chunk 级，`[{ data_uri, chunk_index, content_prefix }]`；`content_prefix` 取块内容 trim 后前 80 字符。`eval-cases.json` 的 `path` 在**目标库**（共享=主库，隔离=评测库）里解析成 `data_uri`；找不到或不唯一即导入失败，不猜。
+> - **API**：`/eval` 下自定义 Hono 路由（datasets / cases / configs(kind) + copy），不用 hono-crud——eval 表住「选中的库」，hono-crud 的 orm 固定主库。写入一律走 `EvalAssembly.repo`。校验：名称非空、`model` / `judge_model` 必须是 `/models` 在册键、配置数值合法、gold 形状。
+> - **删除保护**：数据集有 run 时 409，提示关联 N 次运行；复制不受限（深拷贝全部 case）。
+> - **case 复制**：只在前端以它为模板打开新建表单，不在后端建副本。
+> - **种子**：`npm run eval:cases:import` 读 `scripts/eval-cases.json` → 数据集 `probe-2026-10-28`，`case_key` 沿用 L1-01…L5-03；按 (dataset_id, case_key) upsert。
+> - **导出**：7.1 只做导入；JSON 导出 → 未排期（有需要再补）。
+> - **前端**：`/evals-cases`、`/evals-configs` 接真接口，改动即落库并刷新；model 下拉读 `/models`；`/evals` 运行视图继续 mock（7.2/7.3 接）。
+> - **Deferred 去向**：多标注者一致性 → 不做；自动出题不经确认 → 未排期。本格不转出其他 deferred。
+
+---
+
+### Story 7.2: 发起检索评测
+
+**Implements:** 无 FR；服务 SM-2 / NFR-2
+**Depends:** 7.0、7.1
+
+As a Lynx，
+I want 选好数据集、运行配置、测评配置，点一下就跑完，看到每条 case 的名次与百分比，
+So that 每次调整检索或模型之后，都有可比的数字。
+
+**Acceptance Criteria:**
+
+**Given** 数据集、运行配置、测评配置都已存在
+**When** 在 `/evals` 点「运行评测」
+**Then** 服务端建一条 run，状态 `queued` → `running` → `done | failed`
+**And** 执行复用生产检索链路（`RetrieverHandle.retriever.search`，与 `/retrieve` 同一只），不另写一套检索
+**And** 一次只跑一个 run，后来的进队列；排队中的可取消，运行中的可中止
+**And** **失败不自动重试**——保留错误原因，人决定要不要再跑
+
+**Given** run 开始执行
+**When** 落库
+**Then** 同一行 `eval_runs` 里冻结快照：题集逐条内容、运行配置全部参数、测评配置全部参数、embedding 模型与维度、语料规模
+**And** 快照是只读副本，之后改题集或改配置都不影响它
+
+**Given** run 跑完
+**When** 看 `/evals` 中栏
+**Then** 每条 case 一行：最好名次、命中数/总数、`recall@k` 百分比、MRR 百分比、耗时
+**And** 顶部四格聚合：平均 recall、平均 MRR、失败数、总耗时，全部从明细算出来
+**And** 三档颜色：`0%` 红（失败）／部分 黄 ／`100%` 绿
+
+**Given** 一条负例被命中
+**When** 判定这条 case
+**Then** 记失败（负例的正确行为是一条都不命中）
+**And** 正例只命中部分 gold 不算失败，显示部分百分比
+
+**Given** 快照存在
+**When** 从任意历史 run 打开「配置快照」
+**Then** 能看到当时用的题集条数、运行配置、测评配置、embedding 模型与维度、跑的时间
+**And** 提供「另存为新配置」，把快照里的参数存成一份新的运行配置 / 测评配置
+
+**Open questions（已收口）**
+- `OQ-7.2-1` 指标集与 k → 全部百分比：`recall@k`、MRR；k 来自运行配置
+- `OQ-7.2-2` 入口 → `POST /eval/runs` + 面板按钮；CLI 可选
+- `OQ-7.2-3` 预期 chunk 失效（资源被删、内容改了）→ 跑的时候按 `content_prefix` 校验，对不上记 `expected_chunk_missing`，该条按未命中算并在右栏标出来
+- `OQ-7.2-4` 队列持久化 → **不持久化**：重启时排队中的直接丢，标为已取消；已完成的 run 不受影响
+
+**Deferred:** 自动回归 / CI 门禁 → 后续；vector-only / lexical-only 模式对比 → 未排期。
+
+---
+
+### Story 7.3: 对照与基线
+
+**Implements:** 无 FR；服务 SM-2
+**Depends:** 7.2
+
+As a Lynx，
+I want 把任意一次 run 钉在右边，和当前这次逐条并排看数字，
+So that 改动前后差在哪一眼能看出来，而不用系统替我下结论。
+
+**Acceptance Criteria:**
+
+**Given** 某个数据集已经有一条「当前基线」
+**When** 打开 `/evals`
+**Then** 基线默认被钉在右栏「对照」tab
+**And** 右栏可在「详情 / 对照」之间切换；选「对照」时逐条摆两次的 recall 百分比，同一顺序
+
+**Given** 想换基线
+**When** 在某次 run 上点「采纳为基线」
+**Then** 该数据集的 `baseline_run_id` 指向它
+**And** **不采纳就一直是旧基线**——run 跑完只是候选，不会自动改基线
+
+**Given** 右栏是对照模式
+**When** 看数字
+**Then** 系统**不算**「变好 / 退化 / 新增 / 消失」，只把两列数字摆在一起
+
+**Given** 两次 run 的测评配置不同
+**When** 并排
+**Then** 明确标出「判法不一致，分数不可直接比」，但数字照登
+
+**Open questions（已收口）**
+- `OQ-7.3-1` 基线范围 → **每个数据集一个**；换基线是显式动作
+- `OQ-7.3-2` 对照呈现 → 右栏 tab 逐条并排；不做 diff 计算、不做趋势图
+
+**Deferred:** 自动 diff、趋势图、跨数据集对比 → 未排期。
+
+---
+
+### Story 7.4: 答案评测（第二版）
+
+**Implements:** 无 FR；服务 SM-2 / NFR-2
+**Depends:** 7.1、7.2
+**状态**：方向级。**整格未收口，不进 `ready-for-dev`。**
+
+**Acceptance Criteria（方向级）:**
+**And** 每条 case 可写两组断言：必须出现（expect）、必须不出现（reject），全部满足才算通过
+**And** 跑真实回答链路（与 `/chat` 同一套 prompt + retrieve 工具），记录回答与引用
+**And** 断言判不了的才交给人（HITL）或 judge；三者分工：**断言 > HITL > judge**
+**And** judge 用结构化输出给三维分数：groundedness / correctness / citation
+**And** HITL：人判与机器判**并存**，算一致率；一致率低的那类题单独标出来
+**And** 评测跑在隔离会话，不污染正常聊天与统计
+
+**Open questions**
+- `OQ-7.4-1` 断言匹配方式：纯子串（大小写不敏感）/ 支持正则 / 子串 + 可选正则开关
+- `OQ-7.4-2` judge 模型：百炼 qwen-plus（与被评模型 DeepSeek 不同源）是否够用
+- `OQ-7.4-3` rubric 内容与版本约定
+- `OQ-7.4-4` HITL 的录入形态：逐条同意/不同意，还是一致率抽检
+- `OQ-7.4-5` 断言与 judge 的分数怎么合成一条 case 的总判定
+
+**Deferred:** 多次采样与置信区间 → 未排期；pairwise 对比 → 后续；人工标注平台 → 不做。
+
+> **Epic 7 · 未决项汇总**：7.4 整格未收口（OQ-7.4-1…5），开工前逐条拍板；7.0–7.3 的 OQ 已全部收口，7.0 已 done、7.1 已进 `ready-for-dev`。
 
 ---
 
@@ -912,7 +1214,8 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 > 这里只记「不在 Epic 4/5」的能力；逐条的 Open questions 在对应 Story 下。
 
 **不在 P2**
-- eval、prompt 管理：先记 backlog，不排阶段。
+- ~~eval~~ **2026-10-28 立为 Epic 7（P3 前置工程支线）**：本地表 + 自建 `/evals` 面板（原 Langfuse Datasets / Experiments 载体当天推翻），golden set + 检索指标 + LLM judge；范围与 OQ 见上文 Epic 7。
+- prompt 管理：仍记 backlog，不排阶段。
 - sandbox：P3 Agent loop 之后；最小版本是子进程 + 超时 + 断网 + 目录白名单。
 - tenant / auth / RLS：最后再做；现在保持单用户，不加占位 `tenant_id`。
 - 公网下载鉴权（登录 / 退出吊销、请求 IP 绑定、一次性 token、边缘反代）：**P5 部署阶段**；P2 只做私有桶 + tailnet + presigned 直连，不绑 IP、不做 token 表。

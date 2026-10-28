@@ -159,8 +159,9 @@ Why：CJK 文件名会让 agent 的语言判断漂移（出现过输出日语）
 
 - **P1 已收口（2026-10-24，Epic 1–3 全 done）**：URL/粘贴入库、混合检索、流式问答、引用与多轮、本地安全边界；观测 trace 作为 P1.x 支线一并交付。
 - **P2 当前范围（Epic 4/5）**：资源画像 + 聊天 Markdown/表格渲染 + 表格 CSV；MinIO 原始文件归档、`.md/.txt` 上传、代码库 ZIP（仅文件管理）。
-- **P2 不碰**：eval、prompt 管理、sandbox、tenant/auth、代码图、代码 RAG、PDF/Word 等格式、批量上传/后台队列、Generative UI。
+- **P2 不碰**：prompt 管理、sandbox、tenant/auth、代码图、代码 RAG、PDF/Word 等格式、批量上传/后台队列、Generative UI。
 - **后续阶段**：P3 Agent loop + 联网工具 + 批量队列/Redis；P4 Generative UI；P5 MCP/多模态/部署；tenant 最后。
+- **P3 前置工程支线（2026-10-28，Lynx 拍）**：评测（Epic 7）—— 以 Langfuse Datasets / Experiments 为载体，golden set + 检索指标 + LLM judge；在 Agent loop 改动回答链路前建立可复现基线。不占 P3 主线的 AI SDK 能力点，不自建 eval 表 / 路由 / 面板。
 - **一处有期限的例外（2026-10-16，Lynx 拍，已在 P1 收口）**：P3 的「检索工具化」提前进 Epic 2（Story 2.6）。只做「把 `retrieve` 包成工具交给模型调用」；当时的边界是 Agent loop（含 2026-10-21 定的最多 4 次有界重查、`stepCountIs(5)`，仍不算 Agent loop）、`agent/{skill,persona,mcp}`、Generative UI、MCP 都不碰。落点 `app/server/src/agent/tool/`；`trace/` 空盒后来由 Epic 3 填上。
 - 任何"顺手加个功能"的念头，先回到 PRD 的 Non-Goals 对齐，再决定是否升级为一次正式的范围变更（`bmad-correct-course`）。
 

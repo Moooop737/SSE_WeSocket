@@ -29,8 +29,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-09-2026 14:30
-last_updated: 10-27-2026
-# Sprint focus (2026-10-27)：P1 已结束；Epic 5 · 5.2 review（原始归档/两段式 ingest/下载/恢复/前端已落码，待浏览器验收；CORS 已实测默认放行，只剩 HTTPS 预览的 mixed content）；5.3 review（去重/两段式/回收站/重入库全部落码，2026-10-27 补 confirm-upload 与资源页批量软删；后端 110/110、前端 613/613；待浏览器验收 + 走读页）；5.4 review（Build 1/2/3 全落：后端 110/110、前端 613/613、build 绿；S3 reader 块缓存修复高 entryIndex 预览超时；待浏览器验收 + 走读页）；Epic 4 · 4.1 暂缓（OQ-4.1-1..3 未决）。
+last_updated: 10-28-2026
+# Sprint focus (2026-10-28)：P1 已结束；Epic 5 done（5.1–5.4）；Epic 4 · 4.1 暂缓（OQ-4.1-1..3 未决）；Epic 7「评测（eval）」为 P3 前置工程支线，载体改为本地表 + 自建 /evals 面板，五格 7.0–7.4 已拆；7.0 已 done（2026-10-28），下一格 7.1（OQ-7.1-1..4 已收口）。
 # 2026-10-25 前端工程项（非 Epic 4/5）：PWA 主屏入口 A 案已落 —— manifest + iOS meta + 不缓存的空 SW；只做 standalone，不含 display:fullscreen / viewport-fit / safe-area。交付与验证见 app/web/Agent/summary/summary-2026-10-25-pwa-standalone.md。
 project: Knowledge Copilot
 project_key: NOKEY
@@ -108,7 +108,7 @@ development_status:
   4-5-表格渲染-csv下载: backlog
   epic-4-retrospective: optional
 
-  epic-5: in-progress
+  epic-5: done
   # 2026-10-24 追加：P2 工程支线（MinIO 文件管理）；代码分析/代码 RAG 不在本 Epic。
   # 两轨：资源文件 5.1 → 5.2 → 5.3；代码库 ZIP 5.1 → 5.4。
   # 2026-10-26 5.1 实现完成：OQ-5.1-1..4 全收口；config S3 六位 + adapter/storage + 启动检查 + 10 条真实 MinIO 集成（含 presignPut、建桶）+ 3 条 config 失败路径 + /health s3.bucket；tsc 0、后端 45/45、前端 587/587、boot I_OBJECT_STORE + /health 200。详细 AC 见 epics.md Story 5.1 与 handoff-2026-10-26-epic5-story1-minio-adapter.md。review 完成（review-2026-10-26-epic5-story1.md），无阻塞代码缺陷；P1 专用用户/HeadBucket 权限上公网前处理。待 Lynx 收口/走读页。
@@ -121,16 +121,44 @@ development_status:
   # 2026-10-27 step5：回收站 + 彻底删除已落（GET /resources/deleted 分页/搜索；DELETE /:id/purge 只接软删行，先幂等删 MinIO 对象再删行，content_hash 随行释放；资源页底部回收站卡片，恢复=restore+ingest，彻底删除两步确认）；后端 17 文件 98 tests、前端 64 文件 603 tests、build 绿；真实冒烟 204/1/204/0。OQ-5.3-5 已收口。
   # 2026-10-27 step6：ready 重入库已落（去掉 ready 409；markResourceUploaded 允许 ready 回落 uploaded；写入事务先按资源行 FOR UPDATE 串行化、再删旧 chunks/embeddings、插新；失败 process_failed 且旧 chunks 不保留，门禁失败 upload_failed 也清旧 chunks；资源页 ready 显示“重新入库”）；后端 100/100、前端 603/603、build 绿；真实冒烟 两次 201、chunk id overlap=0。5.3 实现完成，转 review。
   # 2026-10-27 5.3 走读页：walkthroughs/epic5-story3-dedup-recycle-reingest.html（13 sections / 20 code / 55 notes / 11 journey；validate OK；index 已加卡片并更新统计）；待 Lynx 浏览器验收后转 done。
-  # 2026-10-27 5.3 补：文件 PUT 后 POST /:id/confirm-upload 先 stat/门禁转 uploaded，阶段一每项 onProgress，全部 uploaded 后才阶段二 ingest；资源页加本页勾选/全选 + 两步批量软删（复用 DELETE，进回收站）。后端 110/110、前端 68 文件 613/613、build 绿。
+  # 2026-10-27 5.3 补：文件 PUT 后 POST /:id/confirm-upload 先 stat/门禁转 uploaded，阶段一每项 onProgress，全部 uploaded 后才阶段二 ingest；资源页取消知识库/回收站页签、回收站卡与全库状态分布卡，状态筛选加「已删除」（默认隐藏，GET /resources/deleted 支持 sort/order）；工具栏最左全选；活动行批量软删，已删除行可多选并批量恢复（restore→ingest）/彻底删除；RecycleBin 组件删除。后端 18 文件 112、前端 67 文件 612、build 绿。
+  # 2026-10-27 5.3 修复「ingest 失败后重试反复失败」：① process_failed 行重试被 E_RESOURCE_GONE 挡 —— markResourceUploaded 放行 process_failed（与 ready 同为重试入口）；② 118 块一次 embedMany 必超 30s —— embedChunks 按 32 条串行分批、每批各自 30s 超时与调用方信号，结果按批序拼接。实跑 epics 重入库 201 / 45.6s / chunks 118 / embeddings 118 / ready；后端 19 文件 115 tests、tsc 干净。
   # 2026-10-27 5.4 开工清单：OQ-5.4-1/2/3/4 全部收口；详细 AC 已写进 epics.md。领域与知识库分离；无沙箱不直接解压/不落盘；只设 ZIP 100MB；文件树 + 单文件预览；manifest 持久化 codebases.manifest jsonb；不复用 resources/content_hash/回收站。
   # 2026-10-27 5.4 Build 1 完成：迁移 applied（15/0）、schema 已含 codebases、drizzle filter/schema 脚本同步；新增 yauzl/yazl 依赖；CodebaseArchive（presign -> complete/stat/temp ZIP/yauzl central-directory 校验/manifest -> ready/failed）、PostgresCodebaseRepo、/codebases list/read/create/complete（list/detail/complete 响应不返回 manifest，树留给 Build 2）、config cleanUpOnBoot 内 codebase 清扫；后端 18 文件 104 tests。Build 2 完成：GET /:id/tree（扁平 entries）、GET /:id/files/:entryIndex（S3 range reader，文本/代码 text/plain + nosniff，?download=1 attachment，实际解压字节 100MB 截断）、GET /:id/original 302、DELETE /:id（processing 409，先对象后行）；OpenAPI Codebases 路径与 schema；后端 18 文件 108 tests。
   # 2026-10-27 预览修复：高 entryIndex 超时。根因 yauzl 每读一条中央目录记录走一次 reader.read（46B），S3ZipReader 对每个小 read 发一次 Range GET，1493 条目 ZIP 点后面的文件要排队上千次请求；给 S3ZipReader 加 1MB 块缓存，中央目录小读取命中缓存，条目正文仍单次 Range GET。新增 120 条目高 entryIndex 测试；后端 18 文件 109 tests；真实 ZIP entry 761/916/1294/1492 均 200。
   # 2026-10-27 5.4 Build 3 完成：前端 /codebases 页面（create→PUT→complete 上传、列表/搜索/分页、文件树、文本/代码 <pre> 预览、二进制下载、原 ZIP 302、两步硬删）；导航「开发 → 代码库」+ routeTree；前端 67 文件 611 tests、build 绿、tsc 干净。5.4 实现完成，转 review；Build 4 = 浏览器验收 + 走读页。
+  # 2026-10-27 Epic 5 收口：5.2/5.3/5.4 转 done；走读页 epic5-story2-archive-ingest.html / epic5-story3-dedup-recycle-reingest.html / epic5-story4-codebases.html 全 validate OK；index 18 页。
   5-1-minio-适配器-配置: done
-  5-2-资源原始归档-下载: review
-  5-3-资源批量-去重-回收站-重入库: review
-  5-4-代码库-zip-上传: review
+  5-2-资源原始归档-下载: done
+  5-3-资源批量-去重-回收站-重入库: done
+  5-4-代码库-zip-上传: done
   epic-5-retrospective: optional
+
+  epic-7: in-progress
+  # 2026-10-28 立格（Lynx 拍）：评测工程支线，P3 Agent loop 前置；不新增产品 FR，服务 SM-2 / NFR-2。
+  # 载体当天改口径：本地表 + 自建 /evals 工作站面板（原 Langfuse Datasets/Experiments 不采用）；三个独立入口 /evals、/evals-cases、/evals-configs。
+  # Run = 数据集 × 运行配置 × 测评配置；指标全百分比、成败判两极、不做 diff 只并排；基线每数据集一个、采纳制。
+  # 五格：7.0 评测库隔离（前置）→ 7.1 题集与配置底座 → 7.2 发起检索评测 → 7.3 对照与基线 → 7.4 答案评测（整格 OQ）。
+  # 7.0 的 OQ-7.0-1..3 已收口（2026-10-28）；7.4 的 OQ-7.4-1..5 未收口 —— 7.4 开工前必须先收；7.1–7.3 的 OQ 已收口。
+  # 前端三页已按工作站三栏做成 mock（可增删改），数据住 app/web/src/lib/evals-store.ts，接真接口时整份换成请求。
+  # 编号不复用已取消的旧 Epic 6（文件 URI，2026-10-27 折回 5.2）。
+  # 7.0 开工清单（2026-10-28）：模式 = 默认共享主库（不设 EVAL_DATABASE_URL），可选隔离库（设了用 ragdb_eval + 第二个 pool）。
+  # 隔离模式建库：scripts/eval-db-setup.ts + npm run eval:db:setup（dbmate --no-dump-schema）；语料由 scripts/eval-seed.ts 复制对象到新 key 后走现有 ingest 链重灌。
+  # 评测 trace 写选中库，route 前缀 /eval 作标记，不加 origin 列；主壳跳过 /eval。
+  # 出口只挂 /eval/status、/eval/retrieve；四表 CRUD/chat/codebases 不镜像。前端三页只显示共享/隔离徽标，不禁用。
+  # Build 1 已落（2026-10-28，待 Lynx 审查）：共享模式装配 + GET /eval/status + POST /eval/retrieve + 评测 trace 单条写入；未改 endpoint.ts。tsc 0、后端 20 文件/120 tests、真跑 shared 通过。隔离模式工具在 Build 2。
+  # Build 2 已落（2026-10-28）：eval:db:setup / eval:seed 工具 + ragdb_eval（16 迁移、schema/索引与主库一致）；45 篇重灌 44+1 skip、0 failed，两库 45/45 篇块内容一致；隔离模式 status/retrieve/traces/双池真跑通过；隔离集成 2/2。待 Build 3 前端徽标与 Build 4 收口。
+  # Build 3 已落（2026-10-28）：/eval/status 接进前端 client；三评测页页头显示共享主库/隔离库/未知徽标；前端 73 文件 639 tests、build 绿、tsc 0。待 Build 4 收口（浏览器手测 + 走读页）。
+  # 追加（2026-10-28）：/health 增加 eval 服务组（shared 恒 ok + mode=shared；isolated 真 ping + reachable/unreachable；不可达按全绿口径 degraded）；健康页自动第 4 卡、骨架 3→4。后端 21 文件 124 tests、前端 639、build 绿。
+  # Build 4（2026-10-28）：走读页 epic7-story0-eval-connection.html 已建（14 段/19 code/57 notes/10 journey，validate OK），index 19 页；Lynx 2026-10-28 判定 7.0 完成，转 done。
+  7-0-评测库隔离: done
+  # 7.1 开工清单（2026-10-28，Lynx 拍）：OQ-7.1-1..5 全收口 —— chunk 级 gold；人工出题；本地表；run 存快照；eval_runs 在 7.1 建最小骨架（id/dataset_id/status/created_at），7.2 同表 ALTER。
+  # 口径：gold 存 [{data_uri, chunk_index, content_prefix}]，prefix=trim 后前 80 字符；API 走 /eval 自定义路由（hono-crud 的 orm 固定主库，隔离模式会写错库）；数据集有 run 时删除 409；case 复制是前端模板行为；导入只做 eval:cases:import（导出未排期）；前端只接两页（cases/configs），runs 仍 mock。
+  7-1-题集与配置底座: ready-for-dev
+  7-2-发起检索评测: backlog
+  7-3-对照与基线: backlog
+  7-4-答案评测: backlog
+  epic-7-retrospective: optional
 
 action_items:
   - id: "epic-1-retro-1-health-gate"

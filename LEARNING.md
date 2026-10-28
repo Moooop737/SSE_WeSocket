@@ -3,9 +3,9 @@
 > Knowledge Copilot 的"真懂"记录。按 AGENTS.md §二 每阶段循环第 5 步沉淀：这一阶段练了什么、踩了什么坑、做了什么取舍。
 > 项目主线是吃透 **Vercel AI SDK**（顺带深化 RAG）。Story 1.1 属基础设施地基，AI SDK 链路从 Epic 2 起才正式登场。
 
-> **P1 已收口（2026-10-24）**：Epic 1–3 全 `done`；P2 待开工。P1 的学习沉淀按下面各节，不另写汇总。
+> **P1 已收口（2026-10-24）**：Epic 1–3 全 `done`。**P2 进行中（2026-10-27）**：Epic 5（文件与存储 5.1–5.4）全 `done`；Epic 4 · 4.1 暂缓。学习沉淀按下面各节，不另写汇总。
 
-**索引（2026-10-24 补）**
+**索引（2026-10-24 补，2026-10-27 加 P2）**
 
 | 段落 | 位置 |
 |---|---|
@@ -18,6 +18,8 @@
 | Story 2.1 混合检索 | §P1 · Epic 2 — Story 2.1 |
 | DI 改造 / Story 2.5 / Epic 2 收口 | §P1 · Epic 2 附带一刀 — 装配面换 DI、§2026-10-21 · Story 2.5 |
 | Story 3.2 / 3.3 / 3.4 观测 | 三个「2026-10-22/23」小节 |
+| Story 5.1 对象存储 | §2026-10-26 · Story 5.1 对象存储适配器 |
+| Story 7.0 评测连接 | §2026-10-28 · Story 7.0 评测连接 |
 
 > 缺口：Story 3.1（通用 endpoint 壳）没有单独立节；它的取舍在 `_Agents/walkthroughs/epic3-story1-endpoint-trace.html` 与 `sprint-status.yaml` 的 3-1 注释里。
 
@@ -472,3 +474,66 @@
 - MinIO 专用用户与 `HeadBucket` 权限 → 5.2。
 - `test/` 仍被 gitignore；health 测试与 env loader 修复不在版本控制。
 - 前端 health 三卡布局与页面视觉由 Lynx 手测。
+
+## 2026-10-28 · Story 7.0 评测连接（默认主库 / 可选隔离库）
+
+> 这一格不练 AI SDK，练的是**「第二套环境」怎么接**：评测世界不另写一套服务，只是主世界换一个 pgpool；选哪只池由启动期一条可选 env 决定。
+
+### 学到的
+
+- **「可选」的正确形状是默认落在简单路径，不是缺配置就关门。**
+  原 AC 写「没配 `EVAL_DATABASE_URL` ⇒ 评测整体不可用」，Lynx 当天纠偏为「不配就跑主库（共享模式），配了才隔离」。落法：`AppConfig.evalDatabaseUrl: string | null`、`getEnv` 不传 missing（缺它不触发 `E_CONFIG_MISSING`）、`/eval/status` 返回 `mode`、前端三页照常可用且只摆徽标不做禁用。
+  判据：**缺省值属于产品语义，不属于错误处理** —— 一个开关「没配」到底等于「关掉」还是「走默认」，要在 AC 层面写死。
+
+- **第二套环境 = 同构装配换 pool，不是复制业务代码，也不是把 Repo 改成多实例容器。**
+  共享模式直接把主库的 `PostgresRepo` / `RetrieverHandle` 交给评测路由；隔离模式只多一个 `EvalDbHandle`（第二个 `createDbPool`）、一个 `EvalPostgresRepo extends PostgresRepo`、一条 `new RetrieverHandle(同一个 Factory、同一个 Embedding、评测 repo)`。检索、入库、迁移、维度校验、partial HNSW 全是同一套；对象存储 / 嵌入 / ingest 工厂 / 取消登记两个世界共享，多出来的成本只有「多一只池 + 多一份数据」。
+  这条抽象就是以后「多知识库 namespace」要复用的那条，所以 7.0 不提前做 namespace。
+
+- **有条件才该存在的对象只能懒 resolve，不能写成构造器依赖。**
+  `EvalPostgresRepo` 是 `@singleton`，但没有 URL 时它构造即抛（`EvalDbHandle` 拿不到连接串）。若把它放进 `EvalAssembly` 的构造器依赖，**共享模式一构造 assembly 就会建第二个池**（或当场抛）。现在只在 `isolated` 分支里 `container.resolve(EvalPostgresRepo)`，共享模式连这个类都不碰。
+  判据：`@singleton` 的「懒」只到 `resolve` 那一刻；写进构造器就等于把它提前到父对象的第一次使用。
+
+- **Hono 的 `use('*')` 只作用于其后注册的路由 ⇒ 挂载顺序是位置约束，不是风格。**
+  入口里 `app.route('/eval', …)` 必须早于主端点壳（主壳的 trace 中间件只包它之后注册的路由，`/eval` 请求因此不会被记两条）；子应用里先注册 `GET /eval/status`、再挂 trace 壳，status 就天然不落 trace。代价写在注释里：任何一次重排都会让「双层 trace」或「status 也落 trace」回来。
+  顺带：Hono 子应用的 `matchedRoutes` 返回**带全前缀**的模板（`/eval/...`），route 本身就能当评测标记。
+
+- **标记用 route 前缀，不新增 `origin` 列。**
+  评测 trace 写进**评测世界选中的那个库**，`route = 'POST /eval/retrieve'` 已能识别与过滤（`GET /traces?route=` 的 hono-crud `filtering.fields` 里本来就有 `route`）。`resource_id` / `session_id` 只在它们所在的库里可解释——主库里的 trace 标着「来自评测」却指向评测库的 id，是悬空的。**能由既有字段推导的属性，不要再存一份。**
+
+- **`/health` 多一个 `eval` 组，「全绿才 200」不破例。**
+  shared 恒 `ok` + `mode=shared`（同一只池已被 `postgres` 组探过，不重复 ping）；isolated 真 `ping()` 评测库 + `mode=isolated` + `reachable`。隔离库不可达 ⇒ `/health` degraded/503，主应用仍照常跑——显式取舍：健康页要能看见「评测库坏了」；只想摆事实就把 `ok` 恒 true、detail 写 `reachable=false`。
+  细节：detail 必须是**字符串数组**（前端 detailList 只认字符串/数组，给对象渲染成空）。
+
+- **seed 是「复制对象到新 key + 重走 ingest」，不是共享 key。**
+  `eval/<content_hash>/<原 key>`：主库 purge 带不走评测量；同一内容可重跑、不同内容不撞 `data_uri`；`content_hash` 去重是**库内作用域**（两库各一份合法）。
+  实测：45 篇 → 44 seeded + 1 skipped / 0 failed；45 ready / 949 chunks / 949 embeddings；45/45 篇块数与块内容 hash 与主库一致；45 条 `data_uri` 全带 `eval/` 前缀。
+
+- **「块对齐」是实测结果，不是保证。**
+  隔离 seed 重新 parse/chunk/embed，gold 的 `chunk_index` 依赖同一份 bytes + 同一个 parser/chunker 的确定性。这轮 45/45 一致；某篇若用了非默认 chunker，块号就会漂——那时要么按主库原样复制该篇，要么重新出题。**评测定位符（7.1 的 gold）本质上是「上游确定性」的消费者。**
+
+- **隔离性用「集合不相交 + 各自连接可见」证明，不是「数一下」。**
+  `/eval/retrieve` 命中的 chunkId 在主库查不到、主 `/retrieve` 命中的在评测库查不到；`pg_stat_activity` 同时看得见 `ragdb` 与 `ragdb_eval` 两条连接；两库 `traces` 各记自己那条；主库 45 资源 / 949 chunks / 2947 traces 保持原样。`eval-isolated.test.ts` 在没设 `EVAL_DATABASE_URL` 时整组 skip，所以「124 条全过」里含 2 条真隔离集成。
+
+- **dbmate 的 env 优先于 `.env`，连接串只走 env。**
+  `eval:db:setup`：解析库名 → 缺库时连同一实例的 `postgres` 库 `CREATE DATABASE` → spawn `dbmate --no-dump-schema up`（用 `env` 覆盖 `DATABASE_URL`），不进 argv。重复执行幂等（16 条迁移 / 14 张表；`embeddings` 索引名与定义和主库一致）。
+  两条 SQL 边界：`CREATE DATABASE` 不能进事务、不能参数化 ⇒ 库名先白名单校验（`[a-z_][a-z0-9_]*`）再加双引号。
+
+- **启动期决定的选择，前端取一次就够。**
+  mode 由 env 在启动时定、运行中不变 ⇒ 进评测页取一次 `GET /eval/status`，不轮询、不做全局 store。四态：共享主库 / 隔离库 / 检测中 / 评测状态未知；**未知态不画成绿**。代价：后端换模式重启后要刷新页面。
+
+### 踩过的坑 / 方法论
+
+- **本地 `.env` 已有 `EVAL_DATABASE_URL`，所以「默认」在这台机器上是隔离模式。** 要验共享必须显式 `EVAL_DATABASE_URL=` 起服务，测试里 `eval-route.test.ts` 也主动删了这个 env。**「默认值」要看运行环境的配置面，不要只看代码里的缺省分支。**
+- **二选一分支里，「另一边」的对象不能出现在依赖表里**（`EvalPostgresRepo` 被提前注入 = 共享模式也建第二个池）。
+- **注册顺序是回归点**：入口 `app.route('/eval')` 早于主壳，子应用 `/status` 早于 trace 壳。
+- **端到端「隔离库真 down」没真停过**：health 的 degraded 只有单测假 probe 覆盖。**测过的边界要标清是假探针还是真断网。**
+- **`/health` detail 给对象会渲染空**，必须字符串数组；**`CREATE DATABASE` 不能参数化**，库名走白名单。
+- **`endpoint.ts` 的 `/resources` 跳过与 3.4 口径冲突，但不属于 7.0。** 按 Lynx 指示不动：本格只加 `/eval` 的注册顺序。
+
+### 还没碰（留给后续）
+
+- 7.1–7.4：`eval_*` 表、题集面板、发起运行、基线对照、judge / HITL；`/eval/resources` 与四表 CRUD 不镜像。
+- 多知识库 / namespace → P3 之后独立功能；评测库独立备份 → 未排期。
+- 7.2 的运行配置（k / topK / minSimilarity）还没参数化：7.0 用环境值跑通，7.2 再把 config 来源改成 run 快照。
+- 浏览器手测项（三视图页头、窄屏、health 第 4 卡、后端停掉的未知态）留给 Lynx。
+- 7.0 的连接代码尚未提交（`136857e` 只含 eval-probe/cases 与 Epic 5 尾巴）。

@@ -412,25 +412,25 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
   <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
   <span class="docs-crumb">Story Walkthroughs</span>
   <span class="docs-topbar-spacer"></span>
-  <span class="chip">16 stories · 14 diagrams</span>
+  <span class="chip">19 stories · 14 diagrams</span>
 </header>
 <div class="page">
   <header class="hero">
-    <span class="kicker">KNOWLEDGE COPILOT · P1 CLOSED · P2 IN PROGRESS · 2026-10-26</span>
+    <span class="kicker">KNOWLEDGE COPILOT · P1 CLOSED · EPIC 7 IN PROGRESS · 2026-10-28</span>
     <h1>Story <em>Walkthroughs</em><br>把每一格讲清楚</h1>
-    <p class="hero-sub">16 个 story 的代码走读页：真实文件、行号注解、请求旅行、可复制的验证命令；P1 的 14 页带交互图，5.1 与 5.3 以代码走读为主。按 Epic 分组，也可以直接搜。</p>
+    <p class="hero-sub">19 个 story 的代码走读页：真实文件、行号注解、请求旅行、可复制的验证命令；P1 的 14 页带交互图，Epic 5 的 5.1–5.4 与 Epic 7 的 7.0 以代码走读为主。按 Epic 分组，也可以直接搜。</p>
     <div class="hero-actions">
       <a class="button primary" href="epic1-story1-local-skeleton.html">从 1.1 开始 <span aria-hidden="true">→</span></a>
-      <a class="button" href="epic5-story3-dedup-recycle-reingest.html">看最新 5.3 页 <span aria-hidden="true">→</span></a>
+      <a class="button" href="epic7-story0-eval-connection.html">看最新 7.0 页 <span aria-hidden="true">→</span></a>
       <a class="button" href="#how-to-read">怎么读这些页</a>
     </div>
     <div class="stats" aria-label="走读页统计">
-      <div class="stat"><strong>16</strong><span>pages</span></div>
+      <div class="stat"><strong>19</strong><span>pages</span></div>
       <div class="stat"><strong>14</strong><span>diagrams</span></div>
-      <div class="stat"><strong>4</strong><span>epics</span></div>
-      <div class="stat"><strong>197</strong><span>code blocks</span></div>
-      <div class="stat"><strong>728</strong><span>annotations</span></div>
-      <div class="stat"><strong>142</strong><span>journey steps</span></div>
+      <div class="stat"><strong>5</strong><span>epics</span></div>
+      <div class="stat"><strong>245</strong><span>code blocks</span></div>
+      <div class="stat"><strong>865</strong><span>annotations</span></div>
+      <div class="stat"><strong>172</strong><span>journey steps</span></div>
     </div>
   </header>
 
@@ -446,9 +446,10 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
       <button class="filter" type="button" data-epic="2" aria-pressed="false">Epic 2</button>
       <button class="filter" type="button" data-epic="3" aria-pressed="false">Epic 3</button>
       <button class="filter" type="button" data-epic="5" aria-pressed="false">Epic 5</button>
+      <button class="filter" type="button" data-epic="7" aria-pressed="false">Epic 7</button>
     </div>
     <div class="toolbar-end">
-      <span class="count" aria-live="polite"><strong id="count">15</strong> / 15</span>
+      <span class="count" aria-live="polite"><strong id="count">19</strong> / 19</span>
       <a class="theme" href="anim/index.html" style="text-decoration:none">动画目录</a>
       <button class="theme" type="button" id="theme">深色</button>
     </div>
@@ -587,7 +588,7 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
       <header class="epic-head">
         <span class="epic-no">EPIC 05</span>
         <h2>为知识库补原始文件层 — 对象存储</h2>
-        <p>MinIO 适配器 → 原始归档/两段式 ingest/下载/恢复 → 资源批量去重/回收站/重入库 → ZIP；5.1 done，5.2 review（页待收口），5.3 review（页已生成），5.4 backlog。</p>
+        <p>MinIO 适配器 → 原始归档/两段式 ingest/下载/恢复 → 资源批量去重/回收站/重入库 → 代码库 ZIP；5.1–5.4 全部 done，Epic 5 已收口。</p>
       </header>
       <div class="cards">
         <a class="card" href="epic5-story1-minio-adapter.html" data-epic="5" data-search="5.1 minio 对象存储 s3 adapter presign presigned get put health headbucket ensurebucket 配置 tailscale 建桶" style="--card-accent:#0369a1">
@@ -597,12 +598,43 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
           <div class="tags"><span>MinIO</span><span>presign</span><span>health</span><span>adapter</span></div>
           <div class="card-foot"><span>10 code · 40 notes</span><span class="open">打开走读 →</span></div>
         </a>
+        <a class="card" href="epic5-story2-archive-ingest.html" data-epic="5" data-search="5.2 原始归档 presign put 文件 url 粘贴 六状态 ingest 五段 下载 302 presign get restore 恢复 data_uri minio" style="--card-accent:#047857">
+          <div class="card-top"><span class="card-no">Story 5.2</span><span class="status">done · P2</span></div>
+          <h3>原始归档：两段式 ingest / 下载 / 恢复</h3>
+          <p>presign PUT 直传、URL/粘贴服务端归档、六状态、ingest 从 MinIO 读回、302 下载、软删恢复。</p>
+          <div class="tags"><span>presign PUT</span><span>data_uri</span><span>五段 ingest</span><span>302</span></div>
+          <div class="card-foot"><span>13 code · 33 notes</span><span class="open">打开走读 →</span></div>
+        </a>
         <a class="card" href="epic5-story3-dedup-recycle-reingest.html" data-epic="5" data-search="5.3 去重 sha256 内容 hash 两段式 批量 回收站 彻底删除 purge 重入库 ready reingest" style="--card-accent:#0369a1">
-          <div class="card-top"><span class="card-no">Story 5.3</span><span class="status">review · P2</span></div>
+          <div class="card-top"><span class="card-no">Story 5.3</span><span class="status">done · P2</span></div>
           <h3>资源批量：去重 / 两段式 / 回收站 / 重入库</h3>
-          <p>SHA-256 去重门、客户端预检 + 服务端复核、整批先归档再 ingest、回收站与彻底删除、ready 原子替换。</p>
-          <div class="tags"><span>SHA-256</span><span>两段式</span><span>回收站</span><span>重入库</span></div>
-          <div class="card-foot"><span>20 code · 55 notes</span><span class="open">打开走读 →</span></div>
+          <p>SHA-256 去重门、客户端预检 + 服务端复核、整批先归档再 ingest、已删除筛选与彻底删除、ready/失败重试与原子替换。</p>
+          <div class="tags"><span>SHA-256</span><span>两段式</span><span>已删除</span><span>重入库</span></div>
+          <div class="card-foot"><span>22 code · 65 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic5-story4-codebases.html" data-epic="5" data-search="5.4 代码库 codebase zip 上传 文件树 manifest yauzl 预览 range get 硬删 sandbox 不解压" style="--card-accent:#6d28d9">
+          <div class="card-top"><span class="card-no">Story 5.4</span><span class="status">done · P2</span></div>
+          <h3>代码库 ZIP：文件树与预览</h3>
+          <p>独立 codebases 域、不解压不执行、manifest 持久化、S3 range 按需读条目、纯文本预览、硬删。</p>
+          <div class="tags"><span>ZIP</span><span>manifest</span><span>range GET</span><span>nosniff</span></div>
+          <div class="card-foot"><span>15 code · 39 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="epic" id="epic-7">
+      <header class="epic-head">
+        <span class="epic-no">EPIC 07</span>
+        <h2>评测 — 先把连接接起来</h2>
+        <p>7.0 评测连接：默认主库、可选隔离库；7.1–7.4 题集/运行/对照/答案评测待做。</p>
+      </header>
+      <div class="cards">
+        <a class="card" href="epic7-story0-eval-connection.html" data-epic="7" data-search="7.0 评测 eval 连接 共享 主库 隔离 库 ragdb_eval pgpool seed health trace 徽标 shared isolated" style="--card-accent:#4f46e5">
+          <div class="card-top"><span class="card-no">Story 7.0</span><span class="status">done · Epic 7</span></div>
+          <h3>评测连接：默认主库 / 可选隔离库</h3>
+          <p>EvalAssembly 选 repo；shared 复用主库、isolated 第二个 pgpool；route 前缀 trace、health eval 组、页头徽标、建库/seed 工具。</p>
+          <div class="tags"><span>shared</span><span>isolated</span><span>ragdb_eval</span><span>seed</span></div>
+          <div class="card-foot"><span>19 code · 57 notes</span><span class="open">打开走读 →</span></div>
         </a>
       </div>
     </section>
@@ -632,7 +664,7 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
 
   <footer class="footer">
     <span>Knowledge Copilot · Story Walkthroughs</span>
-    <span>2026-10-26 · 15 pages · 14 diagrams · iframe embedded</span>
+    <span>2026-10-28 · 19 pages · 14 diagrams · iframe embedded</span>
   </footer>
 </div>
 
