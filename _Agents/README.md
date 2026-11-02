@@ -1,6 +1,6 @@
 # _Agents/ 目录地图
 
-> 最后核对：2026-10-28。**P1 已收口**（Epic 1–3 全 `done`）；Epic 5（P2 文件 / 存储）已收口，Epic 4 · 4.1 暂缓；**Epic 7（评测，Langfuse 载体）2026-10-28 已立、未开工**；文档以工作区为准。
+> 最后核对：2026-10-29。**P1 已收口**（Epic 1–3 全 `done`）；Epic 5（P2 文件 / 存储）已收口，Epic 4 · 4.1 暂缓；**Epic 7（评测）进行中：7.0 `done`，7.1–7.4 均 `review`；Epic 8（P2 收尾 Agent 工具箱）已立，`backlog`**；文档以工作区为准。
 > 新会话的阅读顺序：`AGENTS.md` → 本文件 → `implementation-artifacts/sprint-status.yaml` → 最新 `handoff-*.md` → `planning-artifacts/epics.md` → `implementation-artifacts/deferred-work.md` 的去向索引。
 
 ## 一、权威源（改之前先看这里）
@@ -10,7 +10,7 @@
 | `planning-artifacts/prds/prd-dev-2026-10-09/` | PRD（P1 范围 + P1–P5 路线图）、addendum（技术选型 / 格式 backlog / 阶段映射）、`.memlog.md`、评审 rubric |
 | `planning-artifacts/architecture/architecture-dev-2026-10-15/` | 现行架构脊（AD-1…AD-11）、`.memlog.md`、`reviews/` |
 | `planning-artifacts/epics.md` | Epic / Story 计划；P2 的 `OQ-4.x-n` / `OQ-5.x-n`、Epic 7 的 `OQ-7.x-n` 在这里 |
-| `planning-artifacts/specs/` | 少数专题 spec（代码图 / 文档代码图），不是每个 story 都有 |
+| `planning-artifacts/specs/` | 少数专题 spec（代码图 / 文档代码图 / 自由组件设计器），不是每个 story 都有 |
 | `implementation-artifacts/sprint-status.yaml` | story 状态 + Epic 1 retro 的 action items |
 | `implementation-artifacts/deferred-work.md` | 延后项；**先看顶部「去向索引」**，批次正文只放证据 |
 | `AGENTS.md` | 协作规则、代码风格、范围红线、文档索引 |
@@ -19,22 +19,24 @@
 
 | 目录 / 文件 | 放什么 |
 |---|---|
-| `implementation-artifacts/handoff-*.md` | 按会话的交接；最新是 `handoff-2026-10-27-epic5-story2-archive-ingest.md` |
+| `implementation-artifacts/handoff-*.md` | 按会话的交接；最新是 `handoff-2026-10-28-epic7-story0-eval-connection-opening.md` |
+| `implementation-artifacts/deployment-topology-2026-10-29.md` | 部署目标拓扑（4 机 + SaaS、端口、三条路径、已实测约束、未决项）；规划态，未落码 |
+| `implementation-artifacts/review-2026-10-26-epic5-story1.md` | Story 5.1 的 code review（MinIO 适配器） |
 | `implementation-artifacts/review-2026-10-24-docs.md` | 2026-10-24 文档集评审（P2 重点） |
 | `implementation-artifacts/review-2026-10-24-epic3.md` | Epic 3 四镜头 code review（收口依据） |
 | `implementation-artifacts/review-2026-10-21-epic2-findings.json` | Epic 2 review 原始 48 条（仍被 deferred 引用） |
 | `implementation-artifacts/spec-2-6-retrieve-as-tool.md` | Story 2.6 的实现 spec（已交付，仍作证据） |
 | `implementation-artifacts/trace-coupling-explainer.html` | trace 耦合的一次性解释页（不是 story 走读页） |
 | `implementation-artifacts/frontend-deferred.md` | 前端 open 项 + 已拍过的决策记录 |
-| `walkthroughs/` | 每个 story 收口的 HTML 走读页（每页含一张 archify 交互图 iframe，可点节点看语义护照）；主入口 `walkthroughs/index.html`；`.runs/` 是生成记录；交互版在 `walkthroughs/diagrams/`，生成源在 `.archify/` |
+| `walkthroughs/` | 每个 story 收口的 HTML 走读页（23 页；P1 的 14 页含 archify 交互图 iframe，Epic 4/5/7 以代码走读为主）；主入口 `walkthroughs/index.html`；`.runs/` 是生成记录；交互版在 `walkthroughs/diagrams/`，生成源在仓库根 `.archify/` |
 | `app/web/Agent/summary/` | 前端当前轮总结；历史轮在 `app/web/Agent/legacy/summary/` |
-| `LEARNING.md` | 按 story / 轮次的学习沉淀 |
+| `LEARNING.md` | 按 story / 轮次的学习沉淀；纯前端轮次在 `app/web/LEARNING.md` |
 
 ## 三、历史 / 参考（不再改，只作证据）
 
 | 目录 | 放什么 |
 |---|---|
-| `legacy/handoffs/` | 2026-10-12 ~ 10-15 的旧交接 |
+| `legacy/handoffs/` | 2026-10-12 ~ 10-15 的旧交接，以及 10-26 的 Epic 6 kickoff（Epic 6 已取消）；当前交接在 `implementation-artifacts/` |
 | `legacy/reviews/` | 2026-10-13 / 10-14 的 code review、前端 review、epics 文档评审 |
 | `legacy/specs/` | 已落地的基础层迁移 spec |
 | `legacy/architecture/architecture-dev-2026-10-09/` | 第一版架构脊（v1；AD 编号与 v2 不同号同义） |
@@ -45,11 +47,12 @@
 
 - **P1**：Epic 1（4 story）、Epic 2（6 story）、Epic 3（4 story，P1.x 观测支线）全部 `done`。
 - **P2**：Epic 5（文件 / 存储，5.1–5.4）`done`；Epic 4（画像 / 渲染）`backlog`，4.1 暂缓（`OQ-4.1-1..3` 未决）。
-- **Epic 7（评测）**：2026-10-28 立格，`backlog`；7.1–7.3 方向级 + `OQ-7.x-n` 待逐条收口；载体 Langfuse Datasets / Experiments，不自建 eval 表 / 面板。
-- **代码**：`app/server` 最新 `efa728f epic5`、`app/web` 最新 `571464e epic5`、外层最新 `c29634a epic5`；两侧仍有未提交改动，以各自 `git status` 为准。
+- **Epic 7（评测）**：`in-progress`；7.0 评测连接 `done`（2026-10-28，默认共享主库、可选隔离库），7.1 题集与配置 / 7.2 发起运行 / 7.3 对照与基线 / 7.4 答案评测均 `review`（实现 + 真跑完成，待浏览器验收；`OQ-7.1-1..5`、`OQ-7.2-1..10`、`OQ-7.4-1..6` 已收口）。载体为本地表 + 自建 `/evals` 三页面板；Langfuse 仍只做 trace 观测。
+- **Epic 8（Agent 工具箱，P2 收尾）**：`backlog`；两只只读工具 `resource` / `codebase` + `meta`（只改当前会话标题），文件引用走正文内 `file:` chip；六格（8.1 底座 + resource，再拆 A–D 四子格 → 8.2 前端通用 tool-call 行 → 8.3 codebase → 8.4 meta → 8.5 文件 chip + 抽屉 → 8.6 收口）；全部 OQ 已收口。
+- **代码**：外层最新 `8ca7787 epic7`、`app/server` 最新 `136857e epic7`、`app/web` 最新 `571464e epic5`；7.0 的后端与前端改动仍在内层未提交面，以各自 `git status` 为准。
 - **Epic 3 已知问题**：收口时未修，清单在 `review-2026-10-24-epic3.md` 与 `deferred-work.md` 的「P3 · 观测硬化」行。
-- **文档**：`_Agents` 下有未提交改动（含 Epic 7 立格）；提交前先看 `git status`，别把 `.DS_Store` / 临时产物带进去。
-- **下一步**：开 Epic 7 · 7.1 的开工清单（`OQ-7.1-1..4`）；Epic 4 仍等 4.1 解冻。
+- **文档**：`_Agents` 外层改动已随 `8ca7787 epic7` 提交；2026-10-28 整理又更新了 `AGENTS.md`、`prd.md`、本文件、`deferred-work.md` 的评测口径，并把 `.DS_Store` 移出 git 跟踪（`.gitignore` 早有规则）。
+- **下一步**：7.1–7.4 等 Lynx 浏览器验收后转 `done`；Epic 8 待 Lynx 放行 8.1（先收口 `OQ-8.1-1..5`）。Epic 4 仍等 4.1 解冻。
 
 ## 五、一条规则
 

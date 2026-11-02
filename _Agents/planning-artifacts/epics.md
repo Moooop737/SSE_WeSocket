@@ -18,6 +18,8 @@ inputDocuments:
 
 **2026-10-28：立 Epic 7「评测（eval）」**，定位为 P3 前置工程支线（Lynx 拍）；载体当天从 Langfuse Datasets / Experiments 改为**本地表 + 自建 `/evals` 面板**；旧 Epic 6（文件 URI）已于 2026-10-27 取消并折回 Story 5.2，本文件不复用该号。
 
+**2026-10-29：立 Epic 8「Agent 工具箱」**（Lynx 拍），P2 最后一个 epic、纯增量：给 agent 加 `resource`、`codebase` 两只只读工具与 `meta`（只改当前会话标题）一只低风险写工具，并把工具层做成可扩展形状，为 P3 Agent loop 铺路。loop 编排、联网工具、AST、其他写操作、代码 RAG 都不在本格；`stopWhen(5)` 保持不动。
+
 > **AD 编号口径**：本文件提到的 AD-1…AD-11 一律指 2026-10-15 版 SPINE。v1 已归档，同号不同义（例：v2 AD-11 才是本地安全边界）。
 
 ## Requirements Inventory
@@ -107,9 +109,14 @@ inputDocuments:
 ### Epic 7: 评测（eval）（P3 前置工程支线）
 **Covers:** 无新增 P1 FR；本地表 + 自建 `/evals` 面板，把 SM-2 的人工抽样升级为可复现指标，为 P3 Agent loop / 联网工具改动提供前后对照
 
+### Epic 8: Agent 工具箱（P2 收尾）
+**Covers:** 无新增 P1 FR；给 agent 扩两只只读工具（`resource` / `codebase`）+ 一只会话改名工具（`meta`），并把工具层做成可扩展形状，为 P3 Agent loop 铺底
+
 > **2026-10-24 追加**：Epic 4/5 为 P2 方向级条目；本文件只写到方向与未决项，详细 AC 在 story 开工前再补。Epic 3 收口后再开工。
 >
 > **2026-10-28 追加**：Epic 7 为 P3 前置工程支线（评测），同为方向级；每格开工前按 §二 收口 `OQ-7.x-n` 并补详细 AC。
+>
+> **2026-10-29 追加**：Epic 8 为 P2 最后一个 epic（纯增量），详细 AC 已写在本节；每格开工前只需收口对应的 `OQ-8.x-n`。
 
 ---
 
@@ -387,11 +394,11 @@ So that 先能回答“哪个端点、多久、成没成”，不用为每个端
 
 **Given** 迁移已执行
 **When** 查 `traces` 表
-**Then** 迁移已落好 `traces`：`trace_id`（text 主键）、`session_id`、`resource_id`、`route`、`http_status`、`started_at`、`ended_at`、`duration_ms`、`status`、`error_code`、`langfuse_trace_id`、`created_at`、`payloads`（2026-10-22 增）
+**Then** 迁移已落好 `traces`：`id`（uuid PK；2026-10-22 由 `trace_id` 改名，2026-10-30 由 text 收窄为 uuid）、`session_id`、`resource_id`、`route`、`http_status`、`started_at`、`ended_at`、`duration_ms`、`status`、`error_code`、`langfuse_trace_id`、`created_at`、`payloads`（2026-10-22 增）
 **And** `session_id` 与 `resource_id` 是请求级关联键：chat 填前者、ingest 填后者，其余为 null，不在明细表重复
 **And** `route` 存 `METHOD + 匹配到的路由模板`（如 `POST /chat`、`POST /resources`、`GET /resources`、`POST /retrieve`），不存带 id 的原始 path
 **And** 没有 `observation_kind`/`parent_observation_id`/`attributes`；3.1 只写公共行，3.2/3.3/3.4 只写明细，不再建表/加列
-**And** 索引：`(started_at desc)`、`(session_id, started_at desc)`、`(resource_id, started_at desc)`、`(route, started_at desc)`；`trace_id` 是 text（UUID 或 OTel 32 位 hex）
+**And** 索引：`(started_at desc)`、`(session_id, started_at desc)`、`(resource_id, started_at desc)`、`(route, started_at desc)`；`trace_id` 2026-10-30 由 text 收窄为 uuid（OTel 32 位 hex 只存 `langfuse_trace_id`）
 
 **Given** 任意非跳过前缀的请求（`/health`、`/traces`、`/trace`、`/observability`、`/doc`；未匹配到 handler 的路径也不记）
 **When** 请求进入
@@ -476,7 +483,7 @@ So that 我能按 `dimension_check → embed_query → vector_recall → bm25_re
 
 **Given** 迁移已执行
 **When** 查 `trace_stages` 表
-**Then** 列：`id`（uuid PK；原 `trace_stage_id`，2026-10-22 主键统一改名）、`trace_id`（text FK）、`stage`（text）、`input`（jsonb）、`output`（jsonb）、`duration_ms`（integer）、`status`（text）、`created_at`（timestamptz）
+**Then** 列：`id`（uuid PK；原 `trace_stage_id`，2026-10-22 主键统一改名）、`trace_id`（uuid FK；2026-10-30 由 text 收窄）、`stage`（text）、`input`（jsonb）、`output`（jsonb）、`duration_ms`（integer）、`status`（text）、`created_at`（timestamptz）
 **And** 本 story 只服务 `POST /retrieve`；`stage` 至少覆盖 `dimension_check|embed_query|vector_recall|bm25_recall|rrf_fusion`；索引 `(trace_id, created_at)`
 **And** 不落 `pipeline`/`attempt`：`trace_id` join `traces.route` 就知道是 retrieve；`/retrieve` 一次请求只有一条检索流水线
 **And** `input/output` 是阶段专用 payload：不写 chunk 正文、不写完整 embedding 向量；形状按下表固定
@@ -628,40 +635,87 @@ So that 入库慢/失败时能直接看到停在哪一段、每段产出了什�
 ### Story 4.4: 聊天 Markdown 渲染器
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-29 收口）:**
+
+**Given** 一条助手回答含标题 / 列表 / 粗体 / 链接 / 行内码 / 围栏代码 / 表格 / 引用块
+**When** 渲染
+**Then** 结构按 GFM 渲染；用户消息与 reasoning 仍是纯文本
+**And** 不解析 raw HTML（模型写的 `<script>` / `<img>` 不执行、不加载）
+**And** 链接渲染为 `target="_blank" rel="noopener noreferrer"`；图片只留 alt / 链接，不发起远程请求
+**And** 单换行按硬换行渲染（`remark-breaks`），与 as-built「每行一段」的观感一致
+
+**Given** 正文里的 `[n]` 与 `[8 位 chunkId]`
+**When** 渲染
+**Then** 仍是同一套引用按钮：按首次出现顺序编号、数字名次不跨轮、8 位 id 可跨轮；点开仍是引用浮窗
+**And** 围栏代码块与行内码里的 `[n]` **不算引用**（不出现按钮、不进右栏、不参与编号）
+**And** 代码块内的 Markdown 语法原样显示（不被当格式解析）
+
+**Given** 回答仍在流
+**When** 每帧都按整段 Markdown 渲染
+**Then** 半截表格渲染成一张（还不完整的）表、半截围栏渲染成 code，不把 ``` 或反引号漏到屏幕上；流结束后自然收敛成正式结构
+**And** 流式期间引用编号稳定，不因末块解析抖动而重排
+
+**Given** 一条 ` ```mermaid ` 围栏且流已结束
+**When** 渲染
+**Then** 懒加载 mermaid 渲染成图（初始化 `securityLevel: 'strict'` **且 `htmlLabels: false`**，不加载远程资源）
+**And** 图源里出现 `htmlLabels` / `securityLevel` 的覆盖（`%%{init}%%` 或 frontmatter）→ 不渲染，回退代码块
+**And** 产物里出现 `foreignObject` / `<img>` / `<image>` / `on*=` / `javascript:` → 回退代码块
+**And** 解析 / 渲染失败时保留代码块 + 一行「无法渲染此图」
+**And** 图旁有「导出 JPEG」（2026-10-29 Lynx 要）：按 2 倍栅格、单边封顶 4096px，先铺 `--color-canvas` 底色（跟随浅深档）再画，quality 0.92，文件名取会话标题；失败显示「导出失败」
+
+**And** 其他围栏仍是代码块（语法高亮不在本格）
+
+**And** 以上都有 jsdom 用例钉住（代码里的标号、raw HTML、单换行、半截块）；浏览器观感归 Lynx 手测
 
 **方向**
-- 回答正文改为 Markdown 渲染：GFM 表格、列表、代码块、标题、链接；用户消息与 reasoning 仍按纯文本。
-- 引用规则沿用现状并在本格补齐：`[n]` 与 `[8 位 chunkId]` 都认、按正文首次出现顺序编号、数字名次不跨轮、8 位 id 可跨轮。**代码块与行内码里的标号不算引用是目标行为**——as-built 的 `plain()` 目前会保留代码内容，Build 1 要补解析规则并加用例钉住。
-- 安全默认：不启用 raw HTML；链接加 `target`/`rel`；远程图片不加载（只留 alt/链接）。
-- 流式期间最后一段可能是不完整 Markdown（半截表格/围栏）：未结束时按纯文本或容错渲染，结束后再解析。
-- Build 1 先做 citation 自定义节点的尖刺，再决定插件实现。
+- 渲染器 **react-markdown + remark-gfm + remark-breaks**（2026-10-29 Lynx 拍；实测约 50KB gz）。
+- Mermaid 用**官方 mermaid**（2026-10-29 Lynx 拍）：按图种动态 import 懒加载；初始化 `securityLevel: 'strict'` **且 `htmlLabels: false`**。Build 1 实测：只设 strict 时 label 里的 `<img src="https://…">` 会被保留并真的发起远程请求，`%%{init:%%}` 与 frontmatter 都能把 `htmlLabels` 改回 true（两次都命中 `evil.example`）——所以按上面 AC 的三道闸执行；`htmlLabels: false` 下渲染约 30ms 且无 `<img>` / `<foreignObject>`。
+- 引用节点方案（OQ-4.4-1 的尖刺）：remark 插件把标号变成 `[n](citation:n)` 链接，`components.a` 识别 `citation:` 协议渲染成现有按钮；`urlTransform` 放行该协议（react-markdown 默认只放行 http(s)/irc(s)/mailto/xmpp，已扒包确认）。尖刺不通过则退回"按段落切分、标号单独替换"。
+- 回答正文的 `citedHits` 改为**跳过代码节点**的 Markdown 感知实现（纯函数，可单测），`/ask` 的右栏与气泡共用它。
 
 **Depends:** 无（与画像独立）
 
 **Open questions:**
-- `OQ-4.4-1` 自定义 citation 节点能否稳定穿过 react-markdown 的 `components` 映射。
-- `OQ-4.4-2` 单换行是否保留（`remark-breaks`）。
-- `OQ-4.4-3` 图片、脚注、任务列表是否进入首期。
-- `OQ-4.4-4` 流式半截 Markdown 的渲染策略（纯文本兜底 / 容错解析）。
+- `OQ-4.4-1` → **已拍板 2026-10-29**：按上面的 "citation: 链接 + components.a" 方案做 Build 1 尖刺。
+- `OQ-4.4-2` → **已拍板**：保留单换行（remark-breaks）。
+- `OQ-4.4-3` → **已拍板**：任务列表随 GFM 进首期；脚注不进首期（转 deferred）；图片不加载、只留 alt / 链接。
+- `OQ-4.4-4` → **已拍板（Build 1 实测 2026-10-29）**：整段每帧 Markdown（349 字符实测 0.44ms/次）。半截表格直接渲染成表、半截围栏直接渲染成 code，不露反引号；"已完成块 + 末块纯文本"反而会把 ``` 漏在屏幕上，弃用。
 
-**Deferred:** 语法高亮、数学公式、Mermaid、回答级 Markdown 下载；把回答改成 JSON part / Generative UI（P4）。
+**Deferred:** 语法高亮、数学公式；把回答改成 JSON part / Generative UI（P4）。
 
 ### Story 4.5: 表格渲染与 CSV 下载
 
 **Implements:** P2 能力项
-**Acceptance Criteria:** 待开工前补。
+**Acceptance Criteria（2026-10-29 收口）:**
+
+**Given** 回答里有 GFM 表格且流已结束
+**When** 渲染
+**Then** 表格真渲染（表头 / 对齐 / 单元格内引用按钮与链接照常）；宽表在容器内横向滚，不撑破对话流
+**And** 表头旁有「下载 CSV」；流式期间不出现，流成功结束且表格闭合后才可点
+**And** CSV：UTF-8 BOM；逗号 / 引号 / 换行按 RFC 4180 转义；`= + - @` 开头的单元格前置单引号
+**And** 文件名取第一列表头：去 `/\:*?"<>|` 与控制字符、空白压 `-`、截 40；空或全非法 → `table`
+
+**Given** 一条 ` ```csv ` 围栏且流已结束
+**When** 渲染
+**Then** 解析成表格（首行当表头）并给「下载 CSV」；引号里的逗号 / 换行与 `""` 转义按 RFC 4180 还原
+**And** 解析不了（引号不闭合、中途冒引号、只有一列、超过 300 行）就退回代码块，不猜着修数据；列数不齐原样显示
+**And** 流式期间仍是代码块
+
+**Given** 一条完整回答
+**When** 点「导出 .md」
+**Then** 下载**整条回答的原始 Markdown**（全文，不只是表格），文件名由会话标题清洗得到
+**And** 流式期间不出现该入口
 
 **方向**
-- GFM 表格真渲染；表头旁「下载 CSV」；流式期间不显示按钮，流成功结束且表格闭合后才可下载。
-- CSV 带 UTF-8 BOM、引号/换行转义、文件名取表头；对以 `= + - @` 开头的单元格做公式注入防护（前缀单引号）。
+- CSV 与 .md 都在前端生成（Blob + `URL.createObjectURL`），不落服务端、不进 MinIO。
+- 表格组件从 GFM 渲染出的 hast 节点取单元格文本（下载用纯文本），界面上的按钮与链接不受影响。
 
 **Depends:** 4.4
 
 **Open questions:**
-- `OQ-4.5-1` 首期只做 CSV，还是同时给 Markdown / Excel。
-- `OQ-4.5-2` 是否需要「整条回答导出为 .md」。
-- `OQ-4.5-3` 表头为空/重名/含文件系统非法字符时的文件名规则。
+- `OQ-4.5-1` → **已拍板**：首期只做 CSV；Excel / 其他格式转 deferred。
+- `OQ-4.5-2` → **已拍板（Lynx 2026-10-29）**：要做「整条回答导出 .md」，要求整条都是 Markdown 原文。
+- `OQ-4.5-3` → **已拍板**：文件名规则见上面的 AC。
 
 **Deferred:** 服务端生成文件、落 MinIO、再给下载链接的 artifact 模式。
 
@@ -1094,6 +1148,8 @@ So that 每次运行都引用同一份题集和同一套参数，题集改了也
 > - **前端**：`/evals-cases`、`/evals-configs` 接真接口，改动即落库并刷新；model 下拉读 `/models`；`/evals` 运行视图继续 mock（7.2/7.3 接）。
 > - **Deferred 去向**：多标注者一致性 → 不做；自动出题不经确认 → 未排期。本格不转出其他 deferred。
 
+> **as-built（2026-10-29，review）**：四表迁移已落（主库与 `ragdb_eval` 均 17 applied：`eval_datasets` / `eval_cases` / `eval_configs` / `eval_runs` 骨架）。`repo/eval.ts` + `Repo` 的 eval 段（共享/隔离两套 repo 自动可用）；`/eval` 下 datasets / cases / configs 自定义路由与校验（名称、gold 形状、负例空 gold、model / judge_model 在册、数值范围、数据集有 run 时 409）；`npm run eval:cases:import` 导入 15 条（18 个块级 gold、3 条负例，两库各验一次）；`/evals-cases` 与 `/evals-configs` 接真接口，`/evals` 运行视图仍 mock。后端 24 文件 135 tests、前端 675 tests、build 绿；走读页 `walkthroughs/epic7-story1-eval-datasets.html`。同日双镜头审查后修了后缀匹配、gold 归一化、配置上界、删除竞态与若干前端状态问题（详见 handoff）。关键偏离：`eval_run_configs` / `eval_metric_configs` 合并为 `eval_configs(kind, config jsonb)`（Lynx 2026-10-28 拍）；`baseline_run_id` 不挂外键（循环 FK 令生成的 drizzle schema TS7022）。
+
 ---
 
 ### Story 7.2: 发起检索评测
@@ -1141,7 +1197,26 @@ So that 每次调整检索或模型之后，都有可比的数字。
 - `OQ-7.2-3` 预期 chunk 失效（资源被删、内容改了）→ 跑的时候按 `content_prefix` 校验，对不上记 `expected_chunk_missing`，该条按未命中算并在右栏标出来
 - `OQ-7.2-4` 队列持久化 → **不持久化**：重启时排队中的直接丢，标为已取消；已完成的 run 不受影响
 
+- `OQ-7.2-5` 逐条结果存储 → **`eval_runs.results jsonb`**（每项 `{case_key, negative, rank, matched, total, recall, mrr, missing_gold, duration_ms, error}`）；聚合与 7.3 对照在读取时算，不建 `eval_run_cases` 表
+- `OQ-7.2-6` 每 run 参数 → 给 `SearchOptions` 加 `vectorTopK / lexicalTopK / minSimilarity / rrfK`（k 仍是 `limit`）；仍是一只 retriever，`/retrieve` 用缺省
+- `OQ-7.2-7` 运行删除 → 只补后端 `DELETE /eval/runs/:id`（运行中 409「先中止」；删行时清空数据集的 `baseline_run_id`）；前端入口留到 7.3
+- `OQ-7.2-8` 中止 → 在 case 之间检查；已写进 `results` 的行保留
+- `OQ-7.2-9` case 级错误 → 该行记 `error`、按未命中算，run 继续；run 级异常才 `failed`
+- `OQ-7.2-10` 测评配置 → 7.2 只冻结不执行（judge 属 7.4）；`model / temperature` 不参与检索评测，快照里标注
+
 **Deferred:** 自动回归 / CI 门禁 → 后续；vector-only / lexical-only 模式对比 → 未排期。
+
+> **开工清单（2026-10-29，Lynx 拍）**：`OQ-7.2-1..10` 已收口，可进 `in-progress`。详细口径：
+> - **表**：`eval_runs` 加 8 列 —— `run_config_id` / `metric_config_id`（FK → `eval_configs`，`ON DELETE SET NULL`）、`snapshot jsonb`（输入：题集逐条 + 两份配置 + embedding 模型/维度 + 语料计数）、`results jsonb`（输出：逐条数字）、`started_at` / `ended_at` / `duration_ms` / `error_reason`。不建 `eval_run_cases`。
+> - **参数映射**：`k` = 融合后条数；`vector_top_k / lexical_top_k` = 两路候选数；`min_similarity` = 向量阈值；`rrf` = RRF 的 k；`model / temperature` 只记录不生效（检索评测不调 LLM）。
+> - **队列**：进程内单队列、串行；重启时 queued/running → cancelled（启动清扫）；失败不自动重试。
+> - **快照**：POST 时冻结；空数据集 400。
+> - **gold 失效**：`getChunkByDataUri` + `content_prefix` 前缀比对；缺失计入 `missing_gold`、按未命中算。
+> - **API**：`POST /eval/runs`、`GET /eval/runs?dataset_id=`、`GET /eval/runs/:id`、`POST /eval/runs/:id/cancel`、`DELETE /eval/runs/:id`（后端 only）。
+> - **前端**：`/evals` 全接真（数据集/配置下拉、run 历史、1.5s 轮询、逐条结果、四格聚合、详情/快照 + 另存为新配置、取消按钮）；对照 tab 留 7.3 空态；删掉 mock store 与「演示数据」标识。
+> - **Deferred 去向**：自动回归 / CI → 后续；vector-only / lexical-only → 未排期。本格不转出其他 deferred。
+
+> **as-built（2026-10-29，review）**：`eval_runs` 加 8 列（`snapshot` 输入 / `results` 输出 / 时间线 / 错误）；`EvalRunner` 进程内单队列串行、case 之间中止、启动清扫中断 run；`SearchOptions` 四个覆盖位让 run 快照参数落到同一只 retriever；`/eval/runs` 五个端点（发起/列表/详情/取消/删除）；运行页换真数据（1.5s 轮询、取消、逐条结果、详情/快照/另存）。真跑：probe 15 条 → done，recall 75.56% / MRR 53.45% / failed 3 / 18.2s；取消 202 → cancelled 保留 1 条；跑一半重启 → cancelled / 进程重启 保留 2 条；有 run 删数据集 409、删 run 后 204。后端 28 文件 154 tests、前端 85 文件 723 tests、build 绿；走读页 `walkthroughs/epic7-story2-eval-runs.html`。关键取舍：结果存 `results` jsonb（不建明细表）、每 run 参数走覆盖位、运行删除只做后端。
 
 ---
 
@@ -1170,15 +1245,32 @@ So that 改动前后差在哪一眼能看出来，而不用系统替我下结论
 **When** 看数字
 **Then** 系统**不算**「变好 / 退化 / 新增 / 消失」，只把两列数字摆在一起
 
-**Given** 两次 run 的测评配置不同
+**Given** 两次 run 的 case 集合或配置不同
 **When** 并排
-**Then** 明确标出「判法不一致，分数不可直接比」，但数字照登
+**Then** 顶部并排两次 run 的总分（平均 recall / MRR），可直接比较
+**And** 另给「相同条目」的平均分对比：只算两次 run 都有的 case，标出条数
+**And** 不判断判法是否一致，也不出「不可比」提示
 
 **Open questions（已收口）**
 - `OQ-7.3-1` 基线范围 → **每个数据集一个**；换基线是显式动作
 - `OQ-7.3-2` 对照呈现 → 右栏 tab 逐条并排；不做 diff 计算、不做趋势图
 
+- `OQ-7.3-3` 可采纳范围 → **只允许 `done`**；queued/running/failed/cancelled 不可当基线
+- `OQ-7.3-4` 默认 tab → 右栏默认仍是「详情」；进「对照」后基线自动钉住，不用再挑 run
+- `OQ-7.3-5` 当前即基线 → 提示「当前这次就是基线」，不出两列相同数字；采纳按钮隐藏
+- `OQ-7.3-6` 题集不同 → 以当前 run 的 `snapshot.cases` 顺序为准；基线缺的 case 显示「—」；不计算新增/消失
+- `OQ-7.3-7` 判法不一致 → **不做一致性判断、不出黄条**；总分（两次 run 各自全部 case 的平均 recall / MRR）直接并排；另给「相同条目平均」（两次 run 都有的 case）对比并标条数
+- `OQ-7.3-8` 删除入口 → 右栏顶部两步确认（第一下装填、4 秒内再按才真删）；不在左侧 run 行内嵌按钮
+
 **Deferred:** 自动 diff、趋势图、跨数据集对比 → 未排期。
+
+> **开工清单（2026-10-29，Lynx 拍）**：`OQ-7.3-1..8` 已收口，可进 `in-progress`。详细口径：
+> - **API**：`PUT /eval/datasets/:id/baseline`，body `{run_id}`；数据集或 run 不存在 404、run 不属于该数据集 400、run 非 `done` 409；返回 `{dataset}`。
+> - **前端**：对照 tab 拉基线 run 详情，按当前 run 的快照顺序并排 recall；顶部并排两次 run 的总分，另给「相同条目平均」（交集，标条数）；采纳按钮在右栏，仅 `done` 且非当前基线时显示；删除运行入口在右栏顶部。
+> - **徽标**：基线徽标沿用运行列表（`baselineId`）；采纳/删除后重拉数据集、运行列表与详情。
+> - **Deferred 去向**：7.2 转出的运行删除 UI 在本格做（后端已有 `DELETE /eval/runs/:id`，运行中 409）；7.1 转出的 gold 前端挑选/编辑归 7.4 / 未排期；自动回归 / CI 仍为后续；本格 Deferred 全部未排期。
+
+> **as-built（2026-10-29，review）**：后端加 `PUT /eval/datasets/:id/baseline`（只接属于该数据集且 `done` 的 run；数据集/run 不存在 404、归属不符 400、非 done 409），repo 加 `setDatasetBaseline` 并接进 `Repo` 契约。前端对照 tab 拉基线详情，按当前 run 的快照顺序并排 recall；顶部并排两次 run 的总分（全部 case 的平均 recall/MRR），另给「相同条目 · N 条」平均（只算两次 run 都有的 case，不做 diff、不出判法一致性黄条）；当前 run 即基线时给提示且隐藏采纳；右栏新增「采纳为基线」与两步删除运行（第一下装填、4 秒内再按才删，运行中隐藏按钮、后端 409 兜底），删基线 run 后数据集 `baseline_run_id` 由后端自动清空。真跑（隔离库、临时数据集 1 条 case）：run done（recall 100% / MRR 50%）→ 采纳 200；排队中采纳 409 `E_EVAL_RUN_NOT_DONE`；跨数据集采纳 400 `E_EVAL_BASELINE_DATASET`；删基线 run 后 baseline 为 null；临时数据已清理。后端 155 tests（远端库抖动时 9 个失败文件重跑 49/49）、前端 85 文件 727 tests、tsc 0、build 绿；走读页 `walkthroughs/epic7-story3-baseline-compare.html`。
 
 ---
 
@@ -1186,7 +1278,7 @@ So that 改动前后差在哪一眼能看出来，而不用系统替我下结论
 
 **Implements:** 无 FR；服务 SM-2 / NFR-2
 **Depends:** 7.1、7.2
-**状态**：方向级。**整格未收口，不进 `ready-for-dev`。**
+**状态**：已收口（2026-10-29），待 Lynx 放行后进 `in-progress`。
 
 **Acceptance Criteria（方向级）:**
 **And** 每条 case 可写两组断言：必须出现（expect）、必须不出现（reject），全部满足才算通过
@@ -1196,22 +1288,265 @@ So that 改动前后差在哪一眼能看出来，而不用系统替我下结论
 **And** HITL：人判与机器判**并存**，算一致率；一致率低的那类题单独标出来
 **And** 评测跑在隔离会话，不污染正常聊天与统计
 
-**Open questions**
-- `OQ-7.4-1` 断言匹配方式：纯子串（大小写不敏感）/ 支持正则 / 子串 + 可选正则开关
-- `OQ-7.4-2` judge 模型：百炼 qwen-plus（与被评模型 DeepSeek 不同源）是否够用
-- `OQ-7.4-3` rubric 内容与版本约定
-- `OQ-7.4-4` HITL 的录入形态：逐条同意/不同意，还是一致率抽检
-- `OQ-7.4-5` 断言与 judge 的分数怎么合成一条 case 的总判定
+**Open questions（已收口 2026-10-29）**
+- `OQ-7.4-1` 断言匹配 → **子串（大小写不敏感）+ 每条可选正则开关**；断言条目 `{text, regex}`，正则保存时校验可编译
+- `OQ-7.4-2` judge 模型 → **不设默认、不强制不同源**；评测配置显式选任意在册模型，null = 不跑 judge；先做结构化输出 spike
+- `OQ-7.4-3` rubric → **配置存版本名，正文住代码**；建 run 时把版本名 + 解析后的正文一起冻进 snapshot
+- `OQ-7.4-4` HITL → 人可以**改机器分**或**独立打分**；可以**修正错误的题面**（写回 `eval_cases`，当前 run 快照不变）；人判参与最终判定
+- `OQ-7.4-5` 分数合成 → **断言硬门 + 取更严**：有断言必须全过；judge 与人判都存在时两者都 pass 才 pass；只有一个时用它；都没有且无断言 → `unscored`
+- `OQ-7.4-6` run 类型 → **不加列，但发起时可显式选**：`POST /eval/runs` 接受 `mode: retrieval | answer` 并写进快照；不传时按旧规则推断（`judge_model` 非空或任一 case 有断言 → answer）；读路径优先用快照 mode
 
 **Deferred:** 多次采样与置信区间 → 未排期；pairwise 对比 → 后续；人工标注平台 → 不做。
 
-> **Epic 7 · 未决项汇总**：7.4 整格未收口（OQ-7.4-1…5），开工前逐条拍板；7.0–7.3 的 OQ 已全部收口，7.0 已 done、7.1 已进 `ready-for-dev`。
+> **开工清单（2026-10-29，待 Lynx 放行）**：
+> - **表**：`eval_cases` 加 `assertions jsonb`（`{expect, reject}`，条目 `{text, regex}`，默认空）；`eval_runs` 加 `human_results jsonb`（人判覆盖，机器结果保留用于一致率）；`results` 每条扩展 `answer / citations / assertion / judge`。两列迁移，两库同步。
+> - **执行**：answer run 复用 `INSTRUCTIONS` + retrieve 工具，`generateText` 非流式、不写 `sessions` / `messages`；单队列、case 间中止、启动清扫沿用 7.2；judge 失败记行不杀 run。
+> - **judge**：rubric v1 三维 0–2 + `verdict` / `reason`，`Output.object` 结构化输出；spike 覆盖 DeepSeek Flash 与 qwen-plus，记录解析成功率。
+> - **判定**：断言硬门 + 取更严；`unscored` 单列，不计入 pass/fail。
+> - **API**：case 增删改/复制/导入带 `assertions`；`PUT /eval/runs/:id/human` upsert 人判；运行详情返回 `human_results`；`POST /eval/runs` 接受可选 `mode`（2026-10-30 追加：显式选召回/对话，写进快照）。
+> - **前端**：题集页断言编辑（子串/正则开关）；运行页按推断模式切换列与详情；人判编辑 + 修正题面；对照按模式分支，跨模式只提示不并排。
+> - **一致率**：按 level 汇总；低于整体一致率的题组标出，不设绝对阈值。
+> - **Deferred 去向**：多次采样 / 置信区间 → 未排期；pairwise → 后续；人工标注平台 → 不做；gold 前端挑选 → 未排期。
+
+> **as-built（2026-10-29，review）**：`eval_cases.assertions`（`{expect,reject}`，条目 `{text,regex}`）与 `eval_runs.human_results` 两列迁移（两库均 applied）；case CRUD / 复制 / 导入带断言，正则保存时校验。模式用快照推断（`judge_model` 非空或任一 case 有断言 → answer），不加列。答案执行复用 `INSTRUCTIONS` + retrieve 工具走 `generateText`（不写 `sessions` / `messages`），逐条「回答 → 断言 → judge → 合成」；结果扩展 `answer / citations / assertion / judge / verdict`；rubric 版本名住配置、正文住代码，建 run 时连版本带正文冻进 snapshot。人判走 `PUT /eval/runs/:id/human`（按 case_key upsert，机器结果不覆盖），详情读取时重算 `final_verdict`；聚合新增 `summarizeAnswerResults`（断言/judge/人判一致率 + 按 level 汇总，低一致率题组标出）。前端：题集页断言编辑（子串/正则）、运行页按模式切换列与详情（回答/引用/断言/judge/人判）、修正题面写回题集、对照按模式分支（跨模式不并排）。真跑（隔离库、1 条 case）：37s done，回答 `0.42`、引用 5；断言过；judge 因回答没带 `[n]` 判 citation=0 → fail；人判 pass→fail 覆盖后一致率与 level 汇总正确；临时数据清理 204。后端 166 tests、前端 86 文件 735 tests、tsc 0、build 绿；走读页 `walkthroughs/epic7-story4-answer-eval.html`。
+
+> **Epic 7 · 未决项汇总**：7.4 的 `OQ-7.4-1..6` 已收口（2026-10-29），待 Lynx 放行；7.0 已 done、7.1–7.3 均 `review`。
+
+> **Code review（2026-10-29）**：Epic 7 全量 review 完成，findings 见 `_Agents/implementation-artifacts/review-2026-10-29-epic7.md`（D1–D3 已拍板转 patch；21 patch 已于 2026-10-30 全部落码 / 21 defer / 28 rejected）。
+
+---
+
+## Epic 8: Agent 工具箱（P2 收尾，为 P3 Agent loop 铺路）
+
+> **2026-10-29 立格（Lynx 拍）**：P2 最后一个 epic，纯增量。目标不是做 loop，而是把「工具」这一层从单只扩到一组，并做成可扩展形状：P3 的 Agent loop 接上后，加工具不必再改机器。
+>
+> **边界**：两只只读工具 —— `resource`（知识库）与 `codebase`（代码库）；一只低风险写工具 —— `meta`（只改当前会话标题）。不碰其他写操作（资源/代码库改名、删除、主题/导航）、联网工具（P3 主线）、AST（未排期）、代码 RAG / 代码图；loop 编排与步预算调整不在本格，`stopWhen(5)` 保持不动。
+>
+> **引用边界**：`[n]` 引用仍只来自 `retrieve` 命中的 chunkId 前 8 位；`resource` / `codebase` 的文件用**正文内可点击的文件 chip** 引用（`file:` 链接，灰底 + 图标 + 文件名.扩展名，点开右侧抽屉看内容），不挂 `[n]`。OQ-8.1-1 已按此收口（2026-10-29）。
+>
+> **与 Epic 7 的关系**：不改评测的指标与表；答案评测**共用同一套 `buildAgentTools`**（无会话上下文，不下发 `meta`），Epic 8 收口时重跑一次并采纳为新基线（OQ-8.1-2 已收口，2026-10-29）。Epic 7 review 的「eval 直接 import agent 内部文件」项，2026-10-30 选了「扩展 registry 函数」方案后仍然存在，留到 retriever 层重写时一并处理。
+
+### 三只工具的最终契约（2026-10-29 拍）
+
+```ts
+resource({
+  ref: string,                 // UUID 或文件名（title / data_uri 原始文件名 / source 三面匹配）
+  lines?: [number, number][]   // 闭区间、1-based、可多段；不给 = 前 80 行预览
+})
+→ {
+  resource?: { id, title, fileName, source, status, content_type, size, created_at, updated_at, error_reason, chunkCount, ref }
+  candidates?: [{ id, title, fileName, source, status, created_at, ref }]
+  content?: { segments: [{ fromLine, toLine, text }], totalLines, truncated }
+  error: { code, message } | null
+}
+
+codebase({
+  ref?: string,                // 省略：只查清单→回 refs；带 path/match→用最新 ready 库
+  path?: string,               // 目录=列条目；文件=读正文；配合 match=搜索范围
+  match?: string,              // 字面量、大小写不敏感 → [{ path, fileName, line, text, ref }]
+  lines?: [number, number][]   // 仅读文件时有效
+})
+→ {
+  refs?: [{ id, title, original_filename, status, created_at }]
+  codebase?: { id, title, original_filename, status, file_count, size }
+  entries?: [{ path, is_dir, size }]
+  matches?: [{ path, fileName, line, text, ref }]
+  file?: { path, fileName, entryIndex, ref, totalLines, segments, truncated }
+  candidates?: [{ codebase: { id, title }, path }]
+  error: { code, message } | null
+}
+
+meta({
+  title: string                // 本会话的新标题（trim 后 1..30 字符）
+})
+→ {
+  sessionId: string
+  title: string
+  error: { code, message } | null
+}
+```
+
+> `meta` 的 `sessionId` 由 `buildAgentTools` 按请求参数绑定，模型不传；无会话上下文（如评测答案跑）时不下发这只工具。
+>
+> `resource` / `codebase` 的 `ref` 形如 `file:resource/<id>` / `file:codebase/<id>/<entryIndex>`；模型引用时写 `[fileName](ref)`，前端把 `file:` 链接渲染成文件 chip。ref 由工具给，模型不得自造。
+
+**实测依据（2026-10-29）**
+
+- 块能无损拼回原文：主库 45 篇、连续块间 **0 空隙**、重叠 ≤80 字符；`text.slice(start_offset,end_offset) === content` 是分块器不变量。
+- 现有代码库 1 个：`SSE_WeSocket-code-2026-10-27`，1493 条目（347 目录），9.2MB，`ready`；路径带根前缀 `SSE_WeSocket/`。
+- `match` 必须整包取回内存扫：逐条目 Range GET 会变成约 1493 次请求（5.4 踩过同类坑）。
+- 资源原文：URL 资源归档的是 HTML，chunks 上才是解析后文本；粘贴/上传文件原文 = 解析文本 ⇒ 行号一律以 chunks 铺回的文本为准。
+- 会话标题当前只走 hono-crud `PATCH /sessions/:id`；Repo 没有 `updateSessionTitle`，需要在 adapter/repo 补一个方法。
+- 前端会话标题住本地 store + PATCH；agent 改名后需要前端监听 `tool-meta` part 做本地同步，否则侧栏仍旧名。
+
+**Epic 级 DoD**
+
+**And** /chat 里模型能自己调用 `resource` 与 `codebase`，工具 part 在界面上可见。
+**And** 工具错误一律 return `{code,message}`、不 throw；正文按行截断；输出同形给模型与前端。
+**And** retrieve 的输入 / 输出 / 引用 / 右栏行为不变。
+**And** INSTRUCTIONS 列出四只工具及使用条件，引用规则不松动。
+**And** 前端能渲染任意 `tool-*` part（未知工具兜底），retrieve 专属视图保留。
+**And** 正文里的 `file:` 引用渲染成灰底文件 chip，点击打开资源 / 代码库文件抽屉；未知 ref 原样显示。
+**And** `meta` 只在有会话上下文时出现；改名后侧栏 / 页头标题即时更新，刷新后仍在。
+**And** 评测口径按 OQ-8.1-2 落定，收口时跑一次基线。
+
+---
+
+### Story 8.1: 工具面底座 + `resource` 工具
+
+**Implements:** 无新增 P1 FR；P2 收尾能力项（agent 工具面 + 知识库读取）
+
+**Story 拆分（2026-10-29，Lynx 拍；sprint 里各占一条）**
+
+| 子故事 | 范围 | 验收 |
+|---|---|---|
+| **8.1-A** 契约 + Repo + `resource` 核心 | `agent/tool/contracts.ts` 类型；`Repo.listChunksByResource`；定位 / candidates / 行切片 / 块拼回 / 错误契约 | 单测覆盖定位、行区间、拼回、错误；tsc 0 |
+| **8.1-B** registry 多工具 + 接线 | `buildAgentTools(Retriever, Repo, Options)` 返回 `{retrieve, resource}`；ChatService 按请求调用，eval 传自己世界的两份；retrieve 回归 | 真跑一轮 retrieve，hits / 引用 / 右栏不变 |
+| **8.1-C** INSTRUCTIONS 工具目录 | `retrieve` + `resource` 的使用条件（`file:` ref 规则并入 8.5） | prompt 审阅 + 真跑一次模型会调 resource |
+| **8.1-D** 单测 + 真跑 | UUID / 文件名 / 两段区间；retrieve 回归；全量测试 | 8.1 可验收 |
+
+**Acceptance Criteria**
+
+- **[B]** `buildAgentTools(Retriever, Repo, Options)` 改为多工具装配（`retrieve` + `resource`），Retriever/Repo 由调用方按请求传入；ChatService 每请求调用，不再在构造期烧死工具表。
+- **[B]** `eval/answer` 仍复用 `buildAgentTools`（函数边界）；`answerCase` 增加 `Repo` 参数，评测传自己世界的 Retriever/Repo（无会话上下文，不下发 `meta`），8.6 重跑基线（OQ-8.1-2 已收口）。Epic 7 review 的 AD-1（eval 直接 import agent 内部文件）继续留着，等 retriever 层重写时处理。
+- **[A]** `resource` 定位：UUID 精确命中；否则在 `title` / `data_uri` 原始文件名 / `source` 三面做大小写不敏感子串匹配；多命中回 `candidates`（id/title/source/status/created_at），不读正文。
+- **[A]** 只给 `ref`：回 metadata（含 `chunkCount`、`fileName`（data_uri 原始文件名，含扩展名）与 `ref`=`file:resource/<id>`）+ 前 80 行预览（`content` 非 null，`truncated` 表示是否还有更多）；给 `lines` 时只回请求区间。
+- **[A]** `lines` 为闭区间数组：先按起点排序、合并重叠/相邻段；越界 clamp 到 `[1,totalLines]`；段数 ≤10、单次总行数 ≤300，超出按段序截断并标 `truncated`。
+- **[A]** 正文用 chunks 按 `chunk_index` + `start_offset` 铺回原文；`text` 带行号前缀，`totalLines` 为全文行数。
+- **[A]** 非 `ready` → metadata + `E_NOT_READY`；不存在 → `E_RESOURCE_NOT_FOUND`；软删资源不可见。
+- **[A]** 工具内所有预期错误 return `{code,message}`，不 throw；非预期 bug 记 `E_TOOL_RESOURCE` 日志后照旧抛。
+- **[C]** `INSTRUCTIONS` 改为工具目录式：本格先写 `retrieve` + `resource` 的使用条件（何时从 retrieve 升级到 resource、`lines` 闭区间、多候选收窄、错误与无命中分开），后续 story 加工具时同步追加；引用规则保持「[n] 只来自 retrieve hit 的 chunkId 前 8 位」。`file:` ref 规则并入 8.5，等 chip 渲染器落地再加。
+- **[D]** 真跑：UUID 与文件名各一次、两段行区间；retrieve 一轮问答与改动前一致（hits / 引用 / 右栏）；tsc 0、后端测试全绿。
+
+**Open questions（开工前收口）**
+
+- OQ-8.1-1：**已收口（2026-10-29）**：`resource` / `codebase` 的文件用正文内 `file:` chip 引用（灰底 + 图标 + 文件名.扩展名，可点击），不挂 `[n]`；`[n]` 仍只来自 retrieve。
+- OQ-8.1-2：**已收口（2026-10-29）**：答案评测与 chat 共用新工具集（无会话不下发 `meta`）；8.6 收口时重跑一次并采纳为新基线。
+- OQ-8.1-3：**已收口（2026-10-29）**：前端通用 tool-call 行落在 8.2，不推后。
+- OQ-8.1-4：**已收口（2026-10-29）**：`stopWhen(5)` 保持不动；步预算统一留到 P3 Agent loop 再调。
+- OQ-8.1-5：**已收口（2026-10-29）**：新工具调用只走 AI SDK 遥测的 Langfuse span，不写 `trace_stages`；`/traces` 面板不显示新工具细节。
+
+**Deferred**
+
+- 写工具（建/删/改资源与代码库）→ 未排期；本 epic 只写 `meta` 一处会话标题。
+- 独立 `listResources` → 不做；`resource` 的 metadata / `candidates` 已覆盖。
+
+---
+
+### Story 8.2: 前端通用 tool-call 行
+
+**Implements:** 无新增 FR；前端工具可见性
+
+**Acceptance Criteria**
+
+- `ToolCalls` 对任意 `tool-*` part 渲染一行：工具名、状态（准备参数 / 运行中 / 成功 / 失败）、输入摘要、结果摘要（`resource`：候选数或行区间；`codebase`：条目数 / 匹配数 / 文件行数）。
+- `retrieve` 保留现有专属展开视图（查询词、topK、两路计数、命中标题），行为不变。
+- 未知工具兜底显示可展开的 JSON 摘要，不崩。
+- 右栏引用与 `referencesOf` 不变（仍只读 `tool-retrieve`）。
+- 测试覆盖：通用行三态、`resource` / `codebase` 摘要、未知工具兜底；前端全量测试绿；Lynx 浏览器手测。
+
+**Deferred**
+
+- 工具调用的专属可视化（命中列表 / 文件树 / 代码高亮）→ 未排期；本格只做通用行。
+
+---
+
+### Story 8.3: `codebase` 工具
+
+**Implements:** 无新增 P1 FR；代码库只读访问
+
+**Acceptance Criteria**
+
+- `ref` 省略且无 `path` / `match` → 回 `refs` 清单（id/title/original_filename/status/created_at），按 `created_at` 降序，上限 100。
+- `ref` 省略且有 `path` / `match` → 用最新创建的 `ready` 库；无 ready 库 → `E_NO_CODEBASE`。
+- `ref` 命中：UUID / title / original_filename 子串；多命中回 `candidates`。
+- `path` = 目录（含空串 / 根）→ 直接子项（文件 + 子目录），`entries` 上限 200 + `total`；目录不存在 → `E_DIR_NOT_FOUND`。
+- `path` = 文件 → 正文；精确路径优先，不中按路径后缀 / basename 匹配；多命中回 `candidates`；解码上限 2MB；二进制 → `E_BINARY_FILE`；不存在 → `E_FILE_NOT_FOUND`。返回 `fileName` / `entryIndex` / `ref`=`file:codebase/<id>/<entryIndex>`；`matches` 每条也带 `fileName` / `ref`。
+- `lines` 语义与 `resource` 同一 helper（闭区间、排序合并、clamp、段数/行数上限）。
+- `match`：字面量、大小写不敏感；范围用 `path` 当目录前缀（不给 = 全库）；跳过二进制与单文件 >1MB；回 `[{path,line,text}]`，上限 50 + `total` / `truncated`；整包取回内存扫，ZIP >100MB → `E_TOO_LARGE_FOR_MATCH`。
+- 路径匹配容忍缺少 ZIP 根前缀（现有库根为 `SSE_WeSocket/`）。
+- `INSTRUCTIONS` 增加 `codebase` 的使用条件（何时看代码库、`path` / `match` 怎么传）；引用代码文件时用工具返回的 `ref` 写 `[fileName](ref)`。
+- 真跑现有 1493 条目库：`refs` / `dir` / `file` / `match` 四种读法；记录 `match` 耗时。
+- 工具错误一律 return，不 throw；非预期 bug 记 `E_TOOL_CODEBASE` 后照旧抛。
+
+**Open questions（开工前收口）**
+
+- OQ-8.3-1：**已收口（2026-10-29）**：`match` 做字面量、大小写不敏感；不做正则 / 大小写开关。
+
+**Deferred**
+
+- AST（文件大纲 / 符号搜索）→ 未排期（Lynx 2026-10-29「ast暂时不做了」）。
+- 代码 RAG / 代码图 → 另立 Epic。
+
+---
+
+### Story 8.4: `meta` 工具（会话标题改名）
+
+**Implements:** 无新增 P1 FR；agent 低风险写操作
+
+**Acceptance Criteria**
+
+- `sessionId` 由 `buildAgentTools` 按请求参数绑定，模型不传；无会话上下文（评测答案跑）时不下发 `meta`。
+- `meta` 只改当前会话标题；`title` trim 后 1–30 字符，越界回 `E_BAD_TITLE`；会话不存在回 `E_SESSION_NOT_FOUND`。
+- 写库走新增的 `Repo.updateSessionTitle`（adapter/repo，drizzle update）；不直连 ORM / SQL。
+- 成功返回 `{ sessionId, title }`；失败一律 return `{code,message}`，非预期 bug 记 `E_TOOL_META` 后照旧抛。
+- INSTRUCTIONS 增加 meta 的使用条件：仅在用户明确要求改当前会话标题时调用，不主动改。
+- 前端：收到 `tool-meta` 的 `output-available` 后把本地会话 store 的标题同步为新值（侧栏 / 页头即时更新），不额外发 PATCH；刷新后从服务端读回仍是新标题。
+- 真跑：新建会话 → 让模型改名 → 侧栏即时更新、刷新仍在；「帮我改个标题」应由模型调用 meta，而不是普通文本回答。
+- tsc 0、后端 / 前端测试全绿。
+
+**Open questions（开工前收口）**
+
+- OQ-8.4-1：**已收口（2026-10-29）**：不做审批；会话改名低风险可逆，写工具审批留到 P3 讨论。
+
+**Deferred**
+
+- 其他 meta 动作（主题 / 视效 / 导航等本地 UI 偏好、资源 / 代码库改名、删除）→ 未排期。
+
+---
+
+### Story 8.5: 文件引用 chip + 文件抽屉
+
+**Implements:** 无新增 P1 FR；回答内的文件引用
+
+**Acceptance Criteria**
+
+- `markdown-answer` 的 `AnswerLink` 识别 `file:` 协议：`file:resource/<uuid>` 与 `file:codebase/<uuid>/<entryIndex>`；非法 / 未知 ref 回退成纯文本，与 citation 对不上时同一口径。
+- chip 样式：文件图标 + 文件名.扩展名、灰底、可点击；图标按扩展名映射（md/txt → `text`，代码 → `file`，表格 → `table`，缺省 `file`）。
+- 点击 chip 打开 /ask 右侧抽屉：
+  - resource：标题 + 来源 + 正文；正文按 `GET /resources/:id/chunks` 每页 100 块加载，可继续加载。
+  - codebase：`GET /codebases/:id/files/:entryIndex` 文本，用 `<pre>` 渲染。
+- 抽屉只读；加载中 / 失败有状态；关闭回聊天，不丢当前会话。
+- 流式期间 chip 与引用按钮一样可点（数据来自工具 part 的 ref，不依赖正文完整）。
+- `INSTRUCTIONS`：引用 `resource` / `codebase` 文件必须用工具返回的 `ref` 与文件名，不得自造；`[n]` 仍只用于 retrieve 命中。
+- 测试：ref 解析 / 校验、chip 三态、未知 ref 回退、抽屉两数据源；Lynx 浏览器手测。
+
+**Deferred**
+
+- 点击后按引用行区间高亮 / 居中 → 未排期。
+
+---
+
+### Story 8.6: 收口（组合真跑 + 回归 + 走读页）
+
+**Acceptance Criteria**
+
+- 组合真跑 3 个场景：① 知识库问答里 `retrieve` 命中后用 `resource` 展开全文；② 代码问答走 `codebase` 的 `dir` / `file` / `match`；③ 会话改名走 `meta`，两域混合提问。
+- 回归：retrieve 的 hits / 引用 / 右栏不变；答案评测共用工具集跑一次，并采纳为新基线（OQ-8.1-2）。
+- 后端 / 前端全量测试绿、tsc 0、build 绿。
+- 六份 story 走读页齐全；handoff、LEARNING、sprint-status 对账。
+
+**Deferred**
+
+- 多工具调用的端到端评测题集（跨域 case）→ 未排期；8.5 只做人工组合真跑。
 
 ---
 
 ## P2 · 未决项与后续阶段（2026-10-24）
 
 > 这里只记「不在 Epic 4/5」的能力；逐条的 Open questions 在对应 Story 下。
+>
+> **2026-10-29 更新**：P2 收尾 Epic 8（Agent 工具箱）已立，见上；本节仍记不在 Epic 4/5/8 的能力。
 
 **不在 P2**
 - ~~eval~~ **2026-10-28 立为 Epic 7（P3 前置工程支线）**：本地表 + 自建 `/evals` 面板（原 Langfuse Datasets / Experiments 载体当天推翻），golden set + 检索指标 + LLM judge；范围与 OQ 见上文 Epic 7。
@@ -1221,3 +1556,6 @@ So that 改动前后差在哪一眼能看出来，而不用系统替我下结论
 - 公网下载鉴权（登录 / 退出吊销、请求 IP 绑定、一次性 token、边缘反代）：**P5 部署阶段**；P2 只做私有桶 + tailnet + presigned 直连，不绑 IP、不做 token 表。
 - 代码依赖图分析、代码 RAG：各自另立 Epic。
 - PDF/Word/Excel 等格式、批量上传/后台队列（P3 工程项）。
+
+**P3 工程项**
+- **T1 供应商与模型配置入库**（2026-10-30，Lynx 拍：从临时支线移入 P3；standalone，不进 Epic 列表）：provider / model / API Key / 默认模型从 env 与编译期字面量迁到 DB；Key 用 AES-256-GCM 存密文，独立 `/config` 管理页与 `config:seed`。spec：`_Agents/implementation-artifacts/spec-t1-provider-model-config.md`；状态见 `sprint-status.yaml` 的 `standalone_stories`。

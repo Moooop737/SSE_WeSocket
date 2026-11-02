@@ -2,7 +2,7 @@
 
 2026-10-20 归档。这里只放已被当前文档取代、或只作历史证据的文件；现行索引仍以 `AGENTS.md` §六为准。
 
-- `handoffs/`：2026-10-12 ~ 10-15 的会话交接；当前交接在 `_Agents/implementation-artifacts/`。
+- `handoffs/`：2026-10-12 ~ 10-15 的会话交接，以及 2026-10-26 的 Epic 6 kickoff（Epic 6 已取消，URI 折回 5.2）；当前交接在 `_Agents/implementation-artifacts/`。
 - `reviews/`：2026-10-13 / 10-14 的 code review、前端 review，以及 2026-10-13 的 `epics.md` 文档评审（`review-2026-10-13-epics-lenses.md`）；历史文档里若出现 `review-2026-10-13-*.md` / `review-2026-10-14-*.md` 裸名，指的就是这里。
 - `specs/`：`spec-adapter-layer-migration.md`（2026-10-15 基础层迁移，已落地）。
 - `architecture/architecture-dev-2026-10-09/`：第一版架构脊；现行架构是 `_Agents/planning-artifacts/architecture/architecture-dev-2026-10-15/`。

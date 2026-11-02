@@ -9,7 +9,7 @@
 2. **学习优先于交付。** 宁可链路短、功能少，也要每一步"真懂"。评判进展的标准不是"加了多少功能"，而是"这一阶段要练的 AI SDK 能力，跑通了且讲得清为什么这么做"。
 3. **循序渐进，一次一个阶段。** 能力按 P1→P5 阶梯叠加（见 PRD §7 路线图 / addendum C），不跳步、不并行铺开、不提前实现后置阶段的能力。
 
-4. **默认我不写代码**：仅在 Lynx 放行（「进行」）后，写**最小一步**并交由 Lynx 过目；分工与放行细则见 §一。
+4. **默认我不写代码**：仅在 Lynx 放行（「进行」）后，写**最小一步**并交由 Lynx 过目；分工与放行细则见 §一。**2026-10-29（Epic 8 起）**：Lynx 亲自落码，agent 只发完整代码块 + 讲解，不写代码文件；除非 Lynx 明确说「你来写」。
 5. **减少大段的注释和说明注释**，尽量不要注释代码，用命名和文件结构和代码结构来表达，一些可能引起歧义需要注释如 “size : string //byte”，尽量使用英文单词注释，如果需要大段注释使用/**/，如果需要注释多个函数则直接在代码头部写使用说明，写过使用说明的代码文件就不应该有函数注释，但可以有歧义注释。
 6. **开发节奏由 Lynx 主导**：一次一个 story、不跨 story 构建；每个 story 开工前先按 §二 · Story 开工门槛 收口 Open questions / Deferred；规划好步骤后每步等 Lynx 带，我不自主往前冲。
 
@@ -34,7 +34,7 @@
 ## Lynx 的测试与工具习惯（横切约定 · 本仓库适用）
 
 - **前端/demo 的「看效果」由 Lynx 浏览器手测**；agent 改完前端不主动派 Browser 子代理代测，除非他明确说「帮我测试」。轻量静态检查（grep、curl）不受限。
-- **前端也写自动化测试（2026-10-14 起放行，此前规定是前端不写测试）**：`app/web` 用 **Vitest + jsdom + @testing-library/react**，测试文件与被测代码同目录同名 `*.test.tsx`；跑法 `npm test`（verbose reporter）/ `npm run test:ui`，与 `app/server` 同一套 Vitest 心智，IDE 测试树可点。后端别给我写到src里，写到test里面
+- **前端也写自动化测试（2026-10-14 起放行，此前规定是前端不写测试）**：`app/web` 用 **Vitest + jsdom + @testing-library/react**，测试文件住 `app/web/test/**`，按 `src` 目录结构镜像（如 `test/api/client.resources.test.ts`、`test/components/sidebar/sidebar.test.tsx`）；跑法 `npm test`（verbose reporter）/ `npm run test:ui`，与 `app/server` 同一套 Vitest 心智，IDE 测试树可点。后端别给我写到src里，写到test里面
   - 测什么：**定义与取舍**，不是像素。优先钉「刚拍下来的规则」（例：纸纹常驻不随内容消失、pulse 光晕挂在卡片背后而非内部、提交中要 onBusyChange 上报、dryRun 不发请求、ApiError → 文案映射）。
   - 不测什么：不测视觉样式本身（配色/间距/动画观感归 Lynx 浏览器手测）、不为凑覆盖率测 getter、不 mock 掉被测逻辑本身。
   - 仍然遵守「测试不由 agent 主动伸手去改来适配实现」：测试挂了先看是实现错还是规则变了，规则变了要说明。
@@ -48,6 +48,7 @@
 ## 一 · 协作与放行规则（开发流程的硬约束）
 
 - **分工**：agent 负责给蓝图、步骤、技术取舍与指导；**Lynx 参与并拍板决策**。
+- **2026-10-29（Epic 8 起）Lynx 亲自落码**：agent 把完整代码块 + 逐段讲解贴在对话里，Lynx 看懂后自己写进文件；agent 不 Write/Edit 代码文件（文档与契约仍可改），可在 Lynx 落码后跑只读验证（tsc / 测试 / curl）。
 - **放行才落代码**：agent 只有在 Lynx 明确说「**进行**」（或等价的明确放行指令）之后，才主动写 / 改代码。
 - **未放行时仍可做**：修改文档与契约（本 AGENTS.md、PRD、架构、UX）、运行只读命令、做规划与评审——这些不受放行门槛限制。
 - **Story 开工前先收口 Open questions / Deferred**：每个 story 在写第一行代码前，必须先把该 story 的 Open questions 与 Deferred 逐条处理完（见 §二 · Story 开工门槛）；未收口不算 ready-for-dev，也不写代码。
@@ -61,7 +62,7 @@
 2. **规划与收口** —— agent 先按 §二 · Story 开工门槛 收口该 story 的 Open questions / Deferred，再出最小实现路径 + 关键取舍，Lynx 拍板。
 3. **放行后实现** —— 小步、可运行、可回滚；一次只推进一个可验证的片段。
 4. **验证** —— 跑起来，对照该 story 的详细 AC（P1 旧 story 用 PRD 里相关 FR 的 **Consequences (testable)**）逐条验收。
-5. **复盘沉淀** —— 把"学到的 AI SDK 要点 / 踩过的坑 / 做出的取舍"追加到 `LEARNING.md`（学习日志，随项目生长）；并按 §二 · Story 走读页 写一份单文件 HTML 走读页（story 收口门槛）。
+5. **复盘沉淀** —— 把"学到的 AI SDK 要点 / 踩过的坑 / 做出的取舍"追加到 `LEARNING.md`（学习日志，随项目生长；纯前端轮次写 `app/web/LEARNING.md`）；并按 §二 · Story 走读页 写一份单文件 HTML 走读页（story 收口门槛）。
 
 ### Story 开工门槛：Open questions / Deferred 必须收口（硬约束 · 2026-10-24 起）
 
@@ -113,7 +114,7 @@ Why：CJK 文件名会让 agent 的语言判断漂移（出现过输出日语）
 - 必须是 standalone HTML：无 CDN、无构建、`open` 直接能看；不放进 `app/web` 产品代码，不触发前端构建/测试。
 - 行号会随代码漂移：该 story 的代码再被改动时，在**同一次改动**里重新生成/校对走读页，不许留“行号对不上”的旧页。
 - 与 handoff / 前端 summary 的分工：handoff 是按会话的交接（给 BMAD 流程看）；`app/web/Agent/summary/` 是按前端工件的长期记录；走读页是按 story 的**教学/复核工件**。三者可以同日各写一份，不互相替代。
-- 现有样例（2026-10-23）：`epic3-story1-endpoint-trace.html`、`epic3-story2-chat-langfuse.html`、`epic3-story3-retrieve-stages.html`、`epic3-story4-ingest-stages.html`。
+- 全部页面见 `_Agents/walkthroughs/index.html`（25 页，2026-10-29）；最近的样例是 `epic7-story3-baseline-compare.html` / `epic7-story4-answer-eval.html`，P1 的 14 页带 archify 交互图。
 - 生成/更新优先用项目级 `story-walkthrough` skill（`.qoder/skills/story-walkthrough/`）：按 BMAD workflow 形态组织（`SKILL.md` + `customize.toml`），来源、边界、验证写进 `_Agents/walkthroughs/.runs/<epic-story>/.memlog.md`，页面仍直接放 `_Agents/walkthroughs/`。
 
 ## 三 · 技术基调（指针，不在此重新决策）
@@ -158,16 +159,18 @@ Why：CJK 文件名会让 agent 的语言判断漂移（出现过输出日语）
 ## 五 · 范围红线（勿擅自扩张）
 
 - **P1 已收口（2026-10-24，Epic 1–3 全 done）**：URL/粘贴入库、混合检索、流式问答、引用与多轮、本地安全边界；观测 trace 作为 P1.x 支线一并交付。
-- **P2 当前范围（Epic 4/5）**：资源画像 + 聊天 Markdown/表格渲染 + 表格 CSV；MinIO 原始文件归档、`.md/.txt` 上传、代码库 ZIP（仅文件管理）。
+- **P2 当前范围（Epic 4/5）**：资源画像 + 聊天 Markdown/表格渲染 + 表格 CSV；MinIO 原始文件归档、`.md/.txt` 上传、代码库 ZIP（仅文件管理）。Epic 5（文件 / 存储，5.1–5.4）2026-10-27 已收口；Epic 4 · 4.1 暂缓。
+- **P2 收尾（2026-10-29 立，Epic 8）**：Agent 工具箱 —— `resource`（知识库）与 `codebase`（代码库）两只只读工具 + `meta`（只改当前会话标题），为 P3 Agent loop 铺底；不碰其他写操作、联网、AST、代码 RAG，`stopWhen(5)` 不动。Epic 8 收口后 P3 主线开工。
 - **P2 不碰**：prompt 管理、sandbox、tenant/auth、代码图、代码 RAG、PDF/Word 等格式、批量上传/后台队列、Generative UI。
 - **后续阶段**：P3 Agent loop + 联网工具 + 批量队列/Redis；P4 Generative UI；P5 MCP/多模态/部署；tenant 最后。
-- **P3 前置工程支线（2026-10-28，Lynx 拍）**：评测（Epic 7）—— 以 Langfuse Datasets / Experiments 为载体，golden set + 检索指标 + LLM judge；在 Agent loop 改动回答链路前建立可复现基线。不占 P3 主线的 AI SDK 能力点，不自建 eval 表 / 路由 / 面板。
+- **P3 前置工程支线（2026-10-28，Lynx 拍）**：评测（Epic 7）—— 载体为**本地表 + 自建 `/evals` 工作站面板**（`/evals`、`/evals-cases`、`/evals-configs`；原定 Langfuse Datasets / Experiments，2026-10-28 当天改口径），golden set + 检索指标 + LLM judge；在 Agent loop 改动回答链路前建立可复现基线。不占 P3 主线的 AI SDK 能力点；Langfuse 只做 trace 观测，不接 datasets。7.0 评测连接已 `done`（默认主库、可选隔离库），7.1 题集与配置、7.2 发起运行均已实现并转 `review`（2026-10-29：四表 + 题集/配置两页真接口；run 快照/队列/逐条结果与运行页真数据）。
+- **P3 工程项（2026-10-30，Lynx 拍）**：供应商与模型配置入库（T1，standalone，不进 Epic 列表）—— provider / model / API Key / 默认模型从 env 与编译期字面量迁到 DB；Key 用 AES-256-GCM 存密文，独立 `/config` 管理页与 `config:seed`；为 P3 Agent loop 的多模型 / 多供应商打底。不占 P3 的 AI SDK 能力点；与 Epic 8 / P3 主线的执行顺序由 Lynx 定。spec：`_Agents/implementation-artifacts/spec-t1-provider-model-config.md`。
 - **一处有期限的例外（2026-10-16，Lynx 拍，已在 P1 收口）**：P3 的「检索工具化」提前进 Epic 2（Story 2.6）。只做「把 `retrieve` 包成工具交给模型调用」；当时的边界是 Agent loop（含 2026-10-21 定的最多 4 次有界重查、`stepCountIs(5)`，仍不算 Agent loop）、`agent/{skill,persona,mcp}`、Generative UI、MCP 都不碰。落点 `app/server/src/agent/tool/`；`trace/` 空盒后来由 Epic 3 填上。
 - 任何"顺手加个功能"的念头，先回到 PRD 的 Non-Goals 对齐，再决定是否升级为一次正式的范围变更（`bmad-correct-course`）。
 
 ## 六 · 关键文档索引
 
-目录级地图见 `_Agents/README.md`；下表只列关键文档。**冲突时以该格 Story 的 AC 为准**；PRD 的 Non-Goals 不被 story 覆盖。P2 的未决项以 `epics.md` 的 `OQ-4.x-n` / `OQ-5.x-n` 编号为准，`deferred-work.md` 只记延后项与去向。
+目录级地图见 `_Agents/README.md`；下表只列关键文档。**冲突时以该格 Story 的 AC 为准**；PRD 的 Non-Goals 不被 story 覆盖。各格的未决项以 `epics.md` 的 `OQ-4.x-n` / `OQ-5.x-n` / `OQ-7.x-n` 编号为准，`deferred-work.md` 只记延后项与去向。
 
 **权威源（按阅读顺序）**
 
@@ -177,7 +180,7 @@ Why：CJK 文件名会让 agent 的语言判断漂移（出现过输出日语）
 | 补充材料（技术选型 / 格式 backlog / 阶段映射） | `_Agents/planning-artifacts/prds/prd-dev-2026-10-09/addendum.md` |
 | 决策日志 | `_Agents/planning-artifacts/prds/prd-dev-2026-10-09/.memlog.md` |
 | 架构脊（AD-1…AD-11，v2） | `_Agents/planning-artifacts/architecture/architecture-dev-2026-10-15/ARCHITECTURE-SPINE.md` |
-| Epic / Story 计划（含 P2 OQ / Deferred） | `_Agents/planning-artifacts/epics.md` |
+| Epic / Story 计划（含各格 OQ / Deferred） | `_Agents/planning-artifacts/epics.md` |
 | Sprint 状态（story 进度 + action items） | `_Agents/implementation-artifacts/sprint-status.yaml` |
 | 延后项与未决项（实现层面，按去向索引） | `_Agents/implementation-artifacts/deferred-work.md` |
 | Story 规格（少数故事的实现 spec） | `_Agents/planning-artifacts/specs/`、`_Agents/implementation-artifacts/spec-*.md` |
@@ -190,7 +193,7 @@ Why：CJK 文件名会让 agent 的语言判断漂移（出现过输出日语）
 | Story 走读页（每个 story 的代码讲解） | `_Agents/walkthroughs/` |
 | 前端当前轮总结 / 历史总结 | `app/web/Agent/summary/`、`app/web/Agent/legacy/summary/` |
 | 前端延后项 | `_Agents/implementation-artifacts/frontend-deferred.md` |
-| 学习日志（按阶段追加） | `LEARNING.md` |
+| 学习日志（按阶段追加） | `LEARNING.md`（story / 后端主线）、`app/web/LEARNING.md`（纯前端轮次） |
 | Epic 1 retro | `_Agents/implementation-artifacts/epic-1-retro-2026-10-13.md` |
 | 评审 rubric / 旧评审 / 旧架构 | `_Agents/planning-artifacts/prds/prd-dev-2026-10-09/review-rubric.md`、`_Agents/legacy/` |
 

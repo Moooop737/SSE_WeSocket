@@ -2,25 +2,28 @@
 
 > 来自各轮 code review / retrospective 的已知但本轮不动的项。每条记来源与"什么证据能定论"。
 >
-> **2026-10-24 分配**：每条 deferred 都归到目标 story 或阶段；**先看「去向索引」，再看批次正文（正文只放证据）**。P1 已收口、Epic 3 已收口；Epic 5 已收口；Epic 4 · 4.1 暂缓；Epic 7（评测）2026-10-28 已立，7.0 评测库隔离 = ready-for-dev（OQ-7.0-1..3 已收口）。
+> **2026-10-24 分配**：每条 deferred 都归到目标 story 或阶段；**先看「去向索引」，再看批次正文（正文只放证据）**。P1 已收口、Epic 3 已收口；Epic 5 已收口；Epic 4 · 4.1 暂缓；Epic 7（评测）2026-10-28 已立：7.0 done；7.1 / 7.2 / 7.3 / 7.4 = review（2026-10-29 实现完成；OQ-7.0-1..3、OQ-7.1-1..5、OQ-7.2-1..10、OQ-7.3-1..8、OQ-7.4-1..6 已收口）。
 
 ## 去向索引（2026-10-24）
 
-> 开工/收口时按本表取条目；批次正文是证据，不在这里重复判定。P2 的逐格 OQ 仍住 `epics.md`（`OQ-4.x-n` / `OQ-5.x-n`），本表只收 deferred。
+> 开工/收口时按本表取条目；批次正文是证据，不在这里重复判定。各格 OQ 仍住 `epics.md`（`OQ-4.x-n` / `OQ-5.x-n` / `OQ-7.x-n`），本表只收 deferred。
 
 | 去向 | 从这里接手 |
 |---|---|
 | **P2 · 4.4 聊天 Markdown / 引用** | 前端只取最后一条 `tool-retrieve` part；`hits` 缺 `chunkId` 会抛；`chat-thread` 二次 `plain` + `indexOf`；`/ask` 状态机三处；标题截断切 emoji；来源删除提示待 Lynx 手测；`find-field` 焦点 |
 | **P2 · 4.5 / Epic 5** | 表格导出、MinIO、上传的未决项以 `epics.md` 的 `OQ-4.5-*` / `OQ-5.*` 为准；Epic 5 done（5.1–5.4）。收口后遗留：文件 PUT 失败 uploading 行、URL 标题覆盖、source 重抓、MinIO mixed-content/TLS → 未排期；purge/restore 并发行锁 → 未排期；多存储后端/多桶 → 未排期；MinIO 专用用户/HeadBucket 权限 → P5 上公网前；MinIO 薄层子系统（对象生命周期/校验/清理统一）→ P2 工程项（未排期）；代码图/代码 RAG → 另立 Epic |
 | **P2 · 跨格（无 story）** | D3：`/resources/stats`、chunks 分页+内容搜索、资源浏览页消费方——已建，但不属于 3.2–3.4 / Epic 4/5 的 AC；单独记账，别混进验收；PWA B 案（安卓沉浸模式 + 贴边 safe-area） |
-| **P3 · 主线（Agent loop / 检索硬化）** | ReAct 两工具位；Agent loop 与 `agent/{skill,persona,mcp}`；三态提示不可区分；入库不校验向量长度；向量检索不按 model 过滤；topK schema 无默认；embed 无超时/取消；中断不落 assistant；Story 2.2 超时三旋钮；config 维度列表；检索未加 `status='ready'` 谓词；minSimilarity/BM25 标定；AD-6 依赖反向；`adapter/uri` + `Hit.ref`；D6 三处手抄 |
+| **P3 · 主线（Agent loop / 检索硬化）** | ReAct 两工具位；Agent loop 与 `agent/{skill,persona,mcp}`；三态提示不可区分；入库不校验向量长度；向量检索不按 model 过滤；topK schema 无默认；embed 无超时/取消；中断不落 assistant；Story 2.2 超时三旋钮；config 维度列表；检索未加 `status='ready'` 谓词；minSimilarity/BM25 标定；AD-6 依赖反向；AD-1 eval 直接 import `agent/tool/registry`；`adapter/uri` + `Hit.ref`；D6 三处手抄 |
 | **P3 · 工程项（批量/队列/启动/长文档）** | 批量入库+后台队列+跨进程取消；多行 INSERT 分批；`rollbackOrLog` 收敛；`chunks.deleted_at` 前提；`cleanUpOnBoot` 时间下界；`I_MODELS` 日志在构造器；`Ingest.batch` sink；`traces`/`trace_stages` 保留策略 |
 | **P3 · 观测硬化** | D1 观测面板范围；错误路径未真跑；`E_STAGE` 分码；`traces` 写端点未收；旧 Langfuse 根 trace；`dimension_check` 在 stage 外；`resource_id` 回填晚；stage 时间字段；running trace 清扫；Langfuse Map 泄漏；`finishTrace` payloads；`read.ts` Dropped 计数；软删会话标题不一致；分页无稳定次级排序；Langfuse 读超时三层数字不一致；前端 run-observability 竞态/树环/toolCallId/头注释/重复 hash/串行 await；阶段面板手测；3.2 依赖偏差 |
 | **跨阶段 · 测试基础设施** | `test/` 被 gitignore；`legacy.test.ts` 被排除；无 `typecheck` 脚本；Epic 2/3 的验证缺口；hydrate 测试与实现不一致 |
 | **跨阶段 · API 契约 / 错误码** | `POST /sessions` 坏 JSON；OpenAPI 读取在 try 外；`/chat` 流内错误无稳定 code；`/chat` 500 vs 200；会话 DELETE 语义；`not-a-uuid` 500；404 码 `NOT_FOUND`；`/resources/stats` 未进 OpenAPI；3.1 nullable 混用 |
 | **跨阶段 · 文档 / 流程** | SPINE Structural Seed；Epic 1 retro 7 条；3.1 LEARNING 段；D1 的正式范围变更；P2 产品面夹带记账 |
-| **P4 / P5 / 未排期** | P4 Generative UI；P5 MCP/多模态/部署；prompt 管理（eval 已于 2026-10-28 立为 Epic 7）；sandbox（P3 后）；tenant（最后）；公网下载鉴权（stateful token + client_ip + used_at + 边缘反代 → P5）；代码图/代码 RAG（另立 Epic）；PDF/Word/Excel/EPUB（backlog）；服务端 artifact（P2 4.5 的 Deferred）；健康探针 version 明细 / chat provider 探针（2026-10-25） |
-| **已解决 / 作废** | AD-1 v1 箭头、AC 行号、两路皆空死分支、资料不足信号、DI 改造、AI SDK 接入、env setup、`trace_stage_id` 文档漂移、`kbtrace` 文档漂移、3.2/3.3/3.4 的代码提交、Epic 3 review 收口、5.1 presigned 解冻 |
+| **P4 / P5 / 未排期** | 回答渲染：语法高亮、数学公式、脚注、Excel / 其他格式导出、Mermaid 导出 PNG/SVG 与缩放交互、超 300 行 CSV 不表格化（4.4/4.5 收口 2026-10-29 转出，见文末批次）；题集 JSON 导出（7.1 只做导入）；P4 Generative UI；P5 MCP/多模态/部署；prompt 管理（eval 已单列 Epic 7，进行中）；sandbox（P3 后）；tenant（最后）；公网下载鉴权（stateful token + client_ip + used_at + 边缘反代 → P5）；代码图/代码 RAG（另立 Epic）；PDF/Word/Excel/EPUB（backlog）；服务端 artifact（P2 4.5 的 Deferred）；健康探针 version 明细 / chat provider 探针（2026-10-25）；代码 AST 工具（Epic 8 规划 2026-10-29 暂不做）→ 未排期；其他 meta 动作（UI 偏好 / 资源 / 代码库改名）→ 未排期；文件 chip 行高亮 → 未排期 |
+| **Epic 7 · 7.3** | ~~运行删除 UI~~、~~基线采纳与并排对照~~ 已完成（2026-10-29）：右栏两步删除 + 采纳为基线 + 对照总分/相同条目平均；gold 前端挑选 → 7.4 / 未排期（原索引误挂本格，已修正） |
+| **Epic 7 · 7.4** | 已完成（2026-10-29，review）：断言 + judge + 人判 + 答案对照。未排期：多次采样/置信区间、gold 前端挑选、qwen-plus 等非 DeepSeek judge 的结构化输出验证；pairwise → 后续；人工标注平台 → 不做 |
+| **P3 · T1 供应商与模型配置** | 热更新、连接测试、模型发现、Key 轮换 → 未排期；S3/Langfuse Key → 不做；auth → P5 |
+| **已解决 / 作废** | ~~Mermaid 不做~~ 已解冻（2026-10-29 并入 4.4，官方 mermaid）；~~回答级 Markdown 下载~~ 已并入 4.5（整条回答导出 .md）；AD-1 v1 箭头、AC 行号、两路皆空死分支、资料不足信号、DI 改造、AI SDK 接入、env setup、`trace_stage_id` 文档漂移、`kbtrace` 文档漂移、3.2/3.3/3.4 的代码提交、Epic 3 review 收口、5.1 presigned 解冻 |
 
 ## Deferred from: Story 5.1 规划与 OQ 收口 (2026-10-26)
 
@@ -253,3 +256,147 @@ Lynx 定：下面三件**不再分开拖**，合成一刀做，落点是 **PRD �
 
 - **`ollama.version` 只有布尔值，没有版本字符串** — 要显示 Ollama 版本号需改 `adapter/connection/ollama.ts` 的 `ollamaHealthCheck` 返回形状（现在只回 `res.ok`），会牵动探针契约。定论方式：先确认 /health 页是否真的需要版本号，再决定改 adapter 还是另发一次 `/api/version`。
 - **chat provider（DeepSeek / 百炼）没有探针** — 本次是「缩减/归类」，不是扩服务面；加它要拍「探哪个端点、失败算不算 503」。定论方式：需要“外部模型 Key 有效”这个信号时再立项，不要顺手塞进 ollama 组。
+
+## Deferred from: Story 7.1 题集与配置底座 (2026-10-29)
+
+- source_spec: `epics.md` › Story 7.1 › 方向（JSON 整包进出）
+  summary: 题集 JSON 导出（数据集 + case 整包导出）。
+  evidence: 7.1 只做了导入（`npm run eval:cases:import`，15 条 / 18 gold）；导出没有使用场景，先不做。**去向：未排期**；有备份/迁移需求时再补，届时复用同一份 JSON 形状。
+- ~~配置删除的 run 用量保护~~ — **2026-10-29 由 7.2 以快照方案解决**：run 自带 `snapshot`（配置名与全部参数），配置行删除时 `run_config_id` / `metric_config_id` 置空即可，历史 run 不依赖配置行；因此不设 409 保护，删配置始终允许。
+  evidence: 7.2 的 `eval_runs.snapshot` 与 `ON DELETE SET NULL`；handoff-2026-10-29-epic7-story2。
+- source_spec: Story 7.1 实现（开工清单）
+  summary: gold 的前端挑选与编辑（资源搜索 / 命中里选块）。
+  evidence: 7.1 的 gold 来自种子导入，题集页只读；Epic 方向写明“gold 的挑选是第二版”。**去向：7.4 / 未排期**（答案评测需要更细的标注时再做）；当前编辑 case 会把模板 gold 原样带上。2026-10-29 修正去向索引：原索引把本条误挂在 7.3 名下，7.3 的 AC 不含 gold 前端挑选。
+
+## Deferred from: Story 7.2 发起检索评测 (2026-10-29)
+
+- ~~source_spec: `epics.md` › Story 7.2 › AC（运行删除只做后端，Lynx 2026-10-29 拍）~~
+  ~~summary: 运行删除的前端入口（运行历史里的删除按钮）。~~ — **2026-10-29 由 7.3 解决**：右栏顶部加两步确认「删除运行」（第一下装填、4 秒内再按才删），运行中隐藏按钮、后端仍 409 兜底；删基线 run 后数据集 `baseline_run_id` 自动清空。
+  evidence: `walkthroughs/epic7-story3-baseline-compare.html`；真跑 204 删 run 后 baseline=null；handoff-2026-10-29-epic7-story3-baseline-compare。
+- source_spec: Story 7.2 结果存储（Lynx 拍板 results jsonb）
+  summary: 跨 run 的趋势 / 按 case 跨 run 筛选。
+  evidence: 结果按 run 整份存 jsonb，读法永远是整份 run；跨 run 查询需要迁移成表或生成派生视图，当前无 AC。**去向：未排期**。
+- source_spec: `epics.md` › Story 7.2 › Deferred
+  summary: 自动回归 / CI 门禁（每次改动自动跑评测）。
+  evidence: 需要先把“基线”与“可接受波动”定下来（7.3），再做触发与门禁。**去向：后续**。
+- source_spec: Story 7.2 验收
+  summary: 同数据集并发排队的压测；运行级 failed 的真断库演练。
+  evidence: 本轮真跑了完成/取消/重启清扫/删除守卫；队列只做了功能验证，failed 终态只有单测与代码路径。**去向：未排期**。
+
+## Deferred from: Story 4.4 / 4.5 OQ 收口 (2026-10-29)
+
+- source_spec: `epics.md` › Story 4.4 › Deferred
+  summary: 代码块语法高亮。
+  evidence: react-markdown 可接 rehype-highlight / Shiki，但会把流式渲染与首屏成本推高一档；4.4 只做结构渲染（等宽 + 横向滚）。**去向：未排期**。
+- source_spec: `epics.md` › Story 4.4 › OQ-4.4-3
+  summary: 数学公式（KaTeX）。
+  evidence: 需要 rehype-katex + 字体资源；知识库问答目前不涉及公式。**去向：未排期**。
+- source_spec: `epics.md` › Story 4.4 › OQ-4.4-3
+  summary: 脚注。
+  evidence: remark-gfm 4 不带脚注；要另引扩展并处理回链。4.4 首期不做。**去向：未排期**。
+- source_spec: `epics.md` › Story 4.5 › OQ-4.5-1
+  summary: 表格导出 Excel / 其他格式。
+  evidence: 首期只做 CSV 与整条回答 .md；Excel 需要第三方写库。**去向：未排期**。
+- source_spec: `epics.md` › Story 4.4 / `deferred-work.md` 索引（2026-10-24）
+  summary: ~~Mermaid~~ **已解冻（2026-10-29）**：Lynx 拍板并入 4.4，用官方 mermaid（按图种懒加载、securityLevel strict、失败回退代码块）。
+  evidence: 聊天回答里出现 Mermaid 围栏的频率足以支撑先做；全语法诉求压过体积考量。
+- source_spec: `epics.md` › Story 4.5 › OQ-4.5-2
+  summary: ~~回答级 Markdown 下载~~ **已并入 4.5**（2026-10-29 Lynx 拍：整条回答导出 .md，导出的就是全文 Markdown）。
+  evidence: 原先从 4.4 Deferred 里划掉的那条，现在成为 4.5 的 AC。
+
+## Deferred from: Story 4.4 / 4.5 收口 (2026-10-29)
+
+- source_spec: `epics.md` › Story 4.4
+  summary: Mermaid 导出 PNG / SVG，以及图的缩放 / 全屏交互。
+  evidence: 本轮按 Lynx 要求只做 JPEG（2x 栅格、底色跟主题）；PNG/SVG 与交互控件属于"看图"的下一层，没排期。**去向：未排期**。
+- source_spec: `epics.md` › Story 4.5
+  summary: 超过 300 行的 CSV 不渲染成表（`CSV_MAX_ROWS`），只留代码块。
+  evidence: 一张几千行的表会把页面拖死；要表格化得先做分页/虚拟滚动。**去向：未排期**。
+- source_spec: 2026-10-29 真机排查（模型写出 `api[\"入口层\"]` 导致 mermaid 解析失败）
+  summary: ~~自动修复 mermaid 源里无意义的 `\"`~~ **不做**。
+  evidence: 那是模型内容，不是渲染器该改的；回退代码块 + 「无法渲染此图」是诚实结果。若要帮模型，属于 prompt/LLM 侧的事。**去向：不做**。
+- source_spec: `epics.md` › Story 4.4
+  summary: ~~Mermaid 与回答级 Markdown 下载~~ 已在 4.4/4.5 落地（图 + CSV + .md）。
+  evidence: 见 epics 4.5 AC 与 `lib/mermaid-export.ts`。**去向：已解决**。
+
+## Deferred from: Story 7.4 答案评测 (2026-10-29)
+
+- source_spec: `epics.md` › Story 7.4 › Deferred
+  summary: 多次采样与置信区间；pairwise 对比；人工标注平台。
+  evidence: 7.4 只做单次运行 + 断言/judge/人判；多次采样与置信区间要等有稳定基线后再谈，pairwise 属后续，人工标注平台不做。**去向：多次采样/置信区间 → 未排期；pairwise → 后续；标注平台 → 不做**。
+- source_spec: Story 7.1 转出的 gold 前端挑选/编辑
+  summary: gold 的前端挑选与编辑（资源搜索 / 命中里选块）。
+  evidence: 7.4 只做「断言编辑 + 修正题面」，gold 仍来自种子导入；选题块需要另一套资源搜索 UI。**去向：未排期**。
+- source_spec: 7.4 judge spike（2026-10-29）
+  summary: 非 DeepSeek judge 的结构化输出验证（qwen-plus 等）。
+  evidence: DeepSeek Flash 的 `Output.object` 已实测可用；qwen-plus 本轮报 `Incorrect API key provided`，是环境 Key 问题，未完成验证。要用 qwen-plus 当 judge 前先修 Key 并补一次 spike。**去向：未排期**。
+- source_spec: Story 7.4 真跑边界
+  summary: 答案 run 的浏览器视觉与端到端多 case 对照。
+  evidence: 本轮真跑只覆盖 1 条 case 的回答/断言/judge/人判；多 case、跨模式对照、窄屏归 Lynx 浏览器验收。**去向：Lynx 手测**（不阻塞 review）。
+
+## Deferred from: code review of Epic 7 (2026-10-29)
+
+- 答案/judge 无 timeout/abort：单队列可能被挂起的 provider 顶死，cancel 无效；沿用项目既有的超时 deferred，单独排 P3 工程项。
+- `GET /eval/runs` 不分页且 `SELECT *`：列表随历史 run 内容线性增长；分页/投影需要先定摘要存储。
+- `baseline_run_id` 无 FK：7.1 循环 FK 遗留，靠删 run 手动清；单用户接受。
+- schema 卫生：`eval_cases.level` 无取值约束、`eval_configs` 无 `(kind,name)` 唯一、`freeCopyName` 的 LIKE 未转义。
+- API 建的 case 不校验 gold 存在：死 gold 到 run 才以 `missing_gold` 暴露；导入路径却强校验。
+- 评测脚本边界：`eval-probe` 的 path 匹配/URI 前缀与导入两把尺、隔离模式仍用主库；`eval-seed` 手工拼依赖、无大小上限、不清理。
+- `EvalAssembly` 用服务定位器、`EvalDbHandle` 可被二次构造、`index.ts` 重复 resolve：设计清理。
+- 启动清扫跨进程误伤：`markInterruptedRuns` 无 owner 维度，第二个进程会把别处的 queued/running 标 cancelled；当前单实例。
+- 多模型/复合键与 `sessions.model` 夹带：`ModelEntry` catch-all、router1 非空断言/env 命名、sessions model 记录均不在 Epic 7 的 story/AC 内，属另一条工作线。
+- `SKIP_PREFIXES` 不加 `/eval` 而是靠 Hono 挂载顺序：行为等价，但保证是隐式的。
+- `/eval` 与 `/models` 不进 OpenAPI：手写路由无文档出口，前端照代码抄契约。
+- `results.verdict` 与 `final_verdict` 并存：库里存机器判定、读时再算最终判定，消费方可能混用。
+- 人判不能撤回：`setHumanResult` 只 merge，没有清空/删除入口。
+- `eval-cases.json` 没有断言/rubric 示例：种子导入出的题集天然只能跑检索 run，7.4 缺 golden fixture。
+- AD-1：`eval/` 直接 import `agent/` 内部文件（INSTRUCTIONS、tool registry）；复用应经 `agent/` 交出的服务。
+- run 快照 embedding 只存裸 modelId：复合键后丢失 provider，未来第二个 embedding provider 时快照不可区分。
+- `hit_count` 在答案 run 里改成引用数：与 7.2 的「检索命中数」同名不同义。
+- 检索 summary 口径：无 `missing_gold` 聚合、正负例 recall 混平均、无 level 拆档；探底 CLI 反而更细。
+- `config.test.ts` 夹具仍是裸 `CHAT_MODEL/EMBEDDING_MODEL`：只测 AppConfig 存在性，不测复合键可用性。
+- `requestJson` 没有默认超时：评测状态请求挂住时徽标永久「检测中」；全站 timeout 项另排。
+- 题集删除无二次确认：删数据集一按就没，与运行页两步删除口径不一致；UI 设计项。
+
+## Deferred from: Epic 8 规划 (2026-10-29)
+
+- source_spec: `epics.md` › Story 8.3 › Deferred
+  summary: 代码 AST 工具（文件大纲 / 符号搜索）。
+  evidence: Lynx 2026-10-29「ast暂时不做了」；`codebase` 只做 refs / dir / file / match。若再做 AST，需引入 TypeScript 编译器或 tree-sitter 运行时依赖，并定义支持语言。**去向：未排期**。
+- source_spec: `epics.md` › Epic 8 › 边界
+  summary: 写工具（建/删/改资源与代码库）、联网工具。
+  evidence: 写工具未提出；联网属 P3 主线（PRD §7）。**去向：写工具 → 未排期；联网 → P3 主线**。
+- source_spec: `epics.md` › Story 8.2 › Deferred
+  summary: 工具调用的专属可视化（命中列表 / 文件树 / 代码高亮）。
+  evidence: 8.2 只做通用折叠行，与 retrieve 的专属视图并存。**去向：未排期**。
+- source_spec: `epics.md` › Story 8.4 › Deferred
+  summary: 其他 meta 动作（主题 / 视效 / 导航等本地 UI 偏好、资源 / 代码库改名、删除）。
+  evidence: Lynx 2026-10-29 只拍「只改会话标题」；UI 偏好住 localStorage，需要前端 action 通道；资源 / 代码库没有改名端点。**去向：未排期**。
+- source_spec: `epics.md` › Story 8.5 › Deferred
+  summary: 文件 chip 点击后按引用行区间高亮 / 居中。
+  evidence: 8.5 只做打开抽屉看整份内容；行定位需要 ref 携带区间并在抽屉里滚动定位。**去向：未排期**。
+- source_spec: `epics.md` › Story 8.1 › [B]
+  summary: eval 直接 import `agent/tool/registry`（Epic 7 review 的 AD-1）。
+  evidence: 2026-10-30 选 B（扩展 registry 函数、允许传 Repo）后仍存在；未来重写 retriever / 工具装配层时一并处理。**去向：未排期**。
+- code review P17 残留测试缺口（2026-10-30）：SearchOptions 四旋钮的真生效断言、markInterruptedRuns 的无条件断言（受共享库干扰）、EvalModeBadge 各状态测试；均为测试补强，不影响已落码行为。
+
+## Deferred from: T1 供应商与模型配置入库 (P3, 2026-10-30)
+
+- source_spec: `_Agents/implementation-artifacts/spec-t1-provider-model-config.md` › Deferred
+  summary: 热更新 / reload；连接测试；从供应商拉取模型清单；自定义 headers / query / 代理参数；Key 轮换 / 主密钥重加密 / 多主密钥；Key 提示位 / 审计日志 / 配置版本历史。
+  evidence: D4 A 选保存后重启；D1 A 只做 LLM 供应商 Key；这些都需要额外的运行时或安全设计。**去向：均未排期**。
+- source_spec: 同上
+  summary: 自动重嵌入 / 向量迁移。
+  evidence: OQ-T1-1 已收口 A：改嵌入模型 / 维度只警告，不自动重嵌入；旧向量可能不可检索。**去向：后续 story（未排期）**。
+- source_spec: 同上
+  summary: per-model 参数（temperature / maxTokens / topP 等）。
+  evidence: 仍归请求与 eval 配置，不随模型配置入库。**去向：不做**。
+- source_spec: 同上
+  summary: provider 改名、model_id / kind 变更。
+  evidence: `sessions.model` 与 eval 快照存 `${provider.name}:${model_id}`，改名或改键会让历史引用漂移。**去向：不做；删后重建**。
+- source_spec: 同上
+  summary: S3 / Langfuse / DATABASE_URL 入库。
+  evidence: D1 A 只做 LLM 供应商 Key；Langfuse 在 DB 装载前初始化，S3 是启动依赖。**去向：不做**。
+- source_spec: 同上
+  summary: 登录 / admin token / RLS。
+  evidence: D9 A 沿 127.0.0.1 / Tailscale 信任边界；能进这个口就能改 Key。**去向：P5 或更后**。

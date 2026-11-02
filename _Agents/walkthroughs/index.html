@@ -412,25 +412,25 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
   <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
   <span class="docs-crumb">Story Walkthroughs</span>
   <span class="docs-topbar-spacer"></span>
-  <span class="chip">19 stories · 14 diagrams</span>
+  <span class="chip">23 stories · 14 diagrams</span>
 </header>
 <div class="page">
   <header class="hero">
-    <span class="kicker">KNOWLEDGE COPILOT · P1 CLOSED · EPIC 7 IN PROGRESS · 2026-10-28</span>
+    <span class="kicker">KNOWLEDGE COPILOT · P1 CLOSED · EPIC 7 IN PROGRESS · 2026-10-29</span>
     <h1>Story <em>Walkthroughs</em><br>把每一格讲清楚</h1>
-    <p class="hero-sub">19 个 story 的代码走读页：真实文件、行号注解、请求旅行、可复制的验证命令；P1 的 14 页带交互图，Epic 5 的 5.1–5.4 与 Epic 7 的 7.0 以代码走读为主。按 Epic 分组，也可以直接搜。</p>
+    <p class="hero-sub">25 个 story 的代码走读页：真实文件、行号注解、请求旅行、可复制的验证命令；P1 的 14 页带交互图，Epic 5 的 5.1–5.4 与 Epic 7 的 7.0–7.4 以代码走读为主。按 Epic 分组，也可以直接搜。</p>
     <div class="hero-actions">
       <a class="button primary" href="epic1-story1-local-skeleton.html">从 1.1 开始 <span aria-hidden="true">→</span></a>
-      <a class="button" href="epic7-story0-eval-connection.html">看最新 7.0 页 <span aria-hidden="true">→</span></a>
+      <a class="button" href="epic7-story4-answer-eval.html">看最新 7.4 页 <span aria-hidden="true">→</span></a>
       <a class="button" href="#how-to-read">怎么读这些页</a>
     </div>
     <div class="stats" aria-label="走读页统计">
-      <div class="stat"><strong>19</strong><span>pages</span></div>
+      <div class="stat"><strong>25</strong><span>pages</span></div>
       <div class="stat"><strong>14</strong><span>diagrams</span></div>
-      <div class="stat"><strong>5</strong><span>epics</span></div>
-      <div class="stat"><strong>245</strong><span>code blocks</span></div>
-      <div class="stat"><strong>865</strong><span>annotations</span></div>
-      <div class="stat"><strong>172</strong><span>journey steps</span></div>
+      <div class="stat"><strong>6</strong><span>epics</span></div>
+      <div class="stat"><strong>308</strong><span>code blocks</span></div>
+      <div class="stat"><strong>1025</strong><span>annotations</span></div>
+      <div class="stat"><strong>202</strong><span>journey steps</span></div>
     </div>
   </header>
 
@@ -445,6 +445,7 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
       <button class="filter" type="button" data-epic="1" aria-pressed="false">Epic 1</button>
       <button class="filter" type="button" data-epic="2" aria-pressed="false">Epic 2</button>
       <button class="filter" type="button" data-epic="3" aria-pressed="false">Epic 3</button>
+      <button class="filter" type="button" data-epic="4" aria-pressed="false">Epic 4</button>
       <button class="filter" type="button" data-epic="5" aria-pressed="false">Epic 5</button>
       <button class="filter" type="button" data-epic="7" aria-pressed="false">Epic 7</button>
     </div>
@@ -584,6 +585,30 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
       </div>
     </section>
 
+    <section class="epic" id="epic-4">
+      <header class="epic-head">
+        <span class="epic-no">EPIC 04</span>
+        <h2>结构化输出与渲染</h2>
+        <p>聊天回答的 Markdown 渲染、引用、Mermaid，以及表格 / CSV / 导出。</p>
+      </header>
+      <div class="cards">
+        <a class="card" href="epic4-story4-chat-markdown.html" data-epic="4" data-search="4.4 聊天 markdown 渲染 引用 citation react-markdown remark-gfm 流式 半截 光标 mermaid htmlLabels strict jpeg 导出" style="--card-accent:#0f766e">
+          <div class="card-top"><span class="card-no">Story 4.4</span><span class="status">done · P2</span></div>
+          <h3>聊天 Markdown 渲染器</h3>
+          <p>plain() 换成真渲染：引用标号、整段每帧的流式光标、代码块与 Mermaid（三道安全闸 + JPEG 导出）。</p>
+          <div class="tags"><span>react-markdown</span><span>citation</span><span>mermaid</span></div>
+          <div class="card-foot"><span>5 code · 18 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic4-story5-table-csv.html" data-epic="4" data-search="4.5 表格 table gfm csv 围栏 解析 导出 下载 bom 公式注入 文件名 md" style="--card-accent:#7c3aed">
+          <div class="card-top"><span class="card-no">Story 4.5</span><span class="status">done · P2</span></div>
+          <h3>表格与 CSV / 导出</h3>
+          <p>GFM 表格与 CSV 围栏都成表；「下载 CSV」带 BOM、转义与注入防护；整条回答导出 .md 原文。</p>
+          <div class="tags"><span>GFM table</span><span>RFC 4180</span><span>export</span></div>
+          <div class="card-foot"><span>5 code · 13 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+      </div>
+    </section>
+
     <section class="epic" id="epic-5">
       <header class="epic-head">
         <span class="epic-no">EPIC 05</span>
@@ -626,7 +651,7 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
       <header class="epic-head">
         <span class="epic-no">EPIC 07</span>
         <h2>评测 — 先把连接接起来</h2>
-        <p>7.0 评测连接：默认主库、可选隔离库；7.1–7.4 题集/运行/对照/答案评测待做。</p>
+        <p>7.0 连接已 done；7.1 题集与配置（review）；7.2 发起运行（review）；7.3–7.4 对照/答案评测待做。</p>
       </header>
       <div class="cards">
         <a class="card" href="epic7-story0-eval-connection.html" data-epic="7" data-search="7.0 评测 eval 连接 共享 主库 隔离 库 ragdb_eval pgpool seed health trace 徽标 shared isolated" style="--card-accent:#4f46e5">
@@ -635,6 +660,34 @@ html[data-theme="dark"] .open { color: color-mix(in srgb, var(--card-accent) 55%
           <p>EvalAssembly 选 repo；shared 复用主库、isolated 第二个 pgpool；route 前缀 trace、health eval 组、页头徽标、建库/seed 工具。</p>
           <div class="tags"><span>shared</span><span>isolated</span><span>ragdb_eval</span><span>seed</span></div>
           <div class="card-foot"><span>19 code · 57 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic7-story1-eval-datasets.html" data-epic="7" data-search="7.1 评测 eval 题集 数据集 配置 dataset case config gold chunk jsonb kind seed upsert 导入" style="--card-accent:#4f46e5">
+          <div class="card-top"><span class="card-no">Story 7.1</span><span class="status">review · Epic 7</span></div>
+          <h3>题集与配置底座：四张表、一个 jsonb</h3>
+          <p>eval_datasets / eval_cases / eval_configs(kind+jsonb) / eval_runs 骨架；块级 gold 与种子导入；/eval 自定义路由；题集页与配置页接真接口。</p>
+          <div class="tags"><span>eval_datasets</span><span>eval_configs</span><span>gold</span><span>seed</span></div>
+          <div class="card-foot"><span>14 code · 35 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic7-story2-eval-runs.html" data-epic="7" data-search="7.2 评测 eval 运行 run 快照 snapshot 队列 queue recall MRR 取消 中止 轮询 runner" style="--card-accent:#4f46e5">
+          <div class="card-top"><span class="card-no">Story 7.2</span><span class="status">review · Epic 7</span></div>
+          <h3>发起检索评测：快照、队列与逐条结果</h3>
+          <p>POST 冻快照、进程内单队列、case 间中止、gold 前缀校验；results jsonb；运行页真数据 + 轮询 + 详情/快照另存。</p>
+          <div class="tags"><span>snapshot</span><span>queue</span><span>recall@k</span><span>MRR</span></div>
+          <div class="card-foot"><span>12 code · 30 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic7-story3-baseline-compare.html" data-epic="7" data-search="7.3 评测 eval 基线 baseline 对照 compare 采纳 adopt 并排 相同条目 平均 删除 run delete 两步确认" style="--card-accent:#4f46e5">
+          <div class="card-top"><span class="card-no">Story 7.3</span><span class="status">review · Epic 7</span></div>
+          <h3>对照与基线：钉住一条 run，两列数字</h3>
+          <p>baseline_run_id 显式采纳（只接 done）；对照总分并排 + 相同条目平均；运行删除两步确认。</p>
+          <div class="tags"><span>baseline</span><span>compare</span><span>same-case</span><span>delete</span></div>
+          <div class="card-foot"><span>10 code · 26 notes</span><span class="open">打开走读 →</span></div>
+        </a>
+        <a class="card" href="epic7-story4-answer-eval.html" data-epic="7" data-search="7.4 评测 eval 答案 answer 断言 assertion judge rubric 人判 human 一致率 groundedness correctness citation 引用" style="--card-accent:#4f46e5">
+          <div class="card-top"><span class="card-no">Story 7.4</span><span class="status">review · Epic 7</span></div>
+          <h3>答案评测：断言、judge 与人判</h3>
+          <p>答案 run 复用 /chat 指令与 retrieve 工具；expect/reject 断言、rubric 三维 judge、人判单独存；断言硬门 + 取更严。</p>
+          <div class="tags"><span>assertion</span><span>judge</span><span>human</span><span>final verdict</span></div>
+          <div class="card-foot"><span>17 code · 38 notes</span><span class="open">打开走读 →</span></div>
         </a>
       </div>
     </section>

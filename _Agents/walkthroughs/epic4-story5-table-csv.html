@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epic 4 · Story 4.5 表格渲染与 CSV / Markdown 导出 · 带代码逐行讲解</title>
+<style>
+:root {
+  --bg: #f5f2ec;
+  --panel: #fffdf8;
+  --panel-2: #ece8df;
+  --ink: #1b232b;
+  --ink-2: #46515d;
+  --ink-3: #78838f;
+  --line: #dcd7cc;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --danger: #b91c1c;
+  --code-bg: #0f171e;
+  --code-head: #0a1117;
+  --code-ink: #d8e2eb;
+  --code-line: #1d2a35;
+  --hl: rgba(250, 204, 21, .16);
+  --shadow: 0 14px 40px rgba(27, 35, 43, .08);
+  --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html[data-theme="dark"] {
+  --bg: #0c1116;
+  --panel: #121a21;
+  --panel-2: #18222b;
+  --ink: #e7edf3;
+  --ink-2: #adb9c5;
+  --ink-3: #7d8a97;
+  --line: #263440;
+  --accent: #5eead4;
+  --accent-2: #fbbf24;
+  --danger: #fca5a5;
+  --code-bg: #090e13;
+  --code-head: #060a0e;
+  --code-ink: #d8e2eb;
+  --code-line: #18232d;
+  --hl: rgba(94, 234, 212, .14);
+  --shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: .9em; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: .08em .34em; }
+pre code { background: none; border: 0; padding: 0; }
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); z-index: 80; }
+.layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.toc {
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+  padding: 30px 18px 40px; border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.toc-brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.toc-title { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.toc-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 18px; }
+.toc nav { display: flex; flex-direction: column; gap: 2px; }
+.toc nav a { display: block; padding: 6px 10px; border-radius: 7px; color: var(--ink-2); font-size: 13px; border-left: 2px solid transparent; }
+.toc nav a:hover { background: var(--panel-2); text-decoration: none; color: var(--ink); }
+.toc nav a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); font-weight: 600; }
+.toc-actions { display: flex; gap: 8px; margin-top: 18px; }
+.toc-actions button, .copy-code {
+  font-family: var(--sans); font-size: 12px; color: var(--ink-2); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; cursor: pointer;
+}
+.toc-actions button:hover, .copy-code:hover { border-color: var(--accent); color: var(--accent); }
+.main { min-width: 0; padding: 42px 54px 100px; max-width: 1180px; }
+.hero {
+  position: relative; overflow: hidden; padding: 38px 42px;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 30px 30px; opacity: .28;
+  mask-image: radial-gradient(circle at 80% 10%, #000, transparent 68%);
+}
+.hero > * { position: relative; }
+.hero-kicker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.hero h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.18; margin: 14px 0 12px; letter-spacing: -.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 16px; color: var(--ink-2); max-width: 760px; margin: 0 0 20px; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.chip strong { color: var(--ink); font-weight: 600; }
+.trace-pill { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 8px; padding: 7px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.trace-pill b { color: var(--accent); font-weight: 600; }
+.section { margin-top: 54px; scroll-margin-top: 24px; }
+.section-head { margin-bottom: 18px; }
+.kicker { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 9px; }
+.section h2 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; letter-spacing: -.015em; }
+.section-sub { color: var(--ink-2); margin: 0; max-width: 900px; }
+.callout { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--panel)); color: var(--ink-2); }
+.callout.strong { background: color-mix(in srgb, var(--accent-2) 7%, var(--panel)); border-left-color: var(--accent-2); color: var(--ink); }
+.summary-grid, .choice-grid, .test-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.summary-card, .choice, .test-card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.summary-no, .choice-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.summary-card h3, .choice h3, .test-card h3 { font-size: 16px; margin: 6px 0 6px; }
+.summary-card p, .choice p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layer-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.layer { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.layer-31 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset; }
+.layer-tag { font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: .06em; }
+.layer h3 { margin: 7px 0 6px; font-size: 18px; }
+.layer p { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.layer code { display: inline-block; font-size: 11px; color: var(--ink-2); }
+.map-note, .journey-hint, .table-note, .test-note { color: var(--ink-3); font-size: 13px; margin-top: 12px; }
+.glossary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.gloss { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.gloss dt { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.gloss dd { margin: 0; font-size: 13px; color: var(--ink-2); }
+.journey { display: grid; gap: 8px; margin-top: 18px; }
+.journey-step { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); font-family: var(--sans); transition: border-color .15s, transform .15s; }
+.journey-step:hover { border-color: var(--accent); transform: translateX(2px); }
+.step-no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.step-text { display: flex; flex-direction: column; gap: 1px; }
+.step-text strong { font-size: 14px; }
+.step-text small { color: var(--ink-3); font-size: 12.5px; }
+.step-code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.file-table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.file-table th, .file-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.file-table th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel-2); }
+.file-table tr:last-child td { border-bottom: 0; }
+.file-table code { font-size: 11.5px; }
+.block { margin-top: 34px; scroll-margin-top: 24px; }
+.block-title { font-size: 20px; margin: 0 0 4px; }
+.block-intro { color: var(--ink-2); margin: 0 0 12px; font-size: 14px; }
+.explain { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 16px; align-items: start; }
+.code-card { background: var(--code-bg); border: 1px solid #1f2c37; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(10, 17, 23, .2); position: sticky; top: 14px; }
+.code-head { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: var(--code-head); border-bottom: 1px solid #1d2a35; color: #8fa2b3; font-size: 11.5px; }
+.traffic { display: inline-flex; gap: 4px; margin-right: 2px; }
+.traffic i { width: 8px; height: 8px; border-radius: 50%; background: #33424f; display: block; }
+.traffic i:first-child { background: #7f3c3c; }
+.traffic i:nth-child(2) { background: #7d6a3a; }
+.traffic i:nth-child(3) { background: #3f6a55; }
+.code-path { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code-lang { margin-left: auto; font-family: var(--mono); font-size: 10px; color: #7d8f9f; border: 1px solid #263744; border-radius: 4px; padding: 1px 5px; }
+.copy-code { margin-left: 6px; background: transparent; color: #9fb0c0; border-color: #2a3a47; font-size: 11px; }
+.copy-code:hover { color: #d8e2eb; border-color: #4b6274; }
+.code-scroll { max-height: 70vh; overflow: auto; overscroll-behavior: contain; }
+.code { font-family: var(--mono); font-size: 12.5px; line-height: 1.62; padding: 12px 0 16px; min-width: max-content; }
+.line { display: flex; min-height: 1.62em; }
+.line.hl { background: var(--hl); }
+.line.hl .ln { color: #c9a227; }
+.line.gap { opacity: .45; }
+.ln { flex: 0 0 3.8em; text-align: right; padding-right: 1em; color: #546675; user-select: none; }
+.lc { white-space: pre; padding-right: 20px; color: var(--code-ink); }
+.tok-k { color: #c792ea; }
+.tok-s { color: #ecc48d; }
+.tok-c { color: #6d8292; font-style: italic; }
+.tok-n { color: #f78c6c; }
+.tok-t { color: #82aaff; }
+.notes { display: flex; flex-direction: column; gap: 9px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.note:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); transform: translateY(-1px); }
+.note.active { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent) inset; border-color: var(--accent); }
+.note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note-head { display: flex; align-items: center; gap: 8px; }
+.note-num { font-family: var(--mono); font-size: 10.5px; color: var(--accent); }
+.note-title { font-weight: 700; font-size: 14px; flex: 1; }
+.note-range { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin: 2px 0 7px; }
+.note-body { font-size: 13px; color: var(--ink-2); }
+.note-body p { margin: 0 0 6px; }
+.note-body p:last-child { margin-bottom: 0; }
+.badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; border-radius: 999px; padding: 1px 6px; border: 1px solid var(--line); color: var(--ink-3); background: var(--panel-2); white-space: nowrap; }
+.b-31 { color: #0f766e; border-color: #9fd6cf; background: #e6f6f3; }
+.b-32 { color: #6d4aff; border-color: #c9baff; background: #f0ecff; }
+.b-33 { color: #a35400; border-color: #f0c48a; background: #fff4e3; }
+.b-34 { color: #a1224f; border-color: #f2b6c9; background: #ffedf3; }
+.b-pre, .b-now { color: #5b6570; }
+html[data-theme="dark"] .b-31 { background: #0f2f2b; border-color: #1f6f66; color: #7fe7d9; }
+html[data-theme="dark"] .b-32 { background: #211b3c; border-color: #4b3d89; color: #c4b5ff; }
+html[data-theme="dark"] .b-33 { background: #33230d; border-color: #7a541f; color: #f3c780; }
+html[data-theme="dark"] .b-34 { background: #351521; border-color: #7c3048; color: #f3a8c0; }
+.test-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.test-card { padding: 16px; }
+.test-card h3 { margin-top: 0; }
+.snippet { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid #1f2c37; border-radius: 9px; padding: 12px 14px; overflow: auto; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.pitfall-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.pitfall-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 13.5px; color: var(--ink-2); }
+.pitfall-list strong { color: var(--ink); }
+.next-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.next-box p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 720px; }
+.next-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.next-links a { font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--ink-2); }
+.next-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.to-top { position: fixed; right: 22px; bottom: 22px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+.to-top.show { opacity: 1; pointer-events: auto; }
+.footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
+@media (max-width: 1100px) {
+  .explain { grid-template-columns: 1fr; }
+  .code-card { position: static; }
+  .code-scroll { max-height: 55vh; }
+}
+@media (max-width: 980px) {
+  .layout { display: block; }
+  .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 20px; }
+  .toc nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 28px 20px 80px; }
+  .hero { padding: 26px 22px; }
+  .summary-grid, .layer-map, .glossary { grid-template-columns: 1fr; }
+  .choice-grid, .test-grid { grid-template-columns: 1fr; }
+  .file-table { display: block; overflow: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+.flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.flow-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.flow-card h3 { margin: 0 0 10px; font-size: 16px; }
+.flow-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.flow-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
+.flow-list li:last-child { border-bottom: 0; }
+.flow-list code { font-size: 11.5px; }
+.tree { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.tree li { position: relative; padding-left: 20px; font-size: 12.5px; }
+.tree li::before { content: ""; position: absolute; left: 4px; top: .85em; width: 9px; height: 1px; background: var(--line); }
+.tree li::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tree li:last-child::after { display: none; }
+.tree .root { padding-left: 0; font-weight: 700; }
+.tree .root::before, .tree .root::after { display: none; }
+.b-app { color: #5b6570; }
+@media (max-width: 820px) { .flow-map { grid-template-columns: 1fr; } }
+.lane .journey { margin-top: 0; }
+.lane .journey-step { grid-template-columns: 30px minmax(0, 1fr); }
+.lane .step-code { display: none; }
+.lane .step-text small { font-size: 12px; }
+
+:root { --accent: #7c3aed; --accent-2: #0369a1; }
+html[data-theme="dark"] { --accent: #c4b5fd; }
+.lane .journey { margin-top: 0; }
+</style>
+<link rel="stylesheet" href="assets/walkthrough.css?v=20261026r">
+<script src="assets/walkthrough.js?v=20261026r" defer></script>
+</head>
+<body>
+<header class="docs-topbar">
+  <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
+  <span class="docs-crumb">Story 4.5</span>
+  <span class="docs-topbar-spacer"></span>
+  <a class="docs-back" href="index.html">全部走读</a>
+</header>
+<div class="top-progress" id="progress"></div>
+<div class="layout">
+  <aside class="toc">
+    <p class="toc-brand">Epic 4 · Walkthrough</p>
+    <p class="toc-title">Story 4.5</p>
+    <p class="toc-sub">表格 · CSV · 导出 · 带代码逐行讲解</p>
+    <nav id="toc"><a href="#boundary" data-toc="boundary">两条来源、一个按钮、三种导出</a><a href="#map" data-toc="map">下载只有一条路：Blob → objec</a><a href="#journey" data-toc="journey">一次导出的旅行</a><a href="#csv" data-toc="csv">lib/csv.ts：读写共用一套口径</a><a href="#md" data-toc="md">markdown-answer.tsx：</a><a href="#thread" data-toc="thread">回答行 + 标题透传</a><a href="#decisions" data-toc="decisions">四条“看起来对、其实会坑人”的选择</a><a href="#verify" data-toc="verify">真跑过的三份下载</a><a href="#continuity" data-toc="continuity">接在 4.4 的哪个钩子上</a></nav>
+    <div class="toc-actions">
+      <button type="button" id="theme-toggle">深色</button>
+      <button type="button" id="expand-all">展开代码</button>
+    </div>
+  </aside>
+  <main class="main">
+<header class="hero">
+  <div class="hero-kicker"><span>EPIC 4 · STORY 4.5</span><span>TABLE · CSV · EXPORT</span></div>
+  <h1>表格要能看，<em>也要能拿走</em></h1>
+  <p class="hero-sub">GFM 表格真渲染（4.4 提供节点，本格补样式与按钮），加一条自己写的 RFC 4180 解析器把 CSV 围栏也变成表；导出走纯前端 Blob：CSV 带 BOM、防公式注入，整条回答的 .md 就是模型原文。解析不了就退回代码块，绝不猜着修数据。</p>
+  <div class="meta-row">
+    <span class="chip"><strong>前端</strong>85 文件 / 723</span>
+    <span class="chip"><strong>真跑</strong>真实下载 3 份</span>
+    <span class="chip"><strong>状态</strong>done · 2026-10-29</span>
+  </div>
+  <div class="trace-pill">verification: <b>tsc 0</b> · <b>vitest 85/723</b> · <b>build green</b> · <b>CSV BOM 实测</b> · <b>.md 原文实测</b></div>
+</header>
+
+<section class="section" id="boundary">
+  <header class="section-head">
+    <span class="kicker">01 · 结论与边界</span>
+    <h2>两条来源、一个按钮、三种导出</h2>
+    <p class="section-sub">表格有两条来源：GFM 表格与 CSV 围栏；下载都落到同一个 CsvDownloadButton。整条回答的 .md 导出是第二个入口。服务端生成文件、Excel 导出都不做。</p>
+  </header>
+  <div class="summary-grid">
+    <article class="summary-card"><div class="summary-no">01 / OWNS</div><h3>本格拥有的</h3><p><code>lib/csv.ts</code>（读写两端）、<code>lib/download.ts</code>（Blob 下载 + 文件名清洗）、表格样式与「下载 CSV」、CSV 围栏成表、回答行「导出 .md」、标题透传。</p></article>
+    <article class="summary-card"><div class="summary-no">02 / NOT OWNS</div><h3>不归本格的</h3><p>Markdown 渲染主体、引用、流式与 Mermaid（4.4，带徽章）；Mermaid 的「导出 JPEG」也在 4.4。服务端 artifact、Excel / 其他格式导出仍在 Deferred。</p></article>
+    <article class="summary-card"><div class="summary-no">03 / HONESTY</div><h3>不猜数据</h3><p>CSV 解析不了（引号不闭合、中途冒引号、只有一列、超过 300 行）就退回代码块；列数不齐原样显示，不补空也不截断。</p></article>
+  </div>
+</section>
+
+<section class="section" id="map">
+  <header class="section-head">
+    <span class="kicker">02 · 全局地图</span>
+    <h2>下载只有一条路：Blob → objectURL → 一枚锚点</h2>
+  </header>
+  <ol class="callout">
+    <li><b>表格来源 A</b>：GFM 表格 → react-markdown 渲染出 thead/tbody → 从 hast 节点取纯文本当 CSV。</li>
+    <li><b>表格来源 B</b>：CSV 围栏 → <code>parseCsv()</code> → 自己拼 table。</li>
+    <li><b>导出</b>：<code>csvText()</code> 加 BOM/转义/注入防护 → <code>downloadText()</code> → <code>downloadBlob()</code>。</li>
+    <li><b>.md</b>：直接把模型原文交给 <code>downloadText()</code>，不在前端重新拼。</li>
+  </ol>
+</section>
+<section class="section" id="journey"><header class="section-head"><span class="kicker">WALK</span><h2>一次导出的旅行</h2><p class="section-sub">点一步跳代码。</p></header><div class="journey"><button type="button" class="journey-step" data-goto="csv:32-55"><span class="step-no">01</span><span class="step-text"><strong>解析</strong><small>状态机吃引号/换行</small></span><span class="step-code">csv L32–55</span></button><button type="button" class="journey-step" data-goto="csv:16-30"><span class="step-no">02</span><span class="step-text"><strong>写 CSV</strong><small>BOM + 转义 + 注入防护</small></span><span class="step-code">csv L16–30</span></button><button type="button" class="journey-step" data-goto="md:158-202"><span class="step-no">03</span><span class="step-text"><strong>表 + 按钮</strong><small>两种来源共用按钮</small></span><span class="step-code">md L158–202</span></button><button type="button" class="journey-step" data-goto="download:12-24"><span class="step-no">04</span><span class="step-text"><strong>落文件</strong><small>Blob → 锚点 → 回收</small></span><span class="step-code">download L12–24</span></button><button type="button" class="journey-step" data-goto="thread:118-133"><span class="step-no">05</span><span class="step-text"><strong>导出 .md</strong><small>流式期间不出现</small></span><span class="step-code">thread L118–133</span></button></div></section>
+<section class="section" id="csv"><header class="section-head"><span class="kicker">CORE · 03</span><h2>lib/csv.ts：读写共用一套口径</h2><p class="section-sub">手写而不是引库：规则就这几条，测起来轻。</p></header><div class="callout">写出去再读回来必须是同一份数据（用例钉住）；列数不齐原样保留，因为补空或截断都会偷改用户数据。</div><div class="block" id="block-csv"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/lib/csv.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="csv">复制代码</button></div><div class="code-scroll"><div class="code" data-code="csv"><div class="line" data-line="1" id="csv-L1"><span class="ln">1</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">*</span></span></div><div class="line" data-line="2" id="csv-L2"><span class="ln">2</span><span class="lc"><span class="tok-c"> * CSV 的两端 —— 写（导出）与读（把 ```csv 围栏渲染成表）共用同一套口径：</span></span></div><div class="line" data-line="3" id="csv-L3"><span class="ln">3</span><span class="lc"><span class="tok-c"> *   写：UTF-8 BOM、CRLF、RFC 4180 转义、公式注入防护（以 `= + - @` 开头的单元格前置单引号）、文件名取表头；</span></span></div><div class="line" data-line="4" id="csv-L4"><span class="ln">4</span><span class="lc"><span class="tok-c"> *   读：容忍 BOM / CRLF / 引号里的逗号与换行 / `""` 转义；**解析不了就回 null**，由调用方退回代码块，</span></span></div><div class="line" data-line="5" id="csv-L5"><span class="ln">5</span><span class="lc"><span class="tok-c"> *       绝不猜着修数据（错位的表比代码块更难发现）。</span></span></div><div class="line" data-line="6" id="csv-L6"><span class="ln">6</span><span class="lc"><span class="tok-c"> * 行的列数不齐时原样返回（表格照实显示，导出也能原样回去），截断或补空都会偷改用户数据。</span></span></div><div class="line" data-line="7" id="csv-L7"><span class="ln">7</span><span class="lc"><span class="tok-c"> * 表头 + 至少一列才算"能当表看"；超过 MAX_ROWS 行也不渲染（一张几千行的表会把页面拖死，代码块更诚实）。</span></span></div><div class="line" data-line="8" id="csv-L8"><span class="ln">8</span><span class="lc"><span class="tok-c"> */</span></span></div><div class="line" data-line="9" id="csv-L9"><span class="ln">9</span><span class="lc"> </span></div><div class="line" data-line="10" id="csv-L10"><span class="ln">10</span><span class="lc"><span class="tok-k">export</span> { csvText, csvFileName, parseCsv, CSV_MAX_ROWS }</span></div><div class="line" data-line="11" id="csv-L11"><span class="ln">11</span><span class="lc"> </span></div><div class="line" data-line="12" id="csv-L12"><span class="ln">12</span><span class="lc"><span class="tok-k">import</span> { safeFileName } <span class="tok-k">from</span> <span class="tok-s">'./download'</span></span></div><div class="line" data-line="13" id="csv-L13"><span class="ln">13</span><span class="lc"> </span></div><div class="line" data-line="14" id="csv-L14"><span class="ln">14</span><span class="lc"><span class="tok-k">const</span> CSV_MAX_ROWS = <span class="tok-n">300</span></span></div><div class="line" data-line="15" id="csv-L15"><span class="ln">15</span><span class="lc"> </span></div><div class="line" data-line="16" id="csv-L16"><span class="ln">16</span><span class="lc"><span class="tok-k">function</span> csvText(<span class="tok-t">Rows</span>: <span class="tok-k">string</span>[][]): <span class="tok-k">string</span> {</span></div><div class="line" data-line="17" id="csv-L17"><span class="ln">17</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Body</span> = <span class="tok-t">Rows</span>.map((<span class="tok-t">Row</span>) =&gt; <span class="tok-t">Row</span>.map(csvCell).join(<span class="tok-s">','</span>)).join(<span class="tok-s">'\r\n'</span>)</span></div><div class="line" data-line="18" id="csv-L18"><span class="ln">18</span><span class="lc">  <span class="tok-k">return</span> <span class="tok-s">`${String.fromCharCode(0xfeff)}${Body}`</span></span></div><div class="line" data-line="19" id="csv-L19"><span class="ln">19</span><span class="lc">}</span></div><div class="line" data-line="20" id="csv-L20"><span class="ln">20</span><span class="lc"> </span></div><div class="line" data-line="21" id="csv-L21"><span class="ln">21</span><span class="lc"><span class="tok-k">function</span> csvCell(<span class="tok-t">Value</span>: <span class="tok-k">string</span>): <span class="tok-k">string</span> {</span></div><div class="line" data-line="22" id="csv-L22"><span class="ln">22</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c"> 公式注入：Excel/WPS 会把 = + - @ 开头的单元格当公式算，前置单引号让它老实当文本 */</span></span></div><div class="line" data-line="23" id="csv-L23"><span class="ln">23</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Guarded</span> = /^[=+\-@]/.test(<span class="tok-t">Value</span>) ? <span class="tok-s">`'${Value}`</span> : <span class="tok-t">Value</span></span></div><div class="line" data-line="24" id="csv-L24"><span class="ln">24</span><span class="lc">  <span class="tok-k">return</span> /[<span class="tok-s">",\r\n]/.test(Guarded) ? `"</span>${<span class="tok-t">Guarded</span>.replace(/<span class="tok-s">"/g, '"</span><span class="tok-s">"')}"</span><span class="tok-s">` : Guarded</span></span></div><div class="line" data-line="25" id="csv-L25"><span class="ln">25</span><span class="lc">}</span></div><div class="line" data-line="26" id="csv-L26"><span class="ln">26</span><span class="lc"> </span></div><div class="line" data-line="27" id="csv-L27"><span class="ln">27</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* 文件名取第一列表头；空表头 / 全是非法字符时落到 `table.csv` */</span></span></div><div class="line" data-line="28" id="csv-L28"><span class="ln">28</span><span class="lc"><span class="tok-k">function</span> csvFileName(<span class="tok-t">Rows</span>: <span class="tok-k">string</span>[][]): <span class="tok-k">string</span> {</span></div><div class="line" data-line="29" id="csv-L29"><span class="ln">29</span><span class="lc">  <span class="tok-k">return</span> <span class="tok-s">`${safeFileName(Rows[0]?.[0] ?? '', 'table')}.csv`</span></span></div><div class="line" data-line="30" id="csv-L30"><span class="ln">30</span><span class="lc">}</span></div><div class="line" data-line="31" id="csv-L31"><span class="ln">31</span><span class="lc"> </span></div><div class="line" data-line="32" id="csv-L32"><span class="ln">32</span><span class="lc"><span class="tok-k">function</span> parseCsv(<span class="tok-t">Text</span>: <span class="tok-k">string</span>): <span class="tok-k">string</span>[][] | <span class="tok-k">null</span> {</span></div><div class="line" data-line="33" id="csv-L33"><span class="ln">33</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Source</span> = <span class="tok-t">Text</span>.startsWith(<span class="tok-s">'\uFEFF'</span>) ? <span class="tok-t">Text</span>.slice(<span class="tok-n">1</span>) : <span class="tok-t">Text</span></span></div><div class="line" data-line="34" id="csv-L34"><span class="ln">34</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Rows</span>: <span class="tok-k">string</span>[][] = []</span></div><div class="line" data-line="35" id="csv-L35"><span class="ln">35</span><span class="lc">  <span class="tok-k">let</span> <span class="tok-t">Row</span>: <span class="tok-k">string</span>[] = []</span></div><div class="line" data-line="36" id="csv-L36"><span class="ln">36</span><span class="lc">  <span class="tok-k">let</span> <span class="tok-t">Cell</span> = <span class="tok-s">''</span></span></div><div class="line" data-line="37" id="csv-L37"><span class="ln">37</span><span class="lc">  <span class="tok-k">let</span> <span class="tok-t">Quoted</span> = <span class="tok-k">false</span></span></div><div class="line" data-line="38" id="csv-L38"><span class="ln">38</span><span class="lc"> </span></div><div class="line" data-line="39" id="csv-L39"><span class="ln">39</span><span class="lc">  <span class="tok-k">for</span> (<span class="tok-k">let</span> i = <span class="tok-n">0</span>; i &lt; <span class="tok-t">Source</span>.length; i += <span class="tok-n">1</span>) {</span></div><div class="line" data-line="40" id="csv-L40"><span class="ln">40</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Char</span> = <span class="tok-t">Source</span>[i]!</span></div><div class="line" data-line="41" id="csv-L41"><span class="ln">41</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Quoted</span>) {</span></div><div class="line" data-line="42" id="csv-L42"><span class="ln">42</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Char</span> === <span class="tok-s">'"'</span>) {</span></div><div class="line" data-line="43" id="csv-L43"><span class="ln">43</span><span class="lc">        <span class="tok-k">if</span> (<span class="tok-t">Source</span>[i + <span class="tok-n">1</span>] === <span class="tok-s">'"'</span>) {</span></div><div class="line" data-line="44" id="csv-L44"><span class="ln">44</span><span class="lc">          <span class="tok-t">Cell</span> += <span class="tok-s">'"'</span></span></div><div class="line" data-line="45" id="csv-L45"><span class="ln">45</span><span class="lc">          i += <span class="tok-n">1</span></span></div><div class="line" data-line="46" id="csv-L46"><span class="ln">46</span><span class="lc">        } <span class="tok-k">else</span> {</span></div><div class="line" data-line="47" id="csv-L47"><span class="ln">47</span><span class="lc">          <span class="tok-t">Quoted</span> = <span class="tok-k">false</span></span></div><div class="line" data-line="48" id="csv-L48"><span class="ln">48</span><span class="lc">        }</span></div><div class="line" data-line="49" id="csv-L49"><span class="ln">49</span><span class="lc">        <span class="tok-k">continue</span></span></div><div class="line" data-line="50" id="csv-L50"><span class="ln">50</span><span class="lc">      }</span></div><div class="line" data-line="51" id="csv-L51"><span class="ln">51</span><span class="lc">      <span class="tok-t">Cell</span> += <span class="tok-t">Char</span></span></div><div class="line" data-line="52" id="csv-L52"><span class="ln">52</span><span class="lc">      <span class="tok-k">continue</span></span></div><div class="line" data-line="53" id="csv-L53"><span class="ln">53</span><span class="lc">    }</span></div><div class="line" data-line="54" id="csv-L54"><span class="ln">54</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Char</span> === <span class="tok-s">'"'</span>) {</span></div><div class="line" data-line="55" id="csv-L55"><span class="ln">55</span><span class="lc">      <span class="tok-c">/*</span><span class="tok-c"> 引号只能出现在单元格开头；中途冒出引号说明这不是能安全解析的 CSV */</span></span></div><div class="line" data-line="56" id="csv-L56"><span class="ln">56</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Cell</span> !== <span class="tok-s">''</span>) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="57" id="csv-L57"><span class="ln">57</span><span class="lc">      <span class="tok-t">Quoted</span> = <span class="tok-k">true</span></span></div><div class="line" data-line="58" id="csv-L58"><span class="ln">58</span><span class="lc">      <span class="tok-k">continue</span></span></div><div class="line" data-line="59" id="csv-L59"><span class="ln">59</span><span class="lc">    }</span></div><div class="line" data-line="60" id="csv-L60"><span class="ln">60</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Char</span> === <span class="tok-s">','</span>) {</span></div><div class="line" data-line="61" id="csv-L61"><span class="ln">61</span><span class="lc">      <span class="tok-t">Row</span>.push(<span class="tok-t">Cell</span>)</span></div><div class="line" data-line="62" id="csv-L62"><span class="ln">62</span><span class="lc">      <span class="tok-t">Cell</span> = <span class="tok-s">''</span></span></div><div class="line" data-line="63" id="csv-L63"><span class="ln">63</span><span class="lc">      <span class="tok-k">continue</span></span></div><div class="line" data-line="64" id="csv-L64"><span class="ln">64</span><span class="lc">    }</span></div><div class="line" data-line="65" id="csv-L65"><span class="ln">65</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Char</span> === <span class="tok-s">'\r'</span>) <span class="tok-k">continue</span></span></div><div class="line" data-line="66" id="csv-L66"><span class="ln">66</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Char</span> === <span class="tok-s">'\n'</span>) {</span></div><div class="line" data-line="67" id="csv-L67"><span class="ln">67</span><span class="lc">      <span class="tok-t">Row</span>.push(<span class="tok-t">Cell</span>)</span></div><div class="line" data-line="68" id="csv-L68"><span class="ln">68</span><span class="lc">      <span class="tok-t">Rows</span>.push(<span class="tok-t">Row</span>)</span></div><div class="line" data-line="69" id="csv-L69"><span class="ln">69</span><span class="lc">      <span class="tok-t">Row</span> = []</span></div><div class="line" data-line="70" id="csv-L70"><span class="ln">70</span><span class="lc">      <span class="tok-t">Cell</span> = <span class="tok-s">''</span></span></div><div class="line" data-line="71" id="csv-L71"><span class="ln">71</span><span class="lc">      <span class="tok-k">continue</span></span></div><div class="line" data-line="72" id="csv-L72"><span class="ln">72</span><span class="lc">    }</span></div><div class="line" data-line="73" id="csv-L73"><span class="ln">73</span><span class="lc">    <span class="tok-t">Cell</span> += <span class="tok-t">Char</span></span></div><div class="line" data-line="74" id="csv-L74"><span class="ln">74</span><span class="lc">  }</span></div><div class="line" data-line="75" id="csv-L75"><span class="ln">75</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Quoted</span>) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="76" id="csv-L76"><span class="ln">76</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Cell</span> !== <span class="tok-s">''</span> || <span class="tok-t">Row</span>.length &gt; <span class="tok-n">0</span>) {</span></div><div class="line" data-line="77" id="csv-L77"><span class="ln">77</span><span class="lc">    <span class="tok-t">Row</span>.push(<span class="tok-t">Cell</span>)</span></div><div class="line" data-line="78" id="csv-L78"><span class="ln">78</span><span class="lc">    <span class="tok-t">Rows</span>.push(<span class="tok-t">Row</span>)</span></div><div class="line" data-line="79" id="csv-L79"><span class="ln">79</span><span class="lc">  }</span></div><div class="line" data-line="80" id="csv-L80"><span class="ln">80</span><span class="lc"> </span></div><div class="line" data-line="81" id="csv-L81"><span class="ln">81</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Filled</span> = <span class="tok-t">Rows</span>.filter((<span class="tok-t">Cells</span>) =&gt; !(<span class="tok-t">Cells</span>.length === <span class="tok-n">1</span> &amp;&amp; <span class="tok-t">Cells</span>[<span class="tok-n">0</span>]!.trim() === <span class="tok-s">''</span>))</span></div><div class="line" data-line="82" id="csv-L82"><span class="ln">82</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Filled</span>.length &lt; <span class="tok-n">2</span> || <span class="tok-t">Filled</span>.length &gt; CSV_MAX_ROWS) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="83" id="csv-L83"><span class="ln">83</span><span class="lc">  <span class="tok-k">if</span> ((<span class="tok-t">Filled</span>[<span class="tok-n">0</span>]?.length ?? <span class="tok-n">0</span>) &lt; <span class="tok-n">2</span>) <span class="tok-k">return</span> <span class="tok-k">null</span></span></div><div class="line" data-line="84" id="csv-L84"><span class="ln">84</span><span class="lc">  <span class="tok-k">return</span> <span class="tok-t">Filled</span></span></div><div class="line" data-line="85" id="csv-L85"><span class="ln">85</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="csv 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="csv" data-lines="16-26" data-note="csv-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">写：BOM + CRLF + 转义</span></div><p class="note-range">L16–26</p><div class="note-body"><p>BOM 用 <code>String.fromCharCode(0xfeff)</code> 拼，不把不可见字符写进源码；<code>= + - @</code> 开头的单元格前置单引号挡公式注入。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="csv" data-lines="28-30" data-note="csv-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">文件名取表头</span></div><p class="note-range">L28–30</p><div class="note-body"><p>交给 <code>safeFileName</code> 清洗；空表头落到 <code>table.csv</code>。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="csv" data-lines="32-55" data-note="csv-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">读：一个极小的状态机</span></div><p class="note-range">L32–55</p><div class="note-body"><p>两种状态（引号内 / 外）。引号里的逗号与换行原样进单元格，<code>""</code> 还原成一个引号；CRLF 与 BOM 直接吃掉。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="csv" data-lines="57-84" data-note="csv-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">读：什么时候宁可不当表</span></div><p class="note-range">L57–84</p><div class="note-body"><p>中途冒引号、引号没闭合 → null；只有一列 / 只有表头 / 超过 <code>CSV_MAX_ROWS</code>(300) 行 → null。调用方见到 null 就退回代码块。</p></div></article></aside></div></div><div class="block" id="block-download"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/lib/download.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="download">复制代码</button></div><div class="code-scroll"><div class="code" data-code="download"><div class="line" data-line="1" id="download-L1"><span class="ln">1</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">*</span></span></div><div class="line" data-line="2" id="download-L2"><span class="ln">2</span><span class="lc"><span class="tok-c"> * 浏览器端下载（现做现用，不落服务端）—— 与设置页导出的手法同源：Blob + objectURL + 一枚游离 &lt;a&gt;。</span></span></div><div class="line" data-line="3" id="download-L3"><span class="ln">3</span><span class="lc"><span class="tok-c"> * 外加文件名清洗（CSV 取表头、.md 取会话标题）：去 `/:*?"&lt;&gt;|` 与控制字符、空白压 `-`、</span></span></div><div class="line" data-line="4" id="download-L4"><span class="ln">4</span><span class="lc"><span class="tok-c"> *   截 40 个码点（不切坏代理对）、清洗后为空才用兜底名。</span></span></div><div class="line" data-line="5" id="download-L5"><span class="ln">5</span><span class="lc"><span class="tok-c"> * CSV 的读写规则住在 lib/csv.ts（导出与"围栏渲染成表"共用一套）。</span></span></div><div class="line" data-line="6" id="download-L6"><span class="ln">6</span><span class="lc"><span class="tok-c"> */</span></span></div><div class="line" data-line="7" id="download-L7"><span class="ln">7</span><span class="lc"> </span></div><div class="line" data-line="8" id="download-L8"><span class="ln">8</span><span class="lc"><span class="tok-k">export</span> { downloadText, downloadBlob, safeFileName }</span></div><div class="line" data-line="9" id="download-L9"><span class="ln">9</span><span class="lc"> </span></div><div class="line" data-line="10" id="download-L10"><span class="ln">10</span><span class="lc"><span class="tok-k">const</span> MAX_NAME = <span class="tok-n">40</span></span></div><div class="line" data-line="11" id="download-L11"><span class="ln">11</span><span class="lc"> </span></div><div class="line" data-line="12" id="download-L12"><span class="ln">12</span><span class="lc"><span class="tok-k">function</span> downloadText(<span class="tok-t">Filename</span>: <span class="tok-k">string</span>, <span class="tok-t">Text</span>: <span class="tok-k">string</span>, <span class="tok-t">Mime</span>: <span class="tok-k">string</span>): <span class="tok-k">void</span> {</span></div><div class="line" data-line="13" id="download-L13"><span class="ln">13</span><span class="lc">  downloadBlob(<span class="tok-t">Filename</span>, <span class="tok-k">new</span> <span class="tok-t">Blob</span>([<span class="tok-t">Text</span>], { <span class="tok-k">type</span>: <span class="tok-t">Mime</span> }))</span></div><div class="line" data-line="14" id="download-L14"><span class="ln">14</span><span class="lc">}</span></div><div class="line" data-line="15" id="download-L15"><span class="ln">15</span><span class="lc"> </span></div><div class="line" data-line="16" id="download-L16"><span class="ln">16</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* 已经把内容做成 Blob 的（JPEG 这类二进制）走这一支：不再经过字符串 */</span></span></div><div class="line" data-line="17" id="download-L17"><span class="ln">17</span><span class="lc"><span class="tok-k">function</span> downloadBlob(<span class="tok-t">Filename</span>: <span class="tok-k">string</span>, <span class="tok-t">Payload</span>: <span class="tok-t">Blob</span>): <span class="tok-k">void</span> {</span></div><div class="line" data-line="18" id="download-L18"><span class="ln">18</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Url</span> = URL.createObjectURL(<span class="tok-t">Payload</span>)</span></div><div class="line" data-line="19" id="download-L19"><span class="ln">19</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Anchor</span> = document.createElement(<span class="tok-s">'a'</span>)</span></div><div class="line" data-line="20" id="download-L20"><span class="ln">20</span><span class="lc">  <span class="tok-t">Anchor</span>.href = <span class="tok-t">Url</span></span></div><div class="line" data-line="21" id="download-L21"><span class="ln">21</span><span class="lc">  <span class="tok-t">Anchor</span>.download = <span class="tok-t">Filename</span></span></div><div class="line" data-line="22" id="download-L22"><span class="ln">22</span><span class="lc">  <span class="tok-t">Anchor</span>.click()</span></div><div class="line" data-line="23" id="download-L23"><span class="ln">23</span><span class="lc">  window.setTimeout(() =&gt; URL.revokeObjectURL(<span class="tok-t">Url</span>), <span class="tok-n">0</span>)</span></div><div class="line" data-line="24" id="download-L24"><span class="ln">24</span><span class="lc">}</span></div><div class="line" data-line="25" id="download-L25"><span class="ln">25</span><span class="lc"> </span></div><div class="line" data-line="26" id="download-L26"><span class="ln">26</span><span class="lc"><span class="tok-k">function</span> safeFileName(<span class="tok-t">Source</span>: <span class="tok-k">string</span>, <span class="tok-t">Fallback</span>: <span class="tok-k">string</span>): <span class="tok-k">string</span> {</span></div><div class="line" data-line="27" id="download-L27"><span class="ln">27</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Cleaned</span> = [...<span class="tok-t">Source</span>]</span></div><div class="line" data-line="28" id="download-L28"><span class="ln">28</span><span class="lc">    .map((<span class="tok-t">Char</span>) =&gt; (/[/\\:*?<span class="tok-s">"&lt;&gt;|]/.test(Char) || Char.codePointAt(0)! &lt; 0x20 ? ' ' : Char))</span></span></div><div class="line" data-line="29" id="download-L29"><span class="ln">29</span><span class="lc">    .join(<span class="tok-s">''</span>)</span></div><div class="line" data-line="30" id="download-L30"><span class="ln">30</span><span class="lc">    .replace(/\s+/g, <span class="tok-s">'-'</span>)</span></div><div class="line" data-line="31" id="download-L31"><span class="ln">31</span><span class="lc">    .replace(/-+/g, <span class="tok-s">'-'</span>)</span></div><div class="line" data-line="32" id="download-L32"><span class="ln">32</span><span class="lc">    .replace(/^-+|-+$/g, <span class="tok-s">''</span>)</span></div><div class="line" data-line="33" id="download-L33"><span class="ln">33</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Sliced</span> = [...<span class="tok-t">Cleaned</span>].slice(<span class="tok-n">0</span>, MAX_NAME).join(<span class="tok-s">''</span>)</span></div><div class="line" data-line="34" id="download-L34"><span class="ln">34</span><span class="lc">  <span class="tok-k">return</span> <span class="tok-t">Sliced</span> === <span class="tok-s">''</span> ? <span class="tok-t">Fallback</span> : <span class="tok-t">Sliced</span></span></div><div class="line" data-line="35" id="download-L35"><span class="ln">35</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="download 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="download" data-lines="12-15" data-note="download-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">文本走 Blob</span></div><p class="note-range">L12–15</p><div class="note-body"><p><code>downloadText</code> 只是给 <code>downloadBlob</code> 包一层 MIME。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="download" data-lines="17-24" data-note="download-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">锚点下载 + 立刻回收</span></div><p class="note-range">L17–24</p><div class="note-body"><p>objectURL 在 setTimeout 0 里 revoke：早了下载会被掐断，不回收就是泄漏。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="download" data-lines="26-34" data-note="download-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">文件名清洗</span></div><p class="note-range">L26–34</p><div class="note-body"><p>去非法字符与控制符、空白压 <code>-</code>、按码点截 40（不切坏 emoji）、空则兜底。CSV/JPEG 用表头或标题，.md 用会话标题。</p></div></article></aside></div></div></section>
+<section class="section" id="md"><header class="section-head"><span class="kicker">CORE · 04</span><h2>markdown-answer.tsx：两种表与一个按钮</h2><p class="section-sub">4.4 的渲染管线不变，这里只补表格分支。</p></header><div class="callout">表格宽度口径改过一次：只给 w-full 时 9 列表格会把中文压成一字一行；现在 w-max + min-w-full 横向滚，单元格 max-w-sm 兜住超长备注。</div><div class="block" id="block-md"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/chat-thread/markdown-answer.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="md">复制代码</button></div><div class="code-scroll"><div class="code" data-code="md"><div class="line" data-line="71" id="md-L71"><span class="ln">71</span><span class="lc">  <span class="tok-c">/*</span><span class="tok-c"> 表格按内容撑开（w-max）再横向滚：只给 w-full 的话 9 列表格会把「产品经理」压成一字一行；</span></span></div><div class="line" data-line="72" id="md-L72"><span class="ln">72</span><span class="lc"><span class="tok-c">     单元格封顶 24rem，超长备注在格子里换行，不把表拉到无限宽 */</span></span></div><div class="line" data-line="73" id="md-L73"><span class="ln">73</span><span class="lc">  <span class="tok-s">'[&amp;_table]:w-max [&amp;_table]:min-w-full [&amp;_table]:border-collapse [&amp;_th]:max-w-sm [&amp;_th]:border [&amp;_th]:border-line [&amp;_th]:bg-raised [&amp;_th]:px-2 [&amp;_th]:py-1 [&amp;_th]:text-left [&amp;_td]:max-w-sm [&amp;_td]:border [&amp;_td]:border-line [&amp;_td]:px-2 [&amp;_td]:py-1'</span>,</span></div><div class="line" data-line="74" id="md-L74"><span class="ln">74</span><span class="lc">].join(<span class="tok-s">' '</span>)</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="158" id="md-L158"><span class="ln">158</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* ```csv 围栏渲染出的表：首行当表头；下载内容就是解析后的行，不重新拼一遍字符串 */</span></span></div><div class="line" data-line="159" id="md-L159"><span class="ln">159</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">CsvFenceTable</span>({ <span class="tok-t">Rows</span> }: { <span class="tok-t">Rows</span>: <span class="tok-k">string</span>[][] }) {</span></div><div class="line" data-line="160" id="md-L160"><span class="ln">160</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Head</span> = <span class="tok-t">Rows</span>[<span class="tok-n">0</span>]!</span></div><div class="line" data-line="161" id="md-L161"><span class="ln">161</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Body</span> = <span class="tok-t">Rows</span>.slice(<span class="tok-n">1</span>)</span></div><div class="line" data-line="162" id="md-L162"><span class="ln">162</span><span class="lc">  <span class="tok-k">return</span> (</span></div><div class="line" data-line="163" id="md-L163"><span class="ln">163</span><span class="lc">    &lt;div className=<span class="tok-s">"space-y-1"</span>&gt;</span></div><div class="line" data-line="164" id="md-L164"><span class="ln">164</span><span class="lc">      &lt;<span class="tok-t">CsvDownloadButton</span> <span class="tok-t">Rows</span>={<span class="tok-t">Rows</span>} /&gt;</span></div><div class="line" data-line="165" id="md-L165"><span class="ln">165</span><span class="lc">      &lt;div className=<span class="tok-s">"overflow-x-auto"</span> data-scroll&gt;</span></div><div class="line" data-line="166" id="md-L166"><span class="ln">166</span><span class="lc">        &lt;table&gt;</span></div><div class="line" data-line="167" id="md-L167"><span class="ln">167</span><span class="lc">          &lt;thead&gt;</span></div><div class="line" data-line="168" id="md-L168"><span class="ln">168</span><span class="lc">            &lt;tr&gt;</span></div><div class="line" data-line="169" id="md-L169"><span class="ln">169</span><span class="lc">              {<span class="tok-t">Head</span>.map((<span class="tok-t">Cell</span>, i) =&gt; (</span></div><div class="line" data-line="170" id="md-L170"><span class="ln">170</span><span class="lc">                &lt;th key={i}&gt;{<span class="tok-t">Cell</span>}&lt;/th&gt;</span></div><div class="line" data-line="171" id="md-L171"><span class="ln">171</span><span class="lc">              ))}</span></div><div class="line" data-line="172" id="md-L172"><span class="ln">172</span><span class="lc">            &lt;/tr&gt;</span></div><div class="line" data-line="173" id="md-L173"><span class="ln">173</span><span class="lc">          &lt;/thead&gt;</span></div><div class="line" data-line="174" id="md-L174"><span class="ln">174</span><span class="lc">          &lt;tbody&gt;</span></div><div class="line" data-line="175" id="md-L175"><span class="ln">175</span><span class="lc">            {<span class="tok-t">Body</span>.map((<span class="tok-t">Row</span>, r) =&gt; (</span></div><div class="line" data-line="176" id="md-L176"><span class="ln">176</span><span class="lc">              &lt;tr key={r}&gt;</span></div><div class="line" data-line="177" id="md-L177"><span class="ln">177</span><span class="lc">                {<span class="tok-t">Row</span>.map((<span class="tok-t">Cell</span>, c) =&gt; (</span></div><div class="line" data-line="178" id="md-L178"><span class="ln">178</span><span class="lc">                  &lt;td key={c}&gt;{<span class="tok-t">Cell</span>}&lt;/td&gt;</span></div><div class="line" data-line="179" id="md-L179"><span class="ln">179</span><span class="lc">                ))}</span></div><div class="line" data-line="180" id="md-L180"><span class="ln">180</span><span class="lc">              &lt;/tr&gt;</span></div><div class="line" data-line="181" id="md-L181"><span class="ln">181</span><span class="lc">            ))}</span></div><div class="line" data-line="182" id="md-L182"><span class="ln">182</span><span class="lc">          &lt;/tbody&gt;</span></div><div class="line" data-line="183" id="md-L183"><span class="ln">183</span><span class="lc">        &lt;/table&gt;</span></div><div class="line" data-line="184" id="md-L184"><span class="ln">184</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="185" id="md-L185"><span class="ln">185</span><span class="lc">    &lt;/div&gt;</span></div><div class="line" data-line="186" id="md-L186"><span class="ln">186</span><span class="lc">  )</span></div><div class="line" data-line="187" id="md-L187"><span class="ln">187</span><span class="lc">}</span></div><div class="line" data-line="188" id="md-L188"><span class="ln">188</span><span class="lc"> </span></div><div class="line" data-line="189" id="md-L189"><span class="ln">189</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">CsvDownloadButton</span>({ <span class="tok-t">Rows</span> }: { <span class="tok-t">Rows</span>: <span class="tok-k">string</span>[][] }) {</span></div><div class="line" data-line="190" id="md-L190"><span class="ln">190</span><span class="lc">  <span class="tok-k">return</span> (</span></div><div class="line" data-line="191" id="md-L191"><span class="ln">191</span><span class="lc">    &lt;div className=<span class="tok-s">"flex justify-end"</span>&gt;</span></div><div class="line" data-line="192" id="md-L192"><span class="ln">192</span><span class="lc">      &lt;button</span></div><div class="line" data-line="193" id="md-L193"><span class="ln">193</span><span class="lc">        <span class="tok-k">type</span>=<span class="tok-s">"button"</span></span></div><div class="line" data-line="194" id="md-L194"><span class="ln">194</span><span class="lc">        onClick={() =&gt; downloadText(csvFileName(<span class="tok-t">Rows</span>), csvText(<span class="tok-t">Rows</span>), <span class="tok-s">'text/csv;charset=utf-8'</span>)}</span></div><div class="line" data-line="195" id="md-L195"><span class="ln">195</span><span class="lc">        className=<span class="tok-s">"flex items-center gap-1 rounded-control px-1.5 py-0.5 text-caption text-ink-muted transition-colors hover:bg-fill hover:text-ink"</span></span></div><div class="line" data-line="196" id="md-L196"><span class="ln">196</span><span class="lc">      &gt;</span></div><div class="line" data-line="197" id="md-L197"><span class="ln">197</span><span class="lc">        &lt;<span class="tok-t">Icon</span> name=<span class="tok-s">"download"</span> className=<span class="tok-s">"size-3"</span> /&gt;</span></div><div class="line" data-line="198" id="md-L198"><span class="ln">198</span><span class="lc">        下载 CSV</span></div><div class="line" data-line="199" id="md-L199"><span class="ln">199</span><span class="lc">      &lt;/button&gt;</span></div><div class="line" data-line="200" id="md-L200"><span class="ln">200</span><span class="lc">    &lt;/div&gt;</span></div><div class="line" data-line="201" id="md-L201"><span class="ln">201</span><span class="lc">  )</span></div><div class="line" data-line="202" id="md-L202"><span class="ln">202</span><span class="lc">}</span></div><div class="line" data-line="203" id="md-L203"><span class="ln">203</span><span class="lc"> </span></div><div class="line" data-line="204" id="md-L204"><span class="ln">204</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">AnswerTable</span>({ node, children }: { node?: <span class="tok-k">unknown</span>; children?: <span class="tok-t">ReactNode</span> }) {</span></div><div class="line" data-line="205" id="md-L205"><span class="ln">205</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Answer</span> = useContext(<span class="tok-t">Scope</span>)</span></div><div class="line" data-line="206" id="md-L206"><span class="ln">206</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Rows</span> = tableRows(node)</span></div><div class="line" data-line="207" id="md-L207"><span class="ln">207</span><span class="lc">  <span class="tok-k">return</span> (</span></div><div class="line" data-line="208" id="md-L208"><span class="ln">208</span><span class="lc">    &lt;div className=<span class="tok-s">"space-y-1"</span>&gt;</span></div><div class="line" data-line="209" id="md-L209"><span class="ln">209</span><span class="lc">      {<span class="tok-c">/*</span><span class="tok-c"> 流没结束、或只有表头时不给下载：那时导出的是一张半截表 */</span>}</span></div><div class="line" data-line="210" id="md-L210"><span class="ln">210</span><span class="lc">      {<span class="tok-t">Answer</span>?.<span class="tok-t">Streaming</span> === <span class="tok-k">false</span> &amp;&amp; <span class="tok-t">Rows</span>.length &gt; <span class="tok-n">1</span> &amp;&amp; &lt;<span class="tok-t">CsvDownloadButton</span> <span class="tok-t">Rows</span>={<span class="tok-t">Rows</span>} /&gt;}</span></div><div class="line" data-line="211" id="md-L211"><span class="ln">211</span><span class="lc">      &lt;div className=<span class="tok-s">"overflow-x-auto"</span> data-scroll&gt;</span></div><div class="line" data-line="212" id="md-L212"><span class="ln">212</span><span class="lc">        &lt;table&gt;{children}&lt;/table&gt;</span></div><div class="line" data-line="213" id="md-L213"><span class="ln">213</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="214" id="md-L214"><span class="ln">214</span><span class="lc">    &lt;/div&gt;</span></div><div class="line" data-line="215" id="md-L215"><span class="ln">215</span><span class="lc">  )</span></div><div class="line" data-line="216" id="md-L216"><span class="ln">216</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="md 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="md" data-lines="71-73" data-note="md-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">表格宽度口径</span><span class="badge b-now">4.4/4.5</span></div><p class="note-range">L71–73</p><div class="note-body"><p><code>w-max</code> 按内容撑开、<code>min-w-full</code> 不窄于容器、<code>max-w-sm</code>(24rem) 让长文本在格内换行。24rem 用 max-w-sm 而不是任意值，因为仓库守卫禁止尺寸任意值字面量。</div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="md" data-lines="158-187" data-note="md-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">CSV 围栏 → 表</span><span class="badge b-now">4.5</span></div><p class="note-range">L158–187</p><div class="note-body"><p>首行当表头；下载内容就是解析后的行，不重新拼字符串（拼一遍就可能和屏幕上看到的不是同一份）。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="md" data-lines="189-202" data-note="md-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">同一个下载按钮</span><span class="badge b-now">4.5</span></div><p class="note-range">L189–202</p><div class="note-body"><p>GFM 表与 CSV 围栏共用；<code>csvText</code> 负责 BOM/转义/注入防护，按钮只负责命名与触发。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="md" data-lines="204-216" data-note="md-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">GFM 表：节点归 4.4，按钮归 4.5</span><span class="badge b-now">4.5</span></div><p class="note-range">L204–216</p><div class="note-body"><p><code>tableRows(node)</code> 从渲染树取纯文本（单元格里的引用还原成 <code>[token]</code>）；流没结束或只有表头时不给按钮。</p></div></article></aside></div></div></section>
+<section class="section" id="thread"><header class="section-head"><span class="kicker">WIRING · 05</span><h2>回答行 + 标题透传</h2><p class="section-sub">导出入口只在流结束后出现。</p></header><div class="callout">标题只用于文件名；导出的正文是 <code>Text</code>（模型原文），不重新序列化。</div><div class="block" id="block-thread"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/chat-thread/chat-thread.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="thread">复制代码</button></div><div class="code-scroll"><div class="code" data-code="thread"><div class="line" data-line="118" id="thread-L118"><span class="ln">118</span><span class="lc">      &lt;p className=<span class="tok-s">"flex items-center gap-1.5 text-caption uppercase tracking-wide text-ink-muted"</span>&gt;</span></div><div class="line" data-line="119" id="thread-L119"><span class="ln">119</span><span class="lc">        &lt;<span class="tok-t">Icon</span> name=<span class="tok-s">"sparkle"</span> className=<span class="tok-s">"size-3.5"</span> /&gt;</span></div><div class="line" data-line="120" id="thread-L120"><span class="ln">120</span><span class="lc">        回答</span></div><div class="line" data-line="121" id="thread-L121"><span class="ln">121</span><span class="lc">        {<span class="tok-c">/*</span><span class="tok-c"> 整条回答导出 .md（4.5）：导出的就是模型写的那份原文，不在前端重新拼 */</span></span></div><div class="line" data-line="122" id="thread-L122"><span class="ln">122</span><span class="lc">        !<span class="tok-t">Streaming</span> &amp;&amp; (</span></div><div class="line" data-line="123" id="thread-L123"><span class="ln">123</span><span class="lc">          &lt;button</span></div><div class="line" data-line="124" id="thread-L124"><span class="ln">124</span><span class="lc">            <span class="tok-k">type</span>=<span class="tok-s">"button"</span></span></div><div class="line" data-line="125" id="thread-L125"><span class="ln">125</span><span class="lc">            onClick={() =&gt; downloadText(<span class="tok-s">`${safeFileName(Title, '回答')}.md`</span>, <span class="tok-t">Text</span>, <span class="tok-s">'text/markdown;charset=utf-8'</span>)}</span></div><div class="line" data-line="126" id="thread-L126"><span class="ln">126</span><span class="lc">            aria-label=<span class="tok-s">"导出这条回答为 Markdown"</span></span></div><div class="line" data-line="127" id="thread-L127"><span class="ln">127</span><span class="lc">            title=<span class="tok-s">"导出 .md"</span></span></div><div class="line" data-line="128" id="thread-L128"><span class="ln">128</span><span class="lc">            className=<span class="tok-s">"ml-auto flex size-6 items-center justify-center rounded-control text-ink-muted transition-colors hover:bg-fill hover:text-ink"</span></span></div><div class="line" data-line="129" id="thread-L129"><span class="ln">129</span><span class="lc">          &gt;</span></div><div class="line" data-line="130" id="thread-L130"><span class="ln">130</span><span class="lc">            &lt;<span class="tok-t">Icon</span> name=<span class="tok-s">"download"</span> className=<span class="tok-s">"size-3.5"</span> /&gt;</span></div><div class="line" data-line="131" id="thread-L131"><span class="ln">131</span><span class="lc">          &lt;/button&gt;</span></div><div class="line" data-line="132" id="thread-L132"><span class="ln">132</span><span class="lc">        )}</span></div><div class="line" data-line="133" id="thread-L133"><span class="ln">133</span><span class="lc">      &lt;/p&gt;</span></div></div></div></div><aside class="notes" aria-label="thread 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="thread" data-lines="118-133" data-note="thread-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">导出 .md</span><span class="badge b-now">4.5</span></div><p class="note-range">L118–133</p><div class="note-body"><p>流式期间不渲染按钮（半条回答不该被导成成品）；文件名取会话标题，清洗后为空就落「回答」。</div></article></aside></div></div><div class="block" id="block-ask"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/routes/ask.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="ask">复制代码</button></div><div class="code-scroll"><div class="code" data-code="ask"><div class="line" data-line="538" id="ask-L538"><span class="ln">538</span><span class="lc">                &lt;<span class="tok-t">ChatThread</span></span></div><div class="line" data-line="539" id="ask-L539"><span class="ln">539</span><span class="lc">                  messages={messages}</span></div><div class="line" data-line="540" id="ask-L540"><span class="ln">540</span><span class="lc">                  <span class="tok-t">MessageHits</span>={messageHits}</span></div><div class="line" data-line="541" id="ask-L541"><span class="ln">541</span><span class="lc">                  <span class="tok-t">MessageAllHits</span>={messageAllHits}</span></div><div class="line" data-line="542" id="ask-L542"><span class="ln">542</span><span class="lc">                  <span class="tok-t">StreamingId</span>={streamingId}</span></div><div class="line" data-line="543" id="ask-L543"><span class="ln">543</span><span class="lc">                  onCite={revealCitation}</span></div><div class="line" data-line="544" id="ask-L544"><span class="ln">544</span><span class="lc">                  <span class="tok-t">Incomplete</span>={incomplete}</span></div><div class="line" data-line="545" id="ask-L545"><span class="ln">545</span><span class="lc">                  <span class="tok-t">Title</span>={sessions.find((session) =&gt; session.id === sessionId)?.title ?? <span class="tok-s">''</span>}</span></div><div class="line" data-line="546" id="ask-L546"><span class="ln">546</span><span class="lc">                /&gt;</span></div></div></div></div><aside class="notes" aria-label="ask 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="ask" data-lines="538-546" data-note="ask-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">标题从页面下来</span><span class="badge b-now">4.5</span></div><p class="note-range">L538–546</p><div class="note-body"><p>AskPage 用当前会话标题喂给 ChatThread；同一条回答的 .md 与图 JPEG 都用它命名。</p></div></article></aside></div></div></section>
+
+<section class="section" id="decisions">
+  <header class="section-head">
+    <span class="kicker">06 · 取舍与踩坑</span>
+    <h2>四条“看起来对、其实会坑人”的选择</h2>
+  </header>
+  <div class="summary-grid">
+    <article class="summary-card"><div class="summary-no">A / PARSER</div><h3>手写 RFC 4180</h3><p>papaparse 能省 40 行，但这里只需要“能不能安全当表看”这一档；手写规则可测、可拒收，不引入一条新的依赖。</p></article>
+    <article class="summary-card"><div class="summary-no">B / REFUSE</div><h3>宁可代码块</h3><p>错位的表比代码块更难发现；所以解析失败一律回退，列不齐也照实显示，不替用户“修”。</p></article>
+    <article class="summary-card"><div class="summary-no">C / WIDTH</div><h3>表格按内容宽</h3><p>w-full 会让 9 列表格把「产品经理」压成竖排；w-max + 横向滚才对。长备注封在 24rem 内换行。</p></article>
+    <article class="summary-card"><div class="summary-no">D / GUARDS</div><h3>被仓库守卫抓的三下</h3><p>hex 兜底色 → 改 white；role=status 不能包在条件渲染里 → 常驻槽；禁用态 opacity-50 → 全站口径 40。</p></article>
+  </div>
+</section>
+
+<section class="section" id="verify">
+  <header class="section-head">
+    <span class="kicker">07 · 自测清单</span>
+    <h2>真跑过的三份下载</h2>
+  </header>
+  <ol class="callout">
+    <li><b>CSV</b>（真跑）：文件头 <code>EF BB BF</code>（BOM），表头 <code>阶段,能力增量,对应的 AI SDK 练习点</code>，单元格里的引用还原成 <code>[8bd00bae]</code>。</li>
+    <li><b>.md</b>（真跑）：内容就是模型原文（含 <code>**</code> 与 <code>[508…]</code>），文件名取会话标题。</li>
+    <li><b>CSV 围栏</b>（真跑）：9 列表头 8 行数据，<code>"Smith, John"</code> 成一格，超长备注格宽 384px × 高 72px（格内换行），表总宽 1058px / 容器 589px → 横向滚，页面不撑破。</li>
+    <li><code>npx tsc --noEmit</code> · 0 错；<code>npm test</code> · 85 文件 / 723 条；<code>npm run build</code> · 通过。</li>
+  </ol>
+</section>
+
+<section class="section" id="continuity">
+  <header class="section-head">
+    <span class="kicker">08 · 衔接</span>
+    <h2>接在 4.4 的哪个钩子上</h2>
+  </header>
+  <div class="callout">
+    <p><b>上游</b>：4.4 的 <code>AnswerPre</code>（按语言分流）与 <code>AnswerTable</code>（GFM 表的容器）、4.4 的 PROSE。</p>
+    <p><b>下游</b>：<code>lib/csv.ts</code> 的解析器可复用于别的场景；<code>downloadBlob</code> 也被 4.4 的 Mermaid JPEG 导出复用。</p>
+    <p><b>还没做</b>：Excel / 其他格式、服务端 artifact（落 MinIO 再发链接）、CSV 大文件分页。</p>
+  </div>
+</section>
+<footer class="footer">Story 4.5 · 2026-10-29 · 代码取自当前工作区，行号随源码走。</footer></main>
+</div>
+<button type="button" class="to-top" id="to-top" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var progress = document.getElementById('progress');
+  var toTop = document.getElementById('to-top');
+  var themeToggle = document.getElementById('theme-toggle');
+  var expandAll = document.getElementById('expand-all');
+  var expanded = false;
+
+  function readTheme() {
+    try {
+      var saved = localStorage.getItem('story-walkthrough-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
+    try { localStorage.setItem('story-walkthrough-theme', theme); } catch (e) {}
+  }
+
+  applyTheme(readTheme());
+
+  themeToggle.addEventListener('click', function () {
+    applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  function onScroll() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = max > 0 ? window.scrollY / max : 0;
+    progress.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+    toTop.classList.toggle('show', window.scrollY > 600);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function codeOf(id) {
+    return document.querySelector('.code[data-code="' + id + '"]');
+  }
+
+  function clearHighlights(id) {
+    var code = codeOf(id);
+    if (!code) return;
+    code.querySelectorAll('.line.hl').forEach(function (line) { line.classList.remove('hl'); });
+  }
+
+  function parseLines(spec) {
+    var set = new Set();
+    spec.split(',').forEach(function (part) {
+      var bits = part.trim().split('-').map(Number);
+      if (bits.length === 2 && isFinite(bits[0]) && isFinite(bits[1])) {
+        for (var i = bits[0]; i <= bits[1]; i += 1) set.add(i);
+      } else if (bits.length === 1 && isFinite(bits[0])) {
+        set.add(bits[0]);
+      }
+    });
+    return set;
+  }
+
+  function highlight(id, spec, scroll) {
+    var code = codeOf(id);
+    if (!code) return;
+    clearHighlights(id);
+    var numbers = parseLines(spec);
+    var first = null;
+    numbers.forEach(function (n) {
+      var line = code.querySelector('.line[data-line="' + n + '"]');
+      if (line) {
+        line.classList.add('hl');
+        if (first === null) first = line;
+      }
+    });
+    if (first && scroll !== false) {
+      var scroller = code.closest('.code-scroll');
+      if (scroller) {
+        var top = first.offsetTop - Math.round(scroller.clientHeight * 0.28);
+        scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+  }
+
+  document.querySelectorAll('.note').forEach(function (note) {
+    function activate() {
+      var id = note.getAttribute('data-code');
+      var lines = note.getAttribute('data-lines');
+      document.querySelectorAll('.note.active').forEach(function (n) { n.classList.remove('active'); n.setAttribute('aria-pressed', 'false'); });
+      note.classList.add('active');
+      note.setAttribute('aria-pressed', 'true');
+      highlight(id, lines, true);
+    }
+    note.addEventListener('click', activate);
+    note.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        activate();
+      }
+    });
+  });
+
+  document.querySelectorAll('.journey-step').forEach(function (step) {
+    step.addEventListener('click', function () {
+      var target = step.getAttribute('data-goto');
+      var bits = target.split(':');
+      var id = bits[0];
+      var lines = bits[1];
+      var code = codeOf(id);
+      if (!code) return;
+      var section = code.closest('.section');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(function () { highlight(id, lines, true); }, 260);
+    });
+  });
+
+  document.querySelectorAll('.copy-code').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var id = button.getAttribute('data-copy');
+      var code = codeOf(id);
+      if (!code) return;
+      var text = Array.from(code.querySelectorAll('.line[data-line] .lc')).map(function (line) {
+        return line.textContent;
+      }).join('\n');
+      var done = function () {
+        var old = button.textContent;
+        button.textContent = '已复制';
+        window.setTimeout(function () { button.textContent = old; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        });
+      } else {
+        try {
+          var area = document.createElement('textarea');
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          document.body.removeChild(area);
+          done();
+        } catch (e) {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        }
+      }
+    });
+  });
+
+  expandAll.addEventListener('click', function () {
+    expanded = !expanded;
+    document.querySelectorAll('.code-scroll').forEach(function (scroller) {
+      scroller.style.maxHeight = expanded ? 'none' : '';
+    });
+    expandAll.textContent = expanded ? '收起代码' : '展开代码';
+  });
+
+  var tocLinks = Array.from(document.querySelectorAll('#toc a'));
+  var sections = tocLinks.map(function (link) {
+    return document.getElementById(link.getAttribute('data-toc'));
+  }).filter(Boolean);
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(function (link) {
+          var active = link.getAttribute('data-toc') === entry.target.id;
+          link.classList.toggle('active', active);
+        });
+      });
+    }, { rootMargin: '-18% 0px -70% 0px', threshold: 0.01 });
+    sections.forEach(function (section) { observer.observe(section); });
+  }
+})();
+</script>
+<script src="anim/story-link.js?v=20261026p" defer></script>
+<script src="anim/stories.js?v=20261026s"></script>
+<script src="anim/story-guide.js?v=20261026s"></script>
+</body>
+</html>

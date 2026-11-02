@@ -29,9 +29,11 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-09-2026 14:30
-last_updated: 10-28-2026
-# Sprint focus (2026-10-28)：P1 已结束；Epic 5 done（5.1–5.4）；Epic 4 · 4.1 暂缓（OQ-4.1-1..3 未决）；Epic 7「评测（eval）」为 P3 前置工程支线，载体改为本地表 + 自建 /evals 面板，五格 7.0–7.4 已拆；7.0 已 done（2026-10-28），下一格 7.1（OQ-7.1-1..4 已收口）。
+last_updated: 10-30-2026
+# Sprint focus (2026-10-29)：P1 已结束；Epic 5 done（5.1–5.4）；Epic 4 · 4.1 暂缓（OQ-4.1-1..3 未决）且 4.4/4.5 done；Epic 7「评测（eval）」为 P3 前置工程支线，7.0 done、7.1–7.4 review（答案评测已交付，待浏览器验收）。
+# 2026-10-29 追加：Epic 8「Agent 工具箱」立格（backlog），P2 最后一个 epic；OQ-8.1-1 已收口，8.1 开工前收口 OQ-8.1-2..5，8.4 开工前收口 OQ-8.4-1。
 # 2026-10-25 前端工程项（非 Epic 4/5）：PWA 主屏入口 A 案已落 —— manifest + iOS meta + 不缓存的空 SW；只做 standalone，不含 display:fullscreen / viewport-fit / safe-area。交付与验证见 app/web/Agent/summary/summary-2026-10-25-pwa-standalone.md。
+# 2026-10-30 追加：P3 工程项 T1「供应商与模型配置入库」（2026-10-30 从临时支线移入 P3；standalone，不进 Epic 列表）；D1–D10 已拍板，OQ-T1-0/1/2 已收口，B0 spike 已完成；spec 见 implementation-artifacts/spec-t1-provider-model-config.md。
 project: Knowledge Copilot
 project_key: NOKEY
 tracking_system: file-system
@@ -98,14 +100,20 @@ development_status:
   # 2026-10-24 Lynx 决定跳过 Epic 3 retro；要补时另开，不阻塞收口。
   epic-3-retrospective: optional
 
-  epic-4: backlog
+  epic-4: in-progress
   # 2026-10-24 追加：P2 主线（方向级，详见 epics.md Epic 4）。未开工；先等 Epic 3 收口。
   # 两轨：画像 4.1 → 4.2 → 4.3；渲染 4.4 → 4.5（互不依赖）。每格开工前补 AC + 收口 OQ-4.x-n。
   4-1-资源画像-数据形状-归一化: backlog
   4-2-资源画像-生成端点: backlog
   4-3-资源画像-展示: backlog
-  4-4-聊天-markdown-渲染: backlog
-  4-5-表格渲染-csv下载: backlog
+  4-4-聊天-markdown-渲染: done
+  # 2026-10-29 done：OQ-4.4-1/2/3/4 全部拍板（流式=整段每帧，实测 0.44ms/次）；渲染器 react-markdown+remark-gfm+remark-breaks；
+  # 追加 Mermaid 导出 JPEG（Lynx 2026-10-29）；修流式闪动（components 必须模块级）与 mermaid 炸弹图残留（suppressErrorRendering + 清理）；
+  # 走读页 epic4-story4-chat-markdown.html；测试 85 文件 / 720 条全绿，tsc 0。
+  # Mermaid 解冻并入本格，用官方 mermaid（懒加载、securityLevel strict、失败回退代码块）；详细 AC 已写进 epics.md。
+  4-5-表格渲染-csv下载: done
+  # 2026-10-29 done：GFM 表格 + CSV 围栏都成表；只做 CSV；OQ-4.5-2 要做「整条回答导出 .md」（导出全文 Markdown）；
+  # 追加 ```csv 围栏成表（Lynx 2026-10-29）；表格宽度 w-max/min-w-full/max-w-sm；走读页 epic4-story5-table-csv.html。
   epic-4-retrospective: optional
 
   epic-5: done
@@ -154,11 +162,64 @@ development_status:
   7-0-评测库隔离: done
   # 7.1 开工清单（2026-10-28，Lynx 拍）：OQ-7.1-1..5 全收口 —— chunk 级 gold；人工出题；本地表；run 存快照；eval_runs 在 7.1 建最小骨架（id/dataset_id/status/created_at），7.2 同表 ALTER。
   # 口径：gold 存 [{data_uri, chunk_index, content_prefix}]，prefix=trim 后前 80 字符；API 走 /eval 自定义路由（hono-crud 的 orm 固定主库，隔离模式会写错库）；数据集有 run 时删除 409；case 复制是前端模板行为；导入只做 eval:cases:import（导出未排期）；前端只接两页（cases/configs），runs 仍 mock。
-  7-1-题集与配置底座: ready-for-dev
-  7-2-发起检索评测: backlog
-  7-3-对照与基线: backlog
-  7-4-答案评测: backlog
+  # 7.2 开工清单（2026-10-29，Lynx 拍）：结果存 eval_runs.results jsonb（不建明细表）；每 run 参数走 SearchOptions 覆盖位（仍一只 retriever）；运行删除只补后端端点；中止在 case 之间；case 错误记行、run 继续；metric 只冻结不执行；前端 /evals 全接真 + 1.5s 轮询。
+  # 7.1 实现完成（2026-10-29）：四表迁移（两库 17 applied）；repo/eval.ts + Repo eval 段；/eval datasets/cases/configs 自定义路由与校验；块级 gold + content_prefix(80) + eval:cases:import 15 条/18 gold；题集页与配置页接真接口，运行页仍 mock；后端 24 文件 135、前端 675、build 绿；走读页 epic7-story1-eval-datasets.html。转 review，待 Lynx 浏览器验收与收口。
+  7-1-题集与配置底座: review
+  # 7.2 实现完成（2026-10-29）：eval_runs 8 列 + results jsonb；EvalRunner 单队列/中止/重启清扫；SearchOptions 覆盖位；/eval/runs 五端点；运行页真数据 + 轮询 + 详情/快照/另存。真跑 15 条 done（recall 75.56% / MRR 53.45% / failed 3 / 18.2s）、取消 202→cancelled、重启清扫、删除守卫均通过；后端 28 文件 154、前端 85 文件 723、build 绿；走读页 epic7-story2-eval-runs.html。转 review，待 Lynx 浏览器验收。
+  7-2-发起检索评测: review
+  # 7.3 实现完成（2026-10-29）：PUT /eval/datasets/:id/baseline（只接 done、归属校验 400、非 done 409）+ 前端对照（总分并排 + 相同条目平均，不做 diff/黄条）+ 采纳按钮 + 运行删除 UI（两步确认，运行中后端 409）；
+  # 真跑 200/409/400/删基线清空均通过；后端 155 tests、前端 85 文件 727、tsc 0、build 绿；走读页 epic7-story3-baseline-compare.html。转 review，待 Lynx 浏览器验收。
+  7-3-对照与基线: review
+  # 7.4 实现完成（2026-10-29）：assertions/human_results 两列；模式用快照推断；answer run 复用 INSTRUCTIONS + retrieve 工具（不写会话表）；
+  # 断言硬门 + 取更严；judge 结构化输出（DeepSeek 已验，qwen-plus Key 待修）；人判 upsert 与按 level 一致率；前端断言编辑/答案详情/修正题面/跨模式对照守卫。
+  # 真跑 1 条 37s done（回答 0.42 / 引用 5 / 断言过 / judge citation=0 fail / 人判覆盖与一致率正确）；后端 166 tests、前端 86 文件 735、build 绿；
+  # 走读页 epic7-story4-answer-eval.html。转 review，待 Lynx 浏览器验收。
+  7-4-答案评测: review
   epic-7-retrospective: optional
+
+  epic-8: in-progress
+  # 2026-10-29 立格（Lynx 拍）：P2 最后一个 epic，纯增量 —— agent 工具箱（resource/codebase 只读 + meta 改会话标题），为 P3 Agent loop 铺路。
+  # 六格：8.1 工具面底座 + resource（再拆 4 子格 A–D）→ 8.2 前端通用 tool-call 行 → 8.3 codebase → 8.4 meta → 8.5 文件引用 chip → 8.6 收口。
+  # 边界：两只只读 + meta 会话改名；不联网（P3 主线）、不做 AST（未排期）、不做代码 RAG、不改 stopWhen(5)。
+  # 全部 OQ 已收口：8.1（文件 chip / 共用重跑 / 8.2 / stopWhen 5 / 只走 Langfuse）、8.3（字面量、大小写不敏感）、8.4（不做审批）；详细 AC 见 epics.md Epic 8。
+  8-1-工具面底座-resource-工具: done
+  # 8.1 由 4 个子故事组成（epics.md › Story 8.1 › Story 拆分）；子项全 done 后父项才收口。
+  # 2026-10-30：8.1-A 的 ①–④ 已落 —— Repo.searchResources / listChunksByResource + Contract 接口与 PostgresRepo 实现 + 工具契约类型；
+  #   tsc 0，真库探针 search review→5 条 active、listChunks 8 块、miss 0。
+  #   ⑤ resource 工具已完成（buildResourceTool + read / 定位 / 行区间）；真库探针：UUID metadata（chunkCount 8）、
+  #   文件名两段行 [[1,5],[8,10]]（totalLines 75）、miss→E_RESOURCE_NOT_FOUND。
+  #   ⑥ 单测 9/9 绿（test/resource-tool.test.ts；config.test.ts 6/6 不受影响）；8.1-A 收口（2026-10-30）。
+  #   8.1-B（2026-10-30，选 B：扩展 registry 函数，不新增 AgentToolset 类）：
+  #   选项收窄已落（RetrieveToolOptions + Omit<SearchOptions,'sink'>）；buildAgentTools(Retriever, Repo, Options) 返回 {retrieve, resource}；
+  #   ChatService 按请求构建，eval answerCase 增 Repo 参数并传自己世界的两份；tsc 0、resource 9/9。
+  #   B-3 真跑通过（2026-10-30）：chat-tool-flow 真模型调 retrieve → 命中 → 回答非空（20.4s）。
+  #   AD-1（eval import registry）留到 retriever 层重写。
+  #   8.1-C 已落（2026-10-30）：INSTRUCTIONS 两工具目录（retrieve→resource 升级 / lines 闭区间 / 多候选收窄 / 错误与无命中分开）；
+  #     file: ref 规则并入 8.5；注入测试行已删。
+  #   8.1-D 真跑通过（2026-10-30）：模型直接调 resource，input {ref:'review-2026-10-26-epic5-story1', lines:[[1,5]]}，
+  #     回答原样带出 1-5 行；HTTP 200。resource 9/9、chat-tool-flow 1/1、tsc 0。8.1 收口。
+  #   2026-10-30 补（Lynx 选 B）：resource 无 lines 时改为默认前 80 行预览（不再只回 metadata）；预览被截也标 truncated；
+  #     工具描述 / instructions / 单测同步；单测 10/10，真跑唯一标题返回 75 行正文。README 同名多候选时模型需按 id 收窄。
+  8-1-a-契约-repo-resource-核心: done
+  8-1-b-registry-多工具-接线: done
+  8-1-c-instructions-工具目录: done
+  8-1-d-单测-真跑: done
+  8-2-前端通用-tool-call-行: review
+  # 2026-10-30：tool-call 通用于任意 tool-*；retrieve 原视图不动；resource 摘要（ref / 行区间 / 候选数 / 段数 / 总行数）；
+  # 未知工具 JSON 兜底；JSON <pre> 标 data-scroll（repo guard）；新增 4 条 tool-call + 1 条 chat-thread。
+  # 前端 90 文件 763 tests 绿、build 绿；待 Lynx 浏览器手测（/ask 发一轮让它调 resource）。
+  8-3-codebase-工具: backlog
+  8-4-meta-会话标题改名: backlog
+  8-5-文件引用-chip-文件抽屉: backlog
+  8-6-收口-组合真跑-回归: backlog
+  epic-8-retrospective: optional
+
+standalone_stories:
+  t1-供应商与模型配置入库:
+    status: ready-for-dev
+    phase: P3
+    spec: _Agents/implementation-artifacts/spec-t1-provider-model-config.md
+    note: P3 工程项（2026-10-30 从临时支线移入 P3）；D1–D10 已拍板，D6 二次修订为 models 表 kind=default 指针行（不建单独表）；OQ-T1-0/1/2 已收口（2026-10-30）；B0 spike 已完成；执行顺序待 Lynx 定。
 
 action_items:
   - id: "epic-1-retro-1-health-gate"

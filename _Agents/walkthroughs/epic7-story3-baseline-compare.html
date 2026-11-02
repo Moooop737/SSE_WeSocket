@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epic 7 · Story 7.3 对照与基线 · 采纳、并排、删除运行 · 带代码逐行讲解</title>
+<style>
+:root {
+  --bg: #f5f2ec;
+  --panel: #fffdf8;
+  --panel-2: #ece8df;
+  --ink: #1b232b;
+  --ink-2: #46515d;
+  --ink-3: #78838f;
+  --line: #dcd7cc;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --danger: #b91c1c;
+  --code-bg: #0f171e;
+  --code-head: #0a1117;
+  --code-ink: #d8e2eb;
+  --code-line: #1d2a35;
+  --hl: rgba(250, 204, 21, .16);
+  --shadow: 0 14px 40px rgba(27, 35, 43, .08);
+  --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html[data-theme="dark"] {
+  --bg: #0c1116;
+  --panel: #121a21;
+  --panel-2: #18222b;
+  --ink: #e7edf3;
+  --ink-2: #adb9c5;
+  --ink-3: #7d8a97;
+  --line: #263440;
+  --accent: #5eead4;
+  --accent-2: #fbbf24;
+  --danger: #fca5a5;
+  --code-bg: #090e13;
+  --code-head: #060a0e;
+  --code-ink: #d8e2eb;
+  --code-line: #18232d;
+  --hl: rgba(94, 234, 212, .14);
+  --shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: .9em; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: .08em .34em; }
+pre code { background: none; border: 0; padding: 0; }
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); z-index: 80; }
+.layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.toc {
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+  padding: 30px 18px 40px; border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.toc-brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.toc-title { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.toc-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 18px; }
+.toc nav { display: flex; flex-direction: column; gap: 2px; }
+.toc nav a { display: block; padding: 6px 10px; border-radius: 7px; color: var(--ink-2); font-size: 13px; border-left: 2px solid transparent; }
+.toc nav a:hover { background: var(--panel-2); text-decoration: none; color: var(--ink); }
+.toc nav a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); font-weight: 600; }
+.toc-actions { display: flex; gap: 8px; margin-top: 18px; }
+.toc-actions button, .copy-code {
+  font-family: var(--sans); font-size: 12px; color: var(--ink-2); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; cursor: pointer;
+}
+.toc-actions button:hover, .copy-code:hover { border-color: var(--accent); color: var(--accent); }
+.main { min-width: 0; padding: 42px 54px 100px; max-width: 1180px; }
+.hero {
+  position: relative; overflow: hidden; padding: 38px 42px;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 30px 30px; opacity: .28;
+  mask-image: radial-gradient(circle at 80% 10%, #000, transparent 68%);
+}
+.hero > * { position: relative; }
+.hero-kicker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.hero h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.18; margin: 14px 0 12px; letter-spacing: -.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 16px; color: var(--ink-2); max-width: 760px; margin: 0 0 20px; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.chip strong { color: var(--ink); font-weight: 600; }
+.trace-pill { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 8px; padding: 7px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+.trace-pill b { color: var(--accent); font-weight: 600; }
+.section { margin-top: 54px; scroll-margin-top: 24px; }
+.section-head { margin-bottom: 18px; }
+.kicker { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 9px; }
+.section h2 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; letter-spacing: -.015em; }
+.section-sub { color: var(--ink-2); margin: 0; max-width: 900px; }
+.callout { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--panel)); color: var(--ink-2); }
+.callout.strong { background: color-mix(in srgb, var(--accent-2) 7%, var(--panel)); border-left-color: var(--accent-2); color: var(--ink); }
+.summary-grid, .choice-grid, .test-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.summary-card, .choice, .test-card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.summary-no, .choice-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.summary-card h3, .choice h3, .test-card h3 { font-size: 16px; margin: 6px 0 6px; }
+.summary-card p, .choice p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layer-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.layer { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.layer-31 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset; }
+.layer-tag { font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: .06em; }
+.layer h3 { margin: 7px 0 6px; font-size: 18px; }
+.layer p { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.layer code { display: inline-block; font-size: 11px; color: var(--ink-2); }
+.map-note, .journey-hint, .table-note, .test-note { color: var(--ink-3); font-size: 13px; margin-top: 12px; }
+.glossary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.gloss { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.gloss dt { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.gloss dd { margin: 0; font-size: 13px; color: var(--ink-2); }
+.journey { display: grid; gap: 8px; margin-top: 18px; }
+.journey-step { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); font-family: var(--sans); transition: border-color .15s, transform .15s; }
+.journey-step:hover { border-color: var(--accent); transform: translateX(2px); }
+.step-no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.step-text { display: flex; flex-direction: column; gap: 1px; }
+.step-text strong { font-size: 14px; }
+.step-text small { color: var(--ink-3); font-size: 12.5px; }
+.step-code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.file-table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.file-table th, .file-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.file-table th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel-2); }
+.file-table tr:last-child td { border-bottom: 0; }
+.file-table code { font-size: 11.5px; }
+.block { margin-top: 34px; scroll-margin-top: 24px; }
+.block-title { font-size: 20px; margin: 0 0 4px; }
+.block-intro { color: var(--ink-2); margin: 0 0 12px; font-size: 14px; }
+.explain { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 16px; align-items: start; }
+.code-card { background: var(--code-bg); border: 1px solid #1f2c37; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(10, 17, 23, .2); position: sticky; top: 14px; }
+.code-head { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: var(--code-head); border-bottom: 1px solid #1d2a35; color: #8fa2b3; font-size: 11.5px; }
+.traffic { display: inline-flex; gap: 4px; margin-right: 2px; }
+.traffic i { width: 8px; height: 8px; border-radius: 50%; background: #33424f; display: block; }
+.traffic i:first-child { background: #7f3c3c; }
+.traffic i:nth-child(2) { background: #7d6a3a; }
+.traffic i:nth-child(3) { background: #3f6a55; }
+.code-path { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code-lang { margin-left: auto; font-family: var(--mono); font-size: 10px; color: #7d8f9f; border: 1px solid #263744; border-radius: 4px; padding: 1px 5px; }
+.copy-code { margin-left: 6px; background: transparent; color: #9fb0c0; border-color: #2a3a47; font-size: 11px; }
+.copy-code:hover { color: #d8e2eb; border-color: #4b6274; }
+.code-scroll { max-height: 70vh; overflow: auto; overscroll-behavior: contain; }
+.code { font-family: var(--mono); font-size: 12.5px; line-height: 1.62; padding: 12px 0 16px; min-width: max-content; }
+.line { display: flex; min-height: 1.62em; }
+.line.hl { background: var(--hl); }
+.line.hl .ln { color: #c9a227; }
+.line.gap { opacity: .45; }
+.ln { flex: 0 0 3.8em; text-align: right; padding-right: 1em; color: #546675; user-select: none; }
+.lc { white-space: pre; padding-right: 20px; color: var(--code-ink); }
+.tok-k { color: #c792ea; }
+.tok-s { color: #ecc48d; }
+.tok-c { color: #6d8292; font-style: italic; }
+.tok-n { color: #f78c6c; }
+.tok-t { color: #82aaff; }
+.notes { display: flex; flex-direction: column; gap: 9px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.note:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); transform: translateY(-1px); }
+.note.active { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent) inset; border-color: var(--accent); }
+.note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note-head { display: flex; align-items: center; gap: 8px; }
+.note-num { font-family: var(--mono); font-size: 10.5px; color: var(--accent); }
+.note-title { font-weight: 700; font-size: 14px; flex: 1; }
+.note-range { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin: 2px 0 7px; }
+.note-body { font-size: 13px; color: var(--ink-2); }
+.note-body p { margin: 0 0 6px; }
+.note-body p:last-child { margin-bottom: 0; }
+.badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; border-radius: 999px; padding: 1px 6px; border: 1px solid var(--line); color: var(--ink-3); background: var(--panel-2); white-space: nowrap; }
+.b-31 { color: #0f766e; border-color: #9fd6cf; background: #e6f6f3; }
+.b-32 { color: #6d4aff; border-color: #c9baff; background: #f0ecff; }
+.b-33 { color: #a35400; border-color: #f0c48a; background: #fff4e3; }
+.b-34 { color: #a1224f; border-color: #f2b6c9; background: #ffedf3; }
+.b-pre, .b-now { color: #5b6570; }
+html[data-theme="dark"] .b-31 { background: #0f2f2b; border-color: #1f6f66; color: #7fe7d9; }
+html[data-theme="dark"] .b-32 { background: #211b3c; border-color: #4b3d89; color: #c4b5ff; }
+html[data-theme="dark"] .b-33 { background: #33230d; border-color: #7a541f; color: #f3c780; }
+html[data-theme="dark"] .b-34 { background: #351521; border-color: #7c3048; color: #f3a8c0; }
+.test-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.test-card { padding: 16px; }
+.test-card h3 { margin-top: 0; }
+.snippet { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid #1f2c37; border-radius: 9px; padding: 12px 14px; overflow: auto; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.pitfall-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.pitfall-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 13.5px; color: var(--ink-2); }
+.pitfall-list strong { color: var(--ink); }
+.next-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.next-box p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 720px; }
+.next-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.next-links a { font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--ink-2); }
+.next-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.to-top { position: fixed; right: 22px; bottom: 22px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+.to-top.show { opacity: 1; pointer-events: auto; }
+.footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
+@media (max-width: 1100px) {
+  .explain { grid-template-columns: 1fr; }
+  .code-card { position: static; }
+  .code-scroll { max-height: 55vh; }
+}
+@media (max-width: 980px) {
+  .layout { display: block; }
+  .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 20px; }
+  .toc nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 28px 20px 80px; }
+  .hero { padding: 26px 22px; }
+  .summary-grid, .layer-map, .glossary { grid-template-columns: 1fr; }
+  .choice-grid, .test-grid { grid-template-columns: 1fr; }
+  .file-table { display: block; overflow: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+.flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.flow-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.flow-card h3 { margin: 0 0 10px; font-size: 16px; }
+.flow-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.flow-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
+.flow-list li:last-child { border-bottom: 0; }
+.flow-list code { font-size: 11.5px; }
+.tree { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.tree li { position: relative; padding-left: 20px; font-size: 12.5px; }
+.tree li::before { content: ""; position: absolute; left: 4px; top: .85em; width: 9px; height: 1px; background: var(--line); }
+.tree li::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tree li:last-child::after { display: none; }
+.tree .root { padding-left: 0; font-weight: 700; }
+.tree .root::before, .tree .root::after { display: none; }
+.b-app { color: #5b6570; }
+@media (max-width: 820px) { .flow-map { grid-template-columns: 1fr; } }
+.lane .journey { margin-top: 0; }
+.lane .journey-step { grid-template-columns: 30px minmax(0, 1fr); }
+.lane .step-code { display: none; }
+.lane .step-text small { font-size: 12px; }
+
+:root { --accent: #4f46e5; --accent-2: #0f766e; }
+html[data-theme="dark"] { --accent: #a5b4fc; }
+.lane .journey { margin-top: 0; }
+</style>
+<link rel="stylesheet" href="assets/walkthrough.css?v=20261026r">
+<script src="assets/walkthrough.js?v=20261026r" defer></script>
+</head>
+<body>
+<header class="docs-topbar">
+  <a class="docs-brand" href="index.html">Knowledge Copilot <span>Docs</span></a>
+  <span class="docs-crumb">Story 7.3</span>
+  <span class="docs-topbar-spacer"></span>
+  <a class="docs-back" href="index.html">全部走读</a>
+</header>
+<div class="top-progress" id="progress"></div>
+<div class="layout">
+  <aside class="toc">
+    <p class="toc-brand">Epic 7 · Walkthrough</p>
+    <p class="toc-title">Story 7.3</p>
+    <p class="toc-sub">基线采纳与并排对照 · 带代码逐行讲解</p>
+    <nav id="toc"><a href="#boundary" data-toc="boundary">这一格只做「钉住基线、并排数字」</a><a href="#map" data-toc="map">基线 id 住在数据集行上，对照在浏览器</a><a href="#journey" data-toc="journey">一次「采纳 + 对照 + 删除」的旅行</a><a href="#backend" data-toc="backend">后端：一条显式基线</a><a href="#frontend" data-toc="frontend">前端：钉住、采纳、删除</a><a href="#tests" data-toc="tests">测试：把定义钉住</a><a href="#decisions" data-toc="decisions">为什么不给「判法不一致」黄条</a><a href="#verify" data-toc="verify">复制的命令与真跑结果</a><a href="#continuity" data-toc="continuity">7.2 交来的 run，7.3 钉成基线</a></nav>
+    <div class="toc-actions">
+      <button type="button" id="theme-toggle">深色</button>
+      <button type="button" id="expand-all">展开代码</button>
+    </div>
+  </aside>
+  <main class="main">
+<header class="hero">
+  <div class="hero-kicker"><span>EPIC 7 · STORY 7.3</span><span>BASELINE · COMPARE · DELETE</span></div>
+  <h1>把基线钉在右边，<em>两列数字自己看</em></h1>
+  <p class="hero-sub">7.3 给每个数据集一条显式基线：只有 <code>done</code> 的 run 能被采纳；对照 tab 自动把基线拉进来，按当前 run 的快照顺序逐条摆 recall，顶部并排总分，另给「相同条目」平均。系统不算变好/退化，也不出判法一致性提示。顺手补上 7.2 留的运行删除 UI：右栏两步确认，运行中由后端 409 兜底。</p>
+  <div class="meta-row">
+    <span class="chip"><strong>后端</strong>155 tests</span>
+    <span class="chip"><strong>前端</strong>727 tests</span>
+    <span class="chip"><strong>真跑</strong>200 / 409 / 400</span>
+    <span class="chip"><strong>状态</strong>review · 2026-10-29</span>
+  </div>
+  <div class="trace-pill">verification: <b>tsc 0</b> · <b>backend 28 files / 155</b> · <b>frontend 85 files / 727</b> · <b>build green</b> · <b>adopt + delete live</b></div>
+</header>
+
+<section class="section" id="boundary">
+  <header class="section-head">
+    <span class="kicker">01 · 结论与边界</span>
+    <h2>这一格只做「钉住基线、并排数字」</h2>
+    <p class="section-sub">不替人下结论：不判变好/退化，不画趋势图，也不把两次 run 的差异算成一个新分数。</p>
+  </header>
+  <div class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-no">01 / BASELINE</div>
+      <h3>一个数据集一条基线</h3>
+      <p>沿用 7.1 就有的 <code>eval_datasets.baseline_run_id</code>：换基线是显式动作，run 跑完只是候选。列上没有外键，删 run 的事务里顺手把基线清空。</p>
+    </article>
+    <article class="summary-card">
+      <div class="summary-no">02 / ADOPT</div>
+      <h3>只接 done 的 run</h3>
+      <p><code>PUT /eval/datasets/:id/baseline</code>：数据集或 run 不存在 404，run 不属于该数据集 400，非 <code>done</code> 409。部分结果不配当基线。</p>
+    </article>
+    <article class="summary-card">
+      <div class="summary-no">03 / COMPARE</div>
+      <h3>两列数字，不做判决</h3>
+      <p>顶部并排两次 run 的总分；另给「相同条目 · N 条」平均（只算两次 run 都有的 case）。逐条按当前 run 的快照顺序，基线缺的显示 <code>—</code>。</p>
+    </article>
+    <article class="summary-card">
+      <div class="summary-no">04 / DELETE</div>
+      <h3>运行删除 UI 补齐</h3>
+      <p>右栏顶部两步确认（4 秒内再按才真删）；左侧 run 行本身是按钮，不在按钮里嵌按钮。运行中隐藏入口，后端仍 409 兜底。</p>
+    </article>
+  </div>
+  <div class="callout strong"><strong>不属于 7.3：</strong>判法一致性黄条 /「分数不可直接比」提示（Lynx 2026-10-29 改口径，取消）、变好/退化/新增/消失的 diff、趋势图、跨数据集对比（未排期）、gold 的前端挑选与编辑（7.4 / 未排期）、自动回归与 CI 门禁（后续）。</div>
+  <table class="file-table">
+    <thead><tr><th>文件</th><th>本格职责</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/routes/eval.ts</code></td><td><code>PUT /eval/datasets/:id/baseline</code> 与三段校验</td></tr>
+      <tr><td><code>src/adapter/repo/eval.ts</code></td><td><code>setDatasetBaseline</code>：只改一列并补 case_count</td></tr>
+      <tr><td><code>src/adapter/repo/eval-run.ts</code></td><td>删 run 时清基线（7.2 已有，本格复用）</td></tr>
+      <tr><td><code>src/adapter/contract.ts</code></td><td><code>Repo</code> 契约加 <code>setDatasetBaseline</code></td></tr>
+      <tr><td><code>app/web/src/api/client.ts</code></td><td><code>setEvalBaseline</code> / <code>deleteEvalRun</code></td></tr>
+      <tr><td><code>app/web/src/components/evals/evals-page.tsx</code></td><td>基线加载、采纳、两步删除、对照面板</td></tr>
+      <tr><td><code>test/eval-runs-route.test.ts</code> · <code>evals-page.test.tsx</code></td><td>后端守卫与前端定义的自动化证明</td></tr>
+    </tbody>
+  </table>
+  <p class="table-note">代码块里 <span class="badge b-app">7.3</span> 是本格新增；<span class="badge b-pre">7.2</span> / <span class="badge b-pre">前置</span> 是复用与上下文。</p>
+</section>
+
+<section class="section" id="map">
+  <header class="section-head">
+    <span class="kicker">02 · 数据怎么流</span>
+    <h2>基线 id 住在数据集行上，对照在浏览器里算</h2>
+    <p class="section-sub">后端只负责「哪条 run 是基线」；两次 run 的数字都在各自的 <code>results</code> 里，对照不需要新接口。</p>
+  </header>
+  <div class="flow-map">
+    <article class="flow-card">
+      <h3>写基线</h3>
+      <ul class="flow-list">
+        <li><span>入口</span><code>PUT /eval/datasets/:id/baseline</code></li>
+        <li><span>守卫</span><code>归属 400 · 非 done 409</code></li>
+        <li><span>落库</span><code>baseline_run_id</code></li>
+      </ul>
+    </article>
+    <article class="flow-card">
+      <h3>读对照</h3>
+      <ul class="flow-list">
+        <li><span>基线</span><code>GET /eval/runs/:baselineId</code></li>
+        <li><span>当前</span><code>detail</code>（已加载）</li>
+        <li><span>计算</span><code>浏览器端 map + mean</code></li>
+      </ul>
+    </article>
+    <article class="flow-card">
+      <h3>删运行</h3>
+      <ul class="flow-list">
+        <li><span>第一步</span><code>装填 4 秒</code></li>
+        <li><span>第二步</span><code>DELETE /eval/runs/:id</code></li>
+        <li><span>副作用</span><code>baseline 清空</code></li>
+      </ul>
+    </article>
+  </div>
+  <div class="callout"><strong>为什么不做对照接口：</strong>一次 run 的 <code>results</code> 本来就是整份 jsonb，拿两次已经足够；在服务端再算一遍只会多一份口径。聚合与交集平均都在 <code>ComparePanel</code> 里用同一份数据算。</div>
+</section>
+<section class="section" id="journey"><header class="section-head"><span class="kicker">WALK</span><h2>一次「采纳 + 对照 + 删除」的旅行</h2><p class="section-sub">点一步跳到对应代码。</p></header><div class="journey"><button type="button" class="journey-step" data-goto="route-baseline:120-141"><span class="step-no">01</span><span class="step-text"><strong>PUT 入口与校验</strong><small>先看后端怎么拒绝非法采纳。</small></span><span class="step-code">routes/eval.ts L120–141</span></button><button type="button" class="journey-step" data-goto="repo-baseline:141-147"><span class="step-no">02</span><span class="step-text"><strong>只写一列</strong><small>落库没有事务，因为只改一行一列。</small></span><span class="step-code">repo/eval.ts L141–147</span></button><button type="button" class="journey-step" data-goto="client-baseline:1194-1212"><span class="step-no">03</span><span class="step-text"><strong>前端两个请求</strong><small>采纳返回整只 dataset；删除是 204。</small></span><span class="step-code">client.ts L1194–1212</span></button><button type="button" class="journey-step" data-goto="web-effect:144-163"><span class="step-no">04</span><span class="step-text"><strong>基线自动加载</strong><small>datasetId 一变就重新钉。</small></span><span class="step-code">evals-page.tsx L144–163</span></button><button type="button" class="journey-step" data-goto="web-toolbar:385-408"><span class="step-no">05</span><span class="step-text"><strong>右栏工具条</strong><small>采纳与删除都挂在选中的 run 上。</small></span><span class="step-code">evals-page.tsx L385–408</span></button><button type="button" class="journey-step" data-goto="web-compare:603-706"><span class="step-no">06</span><span class="step-text"><strong>对照面板</strong><small>总分、相同条目平均、逐条两列。</small></span><span class="step-code">evals-page.tsx L603–706</span></button></div></section>
+<section class="section" id="backend"><header class="section-head"><span class="kicker">CODE · 03</span><h2>后端：一条显式基线</h2><p class="section-sub">路由做守卫，repo 只写列。</p></header><div class="callout">校验顺序是有意的：先确认数据集和 run 都存在，再判断归属与状态；错误码分开，前端才能给出不同的提示。</div><div class="block" id="block-route-baseline"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/routes/eval.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="route-baseline">复制代码</button></div><div class="code-scroll"><div class="code" data-code="route-baseline"><div class="line" data-line="120" id="route-baseline-L120"><span class="ln">120</span><span class="lc">  app.put(<span class="tok-s">'/datasets/:id/baseline'</span>, <span class="tok-k">async</span> (c) =&gt; {</span></div><div class="line" data-line="121" id="route-baseline-L121"><span class="ln">121</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Id</span> = c.req.param(<span class="tok-s">'id'</span>)</span></div><div class="line" data-line="122" id="route-baseline-L122"><span class="ln">122</span><span class="lc">    <span class="tok-k">if</span> (!UUID_RE.test(<span class="tok-t">Id</span>)) <span class="tok-k">return</span> bad(c, <span class="tok-s">'E_BAD_ID'</span>, <span class="tok-s">'id 需为 UUID'</span>)</span></div><div class="line" data-line="123" id="route-baseline-L123"><span class="ln">123</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Body</span> = <span class="tok-k">await</span> readObject(c)</span></div><div class="line" data-line="124" id="route-baseline-L124"><span class="ln">124</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-t">Body</span> === <span class="tok-k">null</span>) <span class="tok-k">return</span> bad(c, <span class="tok-s">'E_BAD_JSON'</span>, <span class="tok-s">'请求体需为 JSON 对象'</span>)</span></div><div class="line" data-line="125" id="route-baseline-L125"><span class="ln">125</span><span class="lc">    <span class="tok-k">if</span> (<span class="tok-k">typeof</span> <span class="tok-t">Body</span>.run_id !== <span class="tok-s">'string'</span> || !UUID_RE.test(<span class="tok-t">Body</span>.run_id)) <span class="tok-k">return</span> bad(c, <span class="tok-s">'E_BAD_ID'</span>, <span class="tok-s">'run_id 需为 UUID'</span>)</span></div><div class="line" data-line="126" id="route-baseline-L126"><span class="ln">126</span><span class="lc">    <span class="tok-k">try</span> {</span></div><div class="line" data-line="127" id="route-baseline-L127"><span class="ln">127</span><span class="lc">      <span class="tok-k">const</span> <span class="tok-t">Dataset</span> = <span class="tok-k">await</span> repo.getDataset(<span class="tok-t">Id</span>)</span></div><div class="line" data-line="128" id="route-baseline-L128"><span class="ln">128</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Dataset</span> === <span class="tok-k">null</span>) <span class="tok-k">return</span> notFound(c, <span class="tok-s">'数据集不存在'</span>)</span></div><div class="line" data-line="129" id="route-baseline-L129"><span class="ln">129</span><span class="lc">      <span class="tok-k">const</span> <span class="tok-t">Run</span> = <span class="tok-k">await</span> repo.getRun(<span class="tok-t">Body</span>.run_id)</span></div><div class="line" data-line="130" id="route-baseline-L130"><span class="ln">130</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Run</span> === <span class="tok-k">null</span>) <span class="tok-k">return</span> notFound(c, <span class="tok-s">'运行不存在'</span>)</span></div><div class="line" data-line="131" id="route-baseline-L131"><span class="ln">131</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Run</span>.dataset_id !== <span class="tok-t">Id</span>) <span class="tok-k">return</span> bad(c, <span class="tok-s">'E_EVAL_BASELINE_DATASET'</span>, <span class="tok-s">'运行不属于该数据集'</span>)</span></div><div class="line" data-line="132" id="route-baseline-L132"><span class="ln">132</span><span class="lc">      <span class="tok-k">if</span> (<span class="tok-t">Run</span>.status !== <span class="tok-s">'done'</span>) {</span></div><div class="line" data-line="133" id="route-baseline-L133"><span class="ln">133</span><span class="lc">        <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_EVAL_RUN_NOT_DONE'</span>, message: <span class="tok-s">'只有完成的运行才能当基线'</span> }, <span class="tok-n">409</span>)</span></div><div class="line" data-line="134" id="route-baseline-L134"><span class="ln">134</span><span class="lc">      }</span></div><div class="line" data-line="135" id="route-baseline-L135"><span class="ln">135</span><span class="lc">      <span class="tok-k">const</span> <span class="tok-t">Updated</span> = <span class="tok-k">await</span> repo.setDatasetBaseline(<span class="tok-t">Id</span>, <span class="tok-t">Run</span>.id)</span></div><div class="line" data-line="136" id="route-baseline-L136"><span class="ln">136</span><span class="lc">      <span class="tok-k">return</span> <span class="tok-t">Updated</span> === <span class="tok-k">null</span> ? notFound(c, <span class="tok-s">'数据集不存在'</span>) : c.json({ dataset: <span class="tok-t">Updated</span> })</span></div><div class="line" data-line="137" id="route-baseline-L137"><span class="ln">137</span><span class="lc">    } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="138" id="route-baseline-L138"><span class="ln">138</span><span class="lc">      logError(<span class="tok-s">'E_EVAL_BASELINE_SET'</span>, <span class="tok-t">String</span>(err))</span></div><div class="line" data-line="139" id="route-baseline-L139"><span class="ln">139</span><span class="lc">      <span class="tok-k">return</span> c.json({ code: <span class="tok-s">'E_EVAL_BASELINE_SET'</span>, message: <span class="tok-s">'采纳基线失败'</span> }, <span class="tok-n">500</span>)</span></div><div class="line" data-line="140" id="route-baseline-L140"><span class="ln">140</span><span class="lc">    }</span></div><div class="line" data-line="141" id="route-baseline-L141"><span class="ln">141</span><span class="lc">  })</span></div></div></div></div><aside class="notes" aria-label="route-baseline 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="route-baseline" data-lines="120-125" data-note="route-baseline-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">入口与形状</span><span class="badge b-now">7.3</span></div><p class="note-range">L120–125</p><div class="note-body"><p><code>PUT</code> 而不是 <code>PATCH dataset</code>：换基线是独立动作，不跟改名/改备注混在一起。先校验路径 id 与 body 的 <code>run_id</code> 都是 UUID，坏形状直接 400。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="route-baseline" data-lines="126-134" data-note="route-baseline-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">三段守卫</span><span class="badge b-now">7.3</span></div><p class="note-range">L126–134</p><div class="note-body"><p>数据集不存在 404；run 不存在 404；<code>Run.dataset_id !== Id</code> 400 <code>E_EVAL_BASELINE_DATASET</code>；状态不是 <code>done</code> 409 <code>E_EVAL_RUN_NOT_DONE</code>。注意没有 FK 兜底，归属必须在这层挡。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="route-baseline" data-lines="135-141" data-note="route-baseline-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">写列并返回整只数据集</span><span class="badge b-now">7.3</span></div><p class="note-range">L135–141</p><div class="note-body"><p>返回 <code>{ dataset }</code>（带 <code>case_count</code>），前端可以直接替换列表项。异常统一记 <code>E_EVAL_BASELINE_SET</code> 再回 500，不让底层错误穿出去。</p></div></article></aside></div></div><div class="block" id="block-repo-baseline"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/eval.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="repo-baseline">复制代码</button></div><div class="code-scroll"><div class="code" data-code="repo-baseline"><div class="line" data-line="141" id="repo-baseline-L141"><span class="ln">141</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> setDatasetBaseline(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>, <span class="tok-t">Id</span>: <span class="tok-k">string</span>, <span class="tok-t">RunId</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">EvalDataset</span> | <span class="tok-k">null</span>&gt; {</span></div><div class="line" data-line="142" id="repo-baseline-L142"><span class="ln">142</span><span class="lc">  <span class="tok-k">const</span> { rows } = <span class="tok-k">await</span> <span class="tok-t">Db</span>.query(</span></div><div class="line" data-line="143" id="repo-baseline-L143"><span class="ln">143</span><span class="lc">    <span class="tok-s">`UPDATE eval_datasets SET baseline_run_id = $2, updated_at = now() WHERE id = $1 RETURNING *`</span>,</span></div><div class="line" data-line="144" id="repo-baseline-L144"><span class="ln">144</span><span class="lc">    [<span class="tok-t">Id</span>, <span class="tok-t">RunId</span>],</span></div><div class="line" data-line="145" id="repo-baseline-L145"><span class="ln">145</span><span class="lc">  )</span></div><div class="line" data-line="146" id="repo-baseline-L146"><span class="ln">146</span><span class="lc">  <span class="tok-k">return</span> rows[<span class="tok-n">0</span>] ? { ...rowToDataset(rows[<span class="tok-n">0</span>]), case_count: <span class="tok-k">await</span> caseCount(<span class="tok-t">Db</span>, <span class="tok-t">Id</span>) } : <span class="tok-k">null</span></span></div><div class="line" data-line="147" id="repo-baseline-L147"><span class="ln">147</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="repo-baseline 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="repo-baseline" data-lines="141-147" data-note="repo-baseline-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">UPDATE 一列 + 补计数</span><span class="badge b-now">7.3</span></div><p class="note-range">L141–147</p><div class="note-body"><p>只改 <code>baseline_run_id</code> 与 <code>updated_at</code>；<code>RETURNING *</code> 后补 <code>case_count</code>，保持与 <code>listDatasets</code> 同样的行形状。行不存在返回 null，由路由转 404。</p></div></article></aside></div></div><div class="block" id="block-repo-delete-run"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">src/adapter/repo/eval-run.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="repo-delete-run">复制代码</button></div><div class="code-scroll"><div class="code" data-code="repo-delete-run"><div class="line" data-line="173" id="repo-delete-run-L173"><span class="ln">173</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> deleteRun(<span class="tok-t">Db</span>: <span class="tok-t">Pool</span>, <span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">boolean</span>&gt; {</span></div><div class="line" data-line="174" id="repo-delete-run-L174"><span class="ln">174</span><span class="lc">  <span class="tok-k">const</span> client = <span class="tok-k">await</span> <span class="tok-t">Db</span>.connect()</span></div><div class="line" data-line="175" id="repo-delete-run-L175"><span class="ln">175</span><span class="lc">  <span class="tok-k">try</span> {</span></div><div class="line" data-line="176" id="repo-delete-run-L176"><span class="ln">176</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'BEGIN'</span>)</span></div><div class="line" data-line="177" id="repo-delete-run-L177"><span class="ln">177</span><span class="lc">    <span class="tok-k">await</span> client.query(</span></div><div class="line" data-line="178" id="repo-delete-run-L178"><span class="ln">178</span><span class="lc">      <span class="tok-s">`UPDATE eval_datasets SET baseline_run_id = NULL, updated_at = now() WHERE baseline_run_id = $1`</span>,</span></div><div class="line" data-line="179" id="repo-delete-run-L179"><span class="ln">179</span><span class="lc">      [<span class="tok-t">Id</span>],</span></div><div class="line" data-line="180" id="repo-delete-run-L180"><span class="ln">180</span><span class="lc">    )</span></div><div class="line" data-line="181" id="repo-delete-run-L181"><span class="ln">181</span><span class="lc">    <span class="tok-k">const</span> { rowCount } = <span class="tok-k">await</span> client.query(<span class="tok-s">`DELETE FROM eval_runs WHERE id = $1`</span>, [<span class="tok-t">Id</span>])</span></div><div class="line" data-line="182" id="repo-delete-run-L182"><span class="ln">182</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'COMMIT'</span>)</span></div><div class="line" data-line="183" id="repo-delete-run-L183"><span class="ln">183</span><span class="lc">    <span class="tok-k">return</span> rowCount === <span class="tok-n">1</span></span></div><div class="line" data-line="184" id="repo-delete-run-L184"><span class="ln">184</span><span class="lc">  } <span class="tok-k">catch</span> (err) {</span></div><div class="line" data-line="185" id="repo-delete-run-L185"><span class="ln">185</span><span class="lc">    <span class="tok-k">await</span> client.query(<span class="tok-s">'ROLLBACK'</span>).<span class="tok-k">catch</span>((rbErr) =&gt; logError(<span class="tok-s">'E_ROLLBACK'</span>, <span class="tok-t">String</span>(rbErr)))</span></div><div class="line" data-line="186" id="repo-delete-run-L186"><span class="ln">186</span><span class="lc">    <span class="tok-k">throw</span> err</span></div><div class="line" data-line="187" id="repo-delete-run-L187"><span class="ln">187</span><span class="lc">  } <span class="tok-k">finally</span> {</span></div><div class="line" data-line="188" id="repo-delete-run-L188"><span class="ln">188</span><span class="lc">    client.release()</span></div><div class="line" data-line="189" id="repo-delete-run-L189"><span class="ln">189</span><span class="lc">  }</span></div><div class="line" data-line="190" id="repo-delete-run-L190"><span class="ln">190</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="repo-delete-run 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="repo-delete-run" data-lines="173-190" data-note="repo-delete-run-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">删 run 顺手清基线</span><span class="badge b-now">7.2</span></div><p class="note-range">L173–190</p><div class="note-body"><p>7.2 已有的行为：同一个事务里先把 <code>baseline_run_id</code> 指向该 run 的数据集清空，再删行。7.3 删除 UI 直接复用它，不需要额外接口。</p></div></article></aside></div></div></section>
+<section class="section" id="frontend"><header class="section-head"><span class="kicker">CODE · 04</span><h2>前端：钉住、采纳、删除</h2><p class="section-sub">两个请求函数 + 三个界面片段。</p></header><div class="callout">前端不做乐观更新：采纳和删除成功后都重拉数据集/列表/详情，界面看到的状态一律来自库。</div><div class="block" id="block-client-baseline"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/api/client.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="client-baseline">复制代码</button></div><div class="code-scroll"><div class="code" data-code="client-baseline"><div class="line" data-line="1194" id="client-baseline-L1194"><span class="ln">1194</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* PUT 采纳基线：只接已完成的 run（否则 409），run 必须属于该数据集（否则 400）；不采纳就一直用旧基线 */</span></span></div><div class="line" data-line="1195" id="client-baseline-L1195"><span class="ln">1195</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> setEvalBaseline(<span class="tok-t">DatasetId</span>: <span class="tok-k">string</span>, <span class="tok-t">RunId</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">EvalDataset</span>&gt; {</span></div><div class="line" data-line="1196" id="client-baseline-L1196"><span class="ln">1196</span><span class="lc">  <span class="tok-k">const</span> body = <span class="tok-k">await</span> requestJson&lt;{ dataset: <span class="tok-t">EvalDataset</span> }&gt;(<span class="tok-s">`/eval/datasets/${DatasetId}/baseline`</span>, {</span></div><div class="line" data-line="1197" id="client-baseline-L1197"><span class="ln">1197</span><span class="lc">    method: <span class="tok-s">'PUT'</span>,</span></div><div class="line" data-line="1198" id="client-baseline-L1198"><span class="ln">1198</span><span class="lc">    body: JSON.stringify({ run_id: <span class="tok-t">RunId</span> }),</span></div><div class="line" data-line="1199" id="client-baseline-L1199"><span class="ln">1199</span><span class="lc">  })</span></div><div class="line" data-line="1200" id="client-baseline-L1200"><span class="ln">1200</span><span class="lc">  <span class="tok-k">return</span> body.dataset</span></div><div class="line" data-line="1201" id="client-baseline-L1201"><span class="ln">1201</span><span class="lc">}</span></div><div class="line" data-line="1202" id="client-baseline-L1202"><span class="ln">1202</span><span class="lc"> </span></div><div class="line" data-line="1203" id="client-baseline-L1203"><span class="ln">1203</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* POST 取消：排队中直接 cancelled（200）；运行中只表示已按下中止（202），行状态要等当前 case 结束 */</span></span></div><div class="line" data-line="1204" id="client-baseline-L1204"><span class="ln">1204</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> cancelEvalRun(<span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">EvalRun</span>&gt; {</span></div><div class="line" data-line="1205" id="client-baseline-L1205"><span class="ln">1205</span><span class="lc">  <span class="tok-k">const</span> body = <span class="tok-k">await</span> requestJson&lt;{ run: <span class="tok-t">EvalRun</span> }&gt;(<span class="tok-s">`/eval/runs/${Id}/cancel`</span>, { method: <span class="tok-s">'POST'</span> })</span></div><div class="line" data-line="1206" id="client-baseline-L1206"><span class="ln">1206</span><span class="lc">  <span class="tok-k">return</span> body.run</span></div><div class="line" data-line="1207" id="client-baseline-L1207"><span class="ln">1207</span><span class="lc">}</span></div><div class="line" data-line="1208" id="client-baseline-L1208"><span class="ln">1208</span><span class="lc"> </span></div><div class="line" data-line="1209" id="client-baseline-L1209"><span class="ln">1209</span><span class="lc"><span class="tok-c">/*</span><span class="tok-c">* DELETE 运行：运行中 409（先中止），结束后 204；删基线 run 时后端同时清空数据集的 baseline_run_id */</span></span></div><div class="line" data-line="1210" id="client-baseline-L1210"><span class="ln">1210</span><span class="lc"><span class="tok-k">async</span> <span class="tok-k">function</span> deleteEvalRun(<span class="tok-t">Id</span>: <span class="tok-k">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-k">void</span>&gt; {</span></div><div class="line" data-line="1211" id="client-baseline-L1211"><span class="ln">1211</span><span class="lc">  <span class="tok-k">return</span> requestNoContent(<span class="tok-s">`/eval/runs/${Id}`</span>, <span class="tok-s">'DELETE'</span>)</span></div><div class="line" data-line="1212" id="client-baseline-L1212"><span class="ln">1212</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="client-baseline 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="client-baseline" data-lines="1194-1201" data-note="client-baseline-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">setEvalBaseline</span><span class="badge b-now">7.3</span></div><p class="note-range">L1194–1201</p><div class="note-body"><p>PUT 后返回 <code>dataset</code>；后端 409/400 会被 <code>requestJson</code> 转成 <code>ApiError</code>，页面直接显示后端话术。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="client-baseline" data-lines="1209-1212" data-note="client-baseline-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">deleteEvalRun</span><span class="badge b-now">7.3</span></div><p class="note-range">L1209–1212</p><div class="note-body"><p>204 没有 body，走 <code>requestNoContent</code>，不去 <code>json()</code>；运行中 409「先中止再删除」原样上屏。</p></div></article></aside></div></div><div class="block" id="block-web-effect"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/evals/evals-page.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="web-effect">复制代码</button></div><div class="code-scroll"><div class="code" data-code="web-effect"><div class="line" data-line="144" id="web-effect-L144"><span class="ln">144</span><span class="lc">  <span class="tok-k">const</span> baselineId = datasets.find((<span class="tok-t">Item</span>) =&gt; <span class="tok-t">Item</span>.id === datasetId)?.baseline_run_id ?? <span class="tok-k">null</span></span></div><div class="line" data-line="145" id="web-effect-L145"><span class="ln">145</span><span class="lc"> </span></div><div class="line" data-line="146" id="web-effect-L146"><span class="ln">146</span><span class="lc">  useEffect(() =&gt; {</span></div><div class="line" data-line="147" id="web-effect-L147"><span class="ln">147</span><span class="lc">    setBaseline(<span class="tok-k">null</span>)</span></div><div class="line" data-line="148" id="web-effect-L148"><span class="ln">148</span><span class="lc">    setBaselineFailed(<span class="tok-k">false</span>)</span></div><div class="line" data-line="149" id="web-effect-L149"><span class="ln">149</span><span class="lc">    <span class="tok-k">if</span> (baselineId === <span class="tok-k">null</span>) <span class="tok-k">return</span></span></div><div class="line" data-line="150" id="web-effect-L150"><span class="ln">150</span><span class="lc">    <span class="tok-k">let</span> cancelled = <span class="tok-k">false</span></span></div><div class="line" data-line="151" id="web-effect-L151"><span class="ln">151</span><span class="lc">    fetchEvalRun(baselineId)</span></div><div class="line" data-line="152" id="web-effect-L152"><span class="ln">152</span><span class="lc">      .then((<span class="tok-t">Loaded</span>) =&gt; { <span class="tok-k">if</span> (!cancelled) setBaseline(<span class="tok-t">Loaded</span>) })</span></div><div class="line" data-line="153" id="web-effect-L153"><span class="ln">153</span><span class="lc">      .<span class="tok-k">catch</span>(() =&gt; { <span class="tok-k">if</span> (!cancelled) setBaselineFailed(<span class="tok-k">true</span>) })</span></div><div class="line" data-line="154" id="web-effect-L154"><span class="ln">154</span><span class="lc">    <span class="tok-k">return</span> () =&gt; { cancelled = <span class="tok-k">true</span> }</span></div><div class="line" data-line="155" id="web-effect-L155"><span class="ln">155</span><span class="lc">  }, [baselineId, datasetId])</span></div><div class="line" data-line="156" id="web-effect-L156"><span class="ln">156</span><span class="lc"> </span></div><div class="line" data-line="157" id="web-effect-L157"><span class="ln">157</span><span class="lc">  useEffect(() =&gt; { setDeleteArmed(<span class="tok-k">false</span>) }, [runId])</span></div><div class="line" data-line="158" id="web-effect-L158"><span class="ln">158</span><span class="lc"> </span></div><div class="line" data-line="159" id="web-effect-L159"><span class="ln">159</span><span class="lc">  useEffect(() =&gt; {</span></div><div class="line" data-line="160" id="web-effect-L160"><span class="ln">160</span><span class="lc">    <span class="tok-k">if</span> (!deleteArmed) <span class="tok-k">return</span></span></div><div class="line" data-line="161" id="web-effect-L161"><span class="ln">161</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Timer</span> = window.setTimeout(() =&gt; setDeleteArmed(<span class="tok-k">false</span>), <span class="tok-n">4000</span>)</span></div><div class="line" data-line="162" id="web-effect-L162"><span class="ln">162</span><span class="lc">    <span class="tok-k">return</span> () =&gt; window.clearTimeout(<span class="tok-t">Timer</span>)</span></div><div class="line" data-line="163" id="web-effect-L163"><span class="ln">163</span><span class="lc">  }, [deleteArmed])</span></div></div></div></div><aside class="notes" aria-label="web-effect 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-effect" data-lines="144-155" data-note="web-effect-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">基线自动加载</span><span class="badge b-now">7.3</span></div><p class="note-range">L144–155</p><div class="note-body"><p><code>baselineId</code> 从数据集行派生；一变就重新拉基线 run。用 <code>cancelled</code> 防止切数据集后旧请求回写；失败单独记 <code>baselineFailed</code>，不跟普通提示混。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-effect" data-lines="157-163" data-note="web-effect-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">两步删除的装填</span><span class="badge b-now">7.3</span></div><p class="note-range">L157–163</p><div class="note-body"><p>切 run 立即解除装填；装填后 4 秒自动收回。计时器在 effect cleanup 里清掉，避免卸载后 setState。</p></div></article></aside></div></div><div class="block" id="block-web-actions"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/evals/evals-page.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="web-actions">复制代码</button></div><div class="code-scroll"><div class="code" data-code="web-actions"><div class="line" data-line="231" id="web-actions-L231"><span class="ln">231</span><span class="lc">  <span class="tok-k">const</span> adoptBaseline = useCallback(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="232" id="web-actions-L232"><span class="ln">232</span><span class="lc">    <span class="tok-k">if</span> (datasetId === <span class="tok-s">''</span> || runId === <span class="tok-s">''</span>) <span class="tok-k">return</span></span></div><div class="line" data-line="233" id="web-actions-L233"><span class="ln">233</span><span class="lc">    <span class="tok-k">try</span> {</span></div><div class="line" data-line="234" id="web-actions-L234"><span class="ln">234</span><span class="lc">      <span class="tok-k">await</span> setEvalBaseline(datasetId, runId)</span></div><div class="line" data-line="235" id="web-actions-L235"><span class="ln">235</span><span class="lc">      setNotice(<span class="tok-s">'已采纳为基线'</span>)</span></div><div class="line" data-line="236" id="web-actions-L236"><span class="ln">236</span><span class="lc">      <span class="tok-k">await</span> loadBase()</span></div><div class="line" data-line="237" id="web-actions-L237"><span class="ln">237</span><span class="lc">    } <span class="tok-k">catch</span> (<span class="tok-t">Err</span>) {</span></div><div class="line" data-line="238" id="web-actions-L238"><span class="ln">238</span><span class="lc">      setNotice(errText(<span class="tok-t">Err</span>, <span class="tok-s">'采纳基线失败'</span>))</span></div><div class="line" data-line="239" id="web-actions-L239"><span class="ln">239</span><span class="lc">    }</span></div><div class="line" data-line="240" id="web-actions-L240"><span class="ln">240</span><span class="lc">  }, [datasetId, loadBase, runId])</span></div><div class="line" data-line="241" id="web-actions-L241"><span class="ln">241</span><span class="lc"> </span></div><div class="line" data-line="242" id="web-actions-L242"><span class="ln">242</span><span class="lc">  <span class="tok-k">const</span> removeRun = useCallback(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="243" id="web-actions-L243"><span class="ln">243</span><span class="lc">    <span class="tok-k">if</span> (runId === <span class="tok-s">''</span>) <span class="tok-k">return</span></span></div><div class="line" data-line="244" id="web-actions-L244"><span class="ln">244</span><span class="lc">    <span class="tok-k">if</span> (!deleteArmed) {</span></div><div class="line" data-line="245" id="web-actions-L245"><span class="ln">245</span><span class="lc">      setDeleteArmed(<span class="tok-k">true</span>)</span></div><div class="line" data-line="246" id="web-actions-L246"><span class="ln">246</span><span class="lc">      <span class="tok-k">return</span></span></div><div class="line" data-line="247" id="web-actions-L247"><span class="ln">247</span><span class="lc">    }</span></div><div class="line" data-line="248" id="web-actions-L248"><span class="ln">248</span><span class="lc">    setDeleteArmed(<span class="tok-k">false</span>)</span></div><div class="line" data-line="249" id="web-actions-L249"><span class="ln">249</span><span class="lc">    <span class="tok-k">try</span> {</span></div><div class="line" data-line="250" id="web-actions-L250"><span class="ln">250</span><span class="lc">      <span class="tok-k">await</span> deleteEvalRun(runId)</span></div><div class="line" data-line="251" id="web-actions-L251"><span class="ln">251</span><span class="lc">      setNotice(<span class="tok-s">''</span>)</span></div><div class="line" data-line="252" id="web-actions-L252"><span class="ln">252</span><span class="lc">      <span class="tok-k">await</span> loadBase()</span></div><div class="line" data-line="253" id="web-actions-L253"><span class="ln">253</span><span class="lc">      <span class="tok-k">await</span> refreshRuns(datasetId)</span></div><div class="line" data-line="254" id="web-actions-L254"><span class="ln">254</span><span class="lc">    } <span class="tok-k">catch</span> (<span class="tok-t">Err</span>) {</span></div><div class="line" data-line="255" id="web-actions-L255"><span class="ln">255</span><span class="lc">      setNotice(errText(<span class="tok-t">Err</span>, <span class="tok-s">'删除运行失败'</span>))</span></div><div class="line" data-line="256" id="web-actions-L256"><span class="ln">256</span><span class="lc">    }</span></div><div class="line" data-line="257" id="web-actions-L257"><span class="ln">257</span><span class="lc">  }, [datasetId, deleteArmed, loadBase, refreshRuns, runId])</span></div></div></div></div><aside class="notes" aria-label="web-actions 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-actions" data-lines="231-240" data-note="web-actions-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">采纳：写库后重拉数据集</span><span class="badge b-now">7.3</span></div><p class="note-range">L231–240</p><div class="note-body"><p>只调一个 PUT；成功后 <code>loadBase()</code> 重拉数据集，基线徽标与对照里的「被钉 run」都跟着换。失败不猜原因，直接显示 <code>ApiError.message</code>。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-actions" data-lines="242-257" data-note="web-actions-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">删除：第一下只装填</span><span class="badge b-now">7.3</span></div><p class="note-range">L242–257</p><div class="note-body"><p><code>deleteArmed</code> 为 false 时只 set true 并 return；第二下才发 DELETE。成功后先 <code>loadBase()</code>（删基线 run 时数据集已无 baseline），再 <code>refreshRuns()</code> 重新选一条 run。</p></div></article></aside></div></div><div class="block" id="block-web-toolbar"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/evals/evals-page.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="web-toolbar">复制代码</button></div><div class="code-scroll"><div class="code" data-code="web-toolbar"><div class="line" data-line="275" id="web-toolbar-L275"><span class="ln">275</span><span class="lc">  <span class="tok-k">const</span> selected = runs.find((<span class="tok-t">Item</span>) =&gt; <span class="tok-t">Item</span>.id === runId)</span></div><div class="line" data-line="276" id="web-toolbar-L276"><span class="ln">276</span><span class="lc">  <span class="tok-k">const</span> currentSummary = summary ?? selected?.summary ?? EMPTY_SUMMARY</span></div><div class="line" data-line="277" id="web-toolbar-L277"><span class="ln">277</span><span class="lc">  <span class="tok-k">const</span> canCancel = selected !== <span class="tok-k">undefined</span> &amp;&amp; (selected.status === <span class="tok-s">'queued'</span> || selected.status === <span class="tok-s">'running'</span>)</span></div><div class="line" data-line="278" id="web-toolbar-L278"><span class="ln">278</span><span class="lc">  <span class="tok-k">const</span> isBaseline = baselineId !== <span class="tok-k">null</span> &amp;&amp; baselineId === runId</span></div><div class="line" data-line="279" id="web-toolbar-L279"><span class="ln">279</span><span class="lc">  <span class="tok-k">const</span> canAdopt = selected !== <span class="tok-k">undefined</span> &amp;&amp; selected.status === <span class="tok-s">'done'</span> &amp;&amp; !isBaseline</span></div><div class="line" data-line="280" id="web-toolbar-L280"><span class="ln">280</span><span class="lc">  <span class="tok-k">const</span> canDelete = selected !== <span class="tok-k">undefined</span> &amp;&amp; (selected.status === <span class="tok-s">'done'</span> || selected.status === <span class="tok-s">'failed'</span> || selected.status === <span class="tok-s">'cancelled'</span>)</span></div><div class="line gap"><span class="ln">…</span><span class="lc">…</span></div><div class="line" data-line="385" id="web-toolbar-L385"><span class="ln">385</span><span class="lc">          &lt;aside className=<span class="tok-s">"flex w-full shrink-0 flex-col lg:w-96 lg:min-h-0 lg:border-l lg:border-line"</span> aria-label=<span class="tok-s">"右栏"</span>&gt;</span></div><div class="line" data-line="386" id="web-toolbar-L386"><span class="ln">386</span><span class="lc">            {selected === <span class="tok-k">undefined</span> ? (</span></div><div class="line" data-line="387" id="web-toolbar-L387"><span class="ln">387</span><span class="lc">              &lt;p className=<span class="tok-s">"px-4 py-6 text-center text-control text-ink-muted"</span>&gt;选一次运行看详情&lt;/p&gt;</span></div><div class="line" data-line="388" id="web-toolbar-L388"><span class="ln">388</span><span class="lc">            ) : (</span></div><div class="line" data-line="389" id="web-toolbar-L389"><span class="ln">389</span><span class="lc">              &lt;&gt;</span></div><div class="line" data-line="390" id="web-toolbar-L390"><span class="ln">390</span><span class="lc">                {(canAdopt || canDelete) &amp;&amp; (</span></div><div class="line" data-line="391" id="web-toolbar-L391"><span class="ln">391</span><span class="lc">                  &lt;div className=<span class="tok-s">"flex shrink-0 items-center justify-end gap-3 border-b border-line px-3 py-1.5 text-caption"</span>&gt;</span></div><div class="line" data-line="392" id="web-toolbar-L392"><span class="ln">392</span><span class="lc">                    {isBaseline &amp;&amp; &lt;span className=<span class="tok-s">"mr-auto text-ink-muted"</span>&gt;当前基线&lt;/span&gt;}</span></div><div class="line" data-line="393" id="web-toolbar-L393"><span class="ln">393</span><span class="lc">                    {canAdopt &amp;&amp; (</span></div><div class="line" data-line="394" id="web-toolbar-L394"><span class="ln">394</span><span class="lc">                      &lt;button <span class="tok-k">type</span>=<span class="tok-s">"button"</span> className=<span class="tok-s">"text-ink-muted hover:text-ink"</span> onClick={() =&gt; <span class="tok-k">void</span> adoptBaseline()}&gt;</span></div><div class="line" data-line="395" id="web-toolbar-L395"><span class="ln">395</span><span class="lc">                        采纳为基线</span></div><div class="line" data-line="396" id="web-toolbar-L396"><span class="ln">396</span><span class="lc">                      &lt;/button&gt;</span></div><div class="line" data-line="397" id="web-toolbar-L397"><span class="ln">397</span><span class="lc">                    )}</span></div><div class="line" data-line="398" id="web-toolbar-L398"><span class="ln">398</span><span class="lc">                    {canDelete &amp;&amp; (</span></div><div class="line" data-line="399" id="web-toolbar-L399"><span class="ln">399</span><span class="lc">                      &lt;button</span></div><div class="line" data-line="400" id="web-toolbar-L400"><span class="ln">400</span><span class="lc">                        <span class="tok-k">type</span>=<span class="tok-s">"button"</span></span></div><div class="line" data-line="401" id="web-toolbar-L401"><span class="ln">401</span><span class="lc">                        className={deleteArmed ? <span class="tok-s">'text-danger'</span> : <span class="tok-s">'text-ink-muted hover:text-danger'</span>}</span></div><div class="line" data-line="402" id="web-toolbar-L402"><span class="ln">402</span><span class="lc">                        onClick={() =&gt; <span class="tok-k">void</span> removeRun()}</span></div><div class="line" data-line="403" id="web-toolbar-L403"><span class="ln">403</span><span class="lc">                      &gt;</span></div><div class="line" data-line="404" id="web-toolbar-L404"><span class="ln">404</span><span class="lc">                        {deleteArmed ? <span class="tok-s">'确认删除'</span> : <span class="tok-s">'删除运行'</span>}</span></div><div class="line" data-line="405" id="web-toolbar-L405"><span class="ln">405</span><span class="lc">                      &lt;/button&gt;</span></div><div class="line" data-line="406" id="web-toolbar-L406"><span class="ln">406</span><span class="lc">                    )}</span></div><div class="line" data-line="407" id="web-toolbar-L407"><span class="ln">407</span><span class="lc">                  &lt;/div&gt;</span></div><div class="line" data-line="408" id="web-toolbar-L408"><span class="ln">408</span><span class="lc">                )}</span></div></div></div></div><aside class="notes" aria-label="web-toolbar 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-toolbar" data-lines="275-280" data-note="web-toolbar-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">三个派生布尔</span><span class="badge b-now">7.3</span></div><p class="note-range">L275–280</p><div class="note-body"><p><code>isBaseline</code> 看 id；<code>canAdopt</code> 只允许 <code>done</code> 且不是当前基线；<code>canDelete</code> 只允许终态（done/failed/cancelled）。queued/running 连删除入口都不显示。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-toolbar" data-lines="390-408" data-note="web-toolbar-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">工具条放 tab 之上</span><span class="badge b-now">7.3</span></div><p class="note-range">L390–408</p><div class="note-body"><p>不放左侧 run 行：那一行本身就是 <code>button</code>，嵌按钮既不合法也会误触。当前即基线时左侧补一个「当前基线」标签，右侧隐藏采纳。</p></div></article></aside></div></div><div class="block" id="block-web-compare"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/evals/evals-page.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="web-compare">复制代码</button></div><div class="code-scroll"><div class="code" data-code="web-compare"><div class="line" data-line="603" id="web-compare-L603"><span class="ln">603</span><span class="lc"><span class="tok-k">function</span> <span class="tok-t">ComparePanel</span>(<span class="tok-t">Props</span>: {</span></div><div class="line" data-line="604" id="web-compare-L604"><span class="ln">604</span><span class="lc">  <span class="tok-t">Current</span>: <span class="tok-t">EvalRun</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="605" id="web-compare-L605"><span class="ln">605</span><span class="lc">  <span class="tok-t">CurrentSummary</span>: <span class="tok-t">EvalRunSummary</span></span></div><div class="line" data-line="606" id="web-compare-L606"><span class="ln">606</span><span class="lc">  <span class="tok-t">BaselineId</span>: <span class="tok-k">string</span> | <span class="tok-k">null</span></span></div><div class="line" data-line="607" id="web-compare-L607"><span class="ln">607</span><span class="lc">  <span class="tok-t">Baseline</span>: { run: <span class="tok-t">EvalRun</span>; summary: <span class="tok-t">EvalRunSummary</span> } | <span class="tok-k">null</span></span></div><div class="line" data-line="608" id="web-compare-L608"><span class="ln">608</span><span class="lc">  <span class="tok-t">BaselineFailed</span>: <span class="tok-k">boolean</span></span></div><div class="line" data-line="609" id="web-compare-L609"><span class="ln">609</span><span class="lc">  <span class="tok-t">IsSelf</span>: <span class="tok-k">boolean</span></span></div><div class="line" data-line="610" id="web-compare-L610"><span class="ln">610</span><span class="lc">}) {</span></div><div class="line" data-line="611" id="web-compare-L611"><span class="ln">611</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Props</span>.<span class="tok-t">BaselineId</span> === <span class="tok-k">null</span>) {</span></div><div class="line" data-line="612" id="web-compare-L612"><span class="ln">612</span><span class="lc">    <span class="tok-k">return</span> (</span></div><div class="line" data-line="613" id="web-compare-L613"><span class="ln">613</span><span class="lc">      &lt;div className=<span class="tok-s">"flex flex-col items-center gap-2 px-6 py-10 text-center"</span>&gt;</span></div><div class="line" data-line="614" id="web-compare-L614"><span class="ln">614</span><span class="lc">        &lt;p className=<span class="tok-s">"text-control text-ink-secondary"</span>&gt;这个数据集还没有基线&lt;/p&gt;</span></div><div class="line" data-line="615" id="web-compare-L615"><span class="ln">615</span><span class="lc">        &lt;p className=<span class="tok-s">"text-caption text-ink-muted"</span>&gt;在一条已完成的运行上点「采纳为基线」；不采纳就一直是旧基线。&lt;/p&gt;</span></div><div class="line" data-line="616" id="web-compare-L616"><span class="ln">616</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="617" id="web-compare-L617"><span class="ln">617</span><span class="lc">    )</span></div><div class="line" data-line="618" id="web-compare-L618"><span class="ln">618</span><span class="lc">  }</span></div><div class="line" data-line="619" id="web-compare-L619"><span class="ln">619</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Props</span>.<span class="tok-t">IsSelf</span>) {</span></div><div class="line" data-line="620" id="web-compare-L620"><span class="ln">620</span><span class="lc">    <span class="tok-k">return</span> &lt;p className=<span class="tok-s">"px-4 py-6 text-center text-control text-ink-secondary"</span>&gt;当前这次运行就是基线&lt;/p&gt;</span></div><div class="line" data-line="621" id="web-compare-L621"><span class="ln">621</span><span class="lc">  }</span></div><div class="line" data-line="622" id="web-compare-L622"><span class="ln">622</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Props</span>.<span class="tok-t">BaselineFailed</span>) {</span></div><div class="line" data-line="623" id="web-compare-L623"><span class="ln">623</span><span class="lc">    <span class="tok-k">return</span> &lt;p className=<span class="tok-s">"px-4 py-6 text-center text-control text-danger"</span>&gt;读取基线运行失败&lt;/p&gt;</span></div><div class="line" data-line="624" id="web-compare-L624"><span class="ln">624</span><span class="lc">  }</span></div><div class="line" data-line="625" id="web-compare-L625"><span class="ln">625</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Props</span>.<span class="tok-t">Current</span> === <span class="tok-k">null</span> || <span class="tok-t">Props</span>.<span class="tok-t">Baseline</span> === <span class="tok-k">null</span>) {</span></div><div class="line" data-line="626" id="web-compare-L626"><span class="ln">626</span><span class="lc">    <span class="tok-k">return</span> &lt;p className=<span class="tok-s">"px-4 py-6 text-center text-control text-ink-muted"</span>&gt;读取中…&lt;/p&gt;</span></div><div class="line" data-line="627" id="web-compare-L627"><span class="ln">627</span><span class="lc">  }</span></div><div class="line" data-line="628" id="web-compare-L628"><span class="ln">628</span><span class="lc"> </span></div><div class="line" data-line="629" id="web-compare-L629"><span class="ln">629</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">CurrentByCase</span> = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">string</span>, <span class="tok-t">EvalRunResult</span>&gt;(<span class="tok-t">Props</span>.<span class="tok-t">Current</span>.results.map((<span class="tok-t">Item</span>) =&gt; [<span class="tok-t">Item</span>.case_key, <span class="tok-t">Item</span>]))</span></div><div class="line" data-line="630" id="web-compare-L630"><span class="ln">630</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">BaselineByCase</span> = <span class="tok-k">new</span> <span class="tok-t">Map</span>&lt;<span class="tok-k">string</span>, <span class="tok-t">EvalRunResult</span>&gt;(<span class="tok-t">Props</span>.<span class="tok-t">Baseline</span>.run.results.map((<span class="tok-t">Item</span>) =&gt; [<span class="tok-t">Item</span>.case_key, <span class="tok-t">Item</span>]))</span></div><div class="line" data-line="631" id="web-compare-L631"><span class="ln">631</span><span class="lc">  <span class="tok-k">const</span> rows = <span class="tok-t">Props</span>.<span class="tok-t">Current</span>.snapshot.cases.map((<span class="tok-t">CaseItem</span>) =&gt; ({</span></div><div class="line" data-line="632" id="web-compare-L632"><span class="ln">632</span><span class="lc">    <span class="tok-t">CaseItem</span>,</span></div><div class="line" data-line="633" id="web-compare-L633"><span class="ln">633</span><span class="lc">    <span class="tok-t">Current</span>: <span class="tok-t">CurrentByCase</span>.<span class="tok-k">get</span>(<span class="tok-t">CaseItem</span>.case_key) ?? <span class="tok-k">null</span>,</span></div><div class="line" data-line="634" id="web-compare-L634"><span class="ln">634</span><span class="lc">    <span class="tok-t">Baseline</span>: <span class="tok-t">BaselineByCase</span>.<span class="tok-k">get</span>(<span class="tok-t">CaseItem</span>.case_key) ?? <span class="tok-k">null</span>,</span></div><div class="line" data-line="635" id="web-compare-L635"><span class="ln">635</span><span class="lc">  }))</span></div><div class="line" data-line="636" id="web-compare-L636"><span class="ln">636</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Same</span> = rows.flatMap((<span class="tok-t">Row</span>) =&gt; (<span class="tok-t">Row</span>.<span class="tok-t">Current</span> !== <span class="tok-k">null</span> &amp;&amp; <span class="tok-t">Row</span>.<span class="tok-t">Baseline</span> !== <span class="tok-k">null</span> ? [{ <span class="tok-t">Current</span>: <span class="tok-t">Row</span>.<span class="tok-t">Current</span>, <span class="tok-t">Baseline</span>: <span class="tok-t">Row</span>.<span class="tok-t">Baseline</span> }] : []))</span></div><div class="line" data-line="637" id="web-compare-L637"><span class="ln">637</span><span class="lc">  <span class="tok-k">const</span> mean = (<span class="tok-t">Values</span>: <span class="tok-k">number</span>[]): <span class="tok-k">string</span> =&gt; (<span class="tok-t">Values</span>.length === <span class="tok-n">0</span> ? <span class="tok-s">'—'</span> : pct(<span class="tok-t">Values</span>.reduce((<span class="tok-t">Sum</span>, <span class="tok-t">Value</span>) =&gt; <span class="tok-t">Sum</span> + <span class="tok-t">Value</span>, <span class="tok-n">0</span>) / <span class="tok-t">Values</span>.length))</span></div><div class="line" data-line="638" id="web-compare-L638"><span class="ln">638</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">Totals</span>: [<span class="tok-k">string</span>, <span class="tok-k">string</span>, <span class="tok-k">string</span>][] = [</span></div><div class="line" data-line="639" id="web-compare-L639"><span class="ln">639</span><span class="lc">    [<span class="tok-s">'平均 recall'</span>, pct(<span class="tok-t">Props</span>.<span class="tok-t">CurrentSummary</span>.recall), pct(<span class="tok-t">Props</span>.<span class="tok-t">Baseline</span>.summary.recall)],</span></div><div class="line" data-line="640" id="web-compare-L640"><span class="ln">640</span><span class="lc">    [<span class="tok-s">'平均 MRR'</span>, pct(<span class="tok-t">Props</span>.<span class="tok-t">CurrentSummary</span>.mrr), pct(<span class="tok-t">Props</span>.<span class="tok-t">Baseline</span>.summary.mrr)],</span></div><div class="line" data-line="641" id="web-compare-L641"><span class="ln">641</span><span class="lc">  ]</span></div><div class="line" data-line="642" id="web-compare-L642"><span class="ln">642</span><span class="lc">  <span class="tok-k">const</span> <span class="tok-t">SameMeans</span>: [<span class="tok-k">string</span>, <span class="tok-k">string</span>, <span class="tok-k">string</span>][] = [</span></div><div class="line" data-line="643" id="web-compare-L643"><span class="ln">643</span><span class="lc">    [<span class="tok-s">'平均 recall'</span>, mean(<span class="tok-t">Same</span>.map((<span class="tok-t">Row</span>) =&gt; <span class="tok-t">Row</span>.<span class="tok-t">Current</span>.recall)), mean(<span class="tok-t">Same</span>.map((<span class="tok-t">Row</span>) =&gt; <span class="tok-t">Row</span>.<span class="tok-t">Baseline</span>.recall))],</span></div><div class="line" data-line="644" id="web-compare-L644"><span class="ln">644</span><span class="lc">    [<span class="tok-s">'平均 MRR'</span>, mean(<span class="tok-t">Same</span>.map((<span class="tok-t">Row</span>) =&gt; <span class="tok-t">Row</span>.<span class="tok-t">Current</span>.mrr)), mean(<span class="tok-t">Same</span>.map((<span class="tok-t">Row</span>) =&gt; <span class="tok-t">Row</span>.<span class="tok-t">Baseline</span>.mrr))],</span></div><div class="line" data-line="645" id="web-compare-L645"><span class="ln">645</span><span class="lc">  ]</span></div><div class="line" data-line="646" id="web-compare-L646"><span class="ln">646</span><span class="lc"> </span></div><div class="line" data-line="647" id="web-compare-L647"><span class="ln">647</span><span class="lc">  <span class="tok-k">return</span> (</span></div><div class="line" data-line="648" id="web-compare-L648"><span class="ln">648</span><span class="lc">    &lt;div&gt;</span></div><div class="line" data-line="649" id="web-compare-L649"><span class="ln">649</span><span class="lc">      &lt;div className=<span class="tok-s">"border-b border-line px-4 py-1.5 text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="650" id="web-compare-L650"><span class="ln">650</span><span class="lc">        基线：{timeLabel(<span class="tok-t">Props</span>.<span class="tok-t">Baseline</span>.run.created_at)} · {<span class="tok-t">Props</span>.<span class="tok-t">Baseline</span>.run.snapshot.run_config.name}</span></div><div class="line" data-line="651" id="web-compare-L651"><span class="ln">651</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="652" id="web-compare-L652"><span class="ln">652</span><span class="lc">      &lt;div className=<span class="tok-s">"border-b border-line px-4 py-2"</span>&gt;</span></div><div class="line" data-line="653" id="web-compare-L653"><span class="ln">653</span><span class="lc">        &lt;div className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="654" id="web-compare-L654"><span class="ln">654</span><span class="lc">          &lt;span&gt;总分（全部 <span class="tok-k">case</span>）&lt;/span&gt;</span></div><div class="line" data-line="655" id="web-compare-L655"><span class="ln">655</span><span class="lc">          &lt;span className=<span class="tok-s">"text-right"</span>&gt;当前&lt;/span&gt;</span></div><div class="line" data-line="656" id="web-compare-L656"><span class="ln">656</span><span class="lc">          &lt;span className=<span class="tok-s">"text-right"</span>&gt;基线&lt;/span&gt;</span></div><div class="line" data-line="657" id="web-compare-L657"><span class="ln">657</span><span class="lc">        &lt;/div&gt;</span></div><div class="line" data-line="658" id="web-compare-L658"><span class="ln">658</span><span class="lc">        {<span class="tok-t">Totals</span>.map(([<span class="tok-t">Label</span>, <span class="tok-t">Current</span>, <span class="tok-t">Baseline</span>]) =&gt; (</span></div><div class="line" data-line="659" id="web-compare-L659"><span class="ln">659</span><span class="lc">          &lt;div key={<span class="tok-t">Label</span>} className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 text-control tabular-nums text-ink"</span>&gt;</span></div><div class="line" data-line="660" id="web-compare-L660"><span class="ln">660</span><span class="lc">            &lt;span className=<span class="tok-s">"text-ink-secondary"</span>&gt;{<span class="tok-t">Label</span>}&lt;/span&gt;</span></div><div class="line" data-line="661" id="web-compare-L661"><span class="ln">661</span><span class="lc">            &lt;span className=<span class="tok-s">"text-right"</span>&gt;{<span class="tok-t">Current</span>}&lt;/span&gt;</span></div><div class="line" data-line="662" id="web-compare-L662"><span class="ln">662</span><span class="lc">            &lt;span className=<span class="tok-s">"text-right"</span>&gt;{<span class="tok-t">Baseline</span>}&lt;/span&gt;</span></div><div class="line" data-line="663" id="web-compare-L663"><span class="ln">663</span><span class="lc">          &lt;/div&gt;</span></div><div class="line" data-line="664" id="web-compare-L664"><span class="ln">664</span><span class="lc">        ))}</span></div><div class="line" data-line="665" id="web-compare-L665"><span class="ln">665</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="666" id="web-compare-L666"><span class="ln">666</span><span class="lc"> </span></div><div class="line" data-line="667" id="web-compare-L667"><span class="ln">667</span><span class="lc">      &lt;div className=<span class="tok-s">"border-b border-line px-4 py-2"</span>&gt;</span></div><div class="line" data-line="668" id="web-compare-L668"><span class="ln">668</span><span class="lc">        &lt;div className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="669" id="web-compare-L669"><span class="ln">669</span><span class="lc">          &lt;span&gt;相同条目 · {<span class="tok-t">Same</span>.length} 条&lt;/span&gt;</span></div><div class="line" data-line="670" id="web-compare-L670"><span class="ln">670</span><span class="lc">          &lt;span className=<span class="tok-s">"text-right"</span>&gt;当前&lt;/span&gt;</span></div><div class="line" data-line="671" id="web-compare-L671"><span class="ln">671</span><span class="lc">          &lt;span className=<span class="tok-s">"text-right"</span>&gt;基线&lt;/span&gt;</span></div><div class="line" data-line="672" id="web-compare-L672"><span class="ln">672</span><span class="lc">        &lt;/div&gt;</span></div><div class="line" data-line="673" id="web-compare-L673"><span class="ln">673</span><span class="lc">        {<span class="tok-t">SameMeans</span>.map(([<span class="tok-t">Label</span>, <span class="tok-t">Current</span>, <span class="tok-t">Baseline</span>]) =&gt; (</span></div><div class="line" data-line="674" id="web-compare-L674"><span class="ln">674</span><span class="lc">          &lt;div key={<span class="tok-t">Label</span>} className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 text-control tabular-nums text-ink"</span>&gt;</span></div><div class="line" data-line="675" id="web-compare-L675"><span class="ln">675</span><span class="lc">            &lt;span className=<span class="tok-s">"text-ink-secondary"</span>&gt;{<span class="tok-t">Label</span>}&lt;/span&gt;</span></div><div class="line" data-line="676" id="web-compare-L676"><span class="ln">676</span><span class="lc">            &lt;span className=<span class="tok-s">"text-right"</span>&gt;{<span class="tok-t">Current</span>}&lt;/span&gt;</span></div><div class="line" data-line="677" id="web-compare-L677"><span class="ln">677</span><span class="lc">            &lt;span className=<span class="tok-s">"text-right"</span>&gt;{<span class="tok-t">Baseline</span>}&lt;/span&gt;</span></div><div class="line" data-line="678" id="web-compare-L678"><span class="ln">678</span><span class="lc">          &lt;/div&gt;</span></div><div class="line" data-line="679" id="web-compare-L679"><span class="ln">679</span><span class="lc">        ))}</span></div><div class="line" data-line="680" id="web-compare-L680"><span class="ln">680</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="681" id="web-compare-L681"><span class="ln">681</span><span class="lc"> </span></div><div class="line" data-line="682" id="web-compare-L682"><span class="ln">682</span><span class="lc">      &lt;div className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 border-b border-line bg-raised px-4 py-1.5 text-caption text-ink-muted"</span>&gt;</span></div><div class="line" data-line="683" id="web-compare-L683"><span class="ln">683</span><span class="lc">        &lt;span&gt;<span class="tok-k">case</span>&lt;/span&gt;</span></div><div class="line" data-line="684" id="web-compare-L684"><span class="ln">684</span><span class="lc">        &lt;span className=<span class="tok-s">"text-right"</span>&gt;当前&lt;/span&gt;</span></div><div class="line" data-line="685" id="web-compare-L685"><span class="ln">685</span><span class="lc">        &lt;span className=<span class="tok-s">"text-right"</span>&gt;基线&lt;/span&gt;</span></div><div class="line" data-line="686" id="web-compare-L686"><span class="ln">686</span><span class="lc">      &lt;/div&gt;</span></div><div class="line" data-line="687" id="web-compare-L687"><span class="ln">687</span><span class="lc">      {rows.length === <span class="tok-n">0</span> ? (</span></div><div class="line" data-line="688" id="web-compare-L688"><span class="ln">688</span><span class="lc">        &lt;p className=<span class="tok-s">"px-4 py-6 text-center text-control text-ink-muted"</span>&gt;当前运行没有 <span class="tok-k">case</span> 快照&lt;/p&gt;</span></div><div class="line" data-line="689" id="web-compare-L689"><span class="ln">689</span><span class="lc">      ) : (</span></div><div class="line" data-line="690" id="web-compare-L690"><span class="ln">690</span><span class="lc">        rows.map(({ <span class="tok-t">CaseItem</span>, <span class="tok-t">Current</span>, <span class="tok-t">Baseline</span> }) =&gt; (</span></div><div class="line" data-line="691" id="web-compare-L691"><span class="ln">691</span><span class="lc">          &lt;div key={<span class="tok-t">CaseItem</span>.case_key} className=<span class="tok-s">"grid grid-cols-[minmax(0,1fr)_4rem_4rem] gap-2 border-b border-line px-4 py-1.5 text-control last:border-b-0"</span>&gt;</span></div><div class="line" data-line="692" id="web-compare-L692"><span class="ln">692</span><span class="lc">            &lt;span className=<span class="tok-s">"truncate tabular-nums"</span>&gt;{<span class="tok-t">CaseItem</span>.case_key}&lt;/span&gt;</span></div><div class="line" data-line="693" id="web-compare-L693"><span class="ln">693</span><span class="lc">            &lt;span className={<span class="tok-s">`text-right tabular-nums ${Current?.error != null ? 'text-danger' : 'text-ink-secondary'}`</span>}&gt;{recallCell(<span class="tok-t">Current</span>)}&lt;/span&gt;</span></div><div class="line" data-line="694" id="web-compare-L694"><span class="ln">694</span><span class="lc">            &lt;span className={<span class="tok-s">`text-right tabular-nums ${Baseline?.error != null ? 'text-danger' : 'text-ink-secondary'}`</span>}&gt;{recallCell(<span class="tok-t">Baseline</span>)}&lt;/span&gt;</span></div><div class="line" data-line="695" id="web-compare-L695"><span class="ln">695</span><span class="lc">          &lt;/div&gt;</span></div><div class="line" data-line="696" id="web-compare-L696"><span class="ln">696</span><span class="lc">        ))</span></div><div class="line" data-line="697" id="web-compare-L697"><span class="ln">697</span><span class="lc">      )}</span></div><div class="line" data-line="698" id="web-compare-L698"><span class="ln">698</span><span class="lc">    &lt;/div&gt;</span></div><div class="line" data-line="699" id="web-compare-L699"><span class="ln">699</span><span class="lc">  )</span></div><div class="line" data-line="700" id="web-compare-L700"><span class="ln">700</span><span class="lc">}</span></div><div class="line" data-line="701" id="web-compare-L701"><span class="ln">701</span><span class="lc"> </span></div><div class="line" data-line="702" id="web-compare-L702"><span class="ln">702</span><span class="lc"><span class="tok-k">function</span> recallCell(<span class="tok-t">Result</span>: <span class="tok-t">EvalRunResult</span> | <span class="tok-k">null</span>): <span class="tok-k">string</span> {</span></div><div class="line" data-line="703" id="web-compare-L703"><span class="ln">703</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Result</span> === <span class="tok-k">null</span>) <span class="tok-k">return</span> <span class="tok-s">'—'</span></span></div><div class="line" data-line="704" id="web-compare-L704"><span class="ln">704</span><span class="lc">  <span class="tok-k">if</span> (<span class="tok-t">Result</span>.error !== <span class="tok-k">null</span>) <span class="tok-k">return</span> <span class="tok-s">'错误'</span></span></div><div class="line" data-line="705" id="web-compare-L705"><span class="ln">705</span><span class="lc">  <span class="tok-k">return</span> pct(<span class="tok-t">Result</span>.recall)</span></div><div class="line" data-line="706" id="web-compare-L706"><span class="ln">706</span><span class="lc">}</span></div></div></div></div><aside class="notes" aria-label="web-compare 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="603-627" data-note="web-compare-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">四种空态</span><span class="badge b-now">7.3</span></div><p class="note-range">L603–627</p><div class="note-body"><p>没有基线 → 教怎么采纳；当前 run 就是基线 → 不给两列相同数字；基线读取失败 → 独立错误；数据未到 → 读取中。顺序保证用户不会看到半截假数字。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="629-645" data-note="web-compare-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">行、交集与平均</span><span class="badge b-now">7.3</span></div><p class="note-range">L629–645</p><div class="note-body"><p>行序取 <b>当前 run 的 <code>snapshot.cases</code></b>；两张 Map 按 <code>case_key</code> 查结果。<code>Same</code> 只收两边都有结果的 case，平均只在这个交集上算；<code>Totals</code> 用两次 run 的 summary。没有 diff。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="647-665" data-note="web-compare-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">总分两列</span><span class="badge b-now">7.3</span></div><p class="note-range">L647–665</p><div class="note-body"><p>第一行先报「被钉的是哪条 run」（时间 · 运行配置名）；下面并排平均 recall / MRR，直接可比（OQ-7.3-7 新口径）。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="667-680" data-note="web-compare-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">相同条目平均</span><span class="badge b-now">7.3</span></div><p class="note-range">L667–680</p><div class="note-body"><p>「相同条目 · N 条」把交集规模写在标题里；平均 recall / MRR 各一列。题集改过也能量，因为分母只算两边都能评的 case。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="682-700" data-note="web-compare-4"><div class="note-head"><span class="note-num">05</span><span class="note-title">逐条并排</span><span class="badge b-now">7.3</span></div><p class="note-range">L682–700</p><div class="note-body"><p>两列都是 recall；基线缺这条就显示 <code>—</code>，不判「新增/消失」。<code>error</code> 非空显示「错误」并标红，数字照摆。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="web-compare" data-lines="702-706" data-note="web-compare-5"><div class="note-head"><span class="note-num">06</span><span class="note-title">recallCell</span><span class="badge b-now">7.3</span></div><p class="note-range">L702–706</p><div class="note-body"><p>纯函数：null → <code>—</code>，有 error → 错误，否则百分比。让渲染分支只关心 class，不再散落判断。</p></div></article></aside></div></div></section>
+<section class="section" id="tests"><header class="section-head"><span class="kicker">CODE · 05</span><h2>测试：把定义钉住</h2><p class="section-sub">后端只测守卫，前端只测定义。</p></header><div class="callout">真库测试覆盖守卫与副作用；前端 client 全 mock，覆盖「显示什么、调不调接口」这类定义，不测像素。</div><div class="block" id="block-test-server"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">test/eval-runs-route.test.ts</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="test-server">复制代码</button></div><div class="code-scroll"><div class="code" data-code="test-server"><div class="line" data-line="214" id="test-server-L214"><span class="ln">214</span><span class="lc">  it(<span class="tok-s">'基线采纳：只接 done 且属于该数据集；不采纳不改基线；删基线 run 清空'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="215" id="test-server-L215"><span class="ln">215</span><span class="lc">    <span class="tok-k">const</span> F = <span class="tok-k">await</span> fixtures(<span class="tok-s">'baseline'</span>)</span></div><div class="line" data-line="216" id="test-server-L216"><span class="ln">216</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">First</span> = <span class="tok-k">await</span> call(<span class="tok-s">'/runs'</span>, <span class="tok-s">'POST'</span>, { dataset_id: F.dataset.id, run_config_id: F.runConfig.id, metric_config_id: F.metricConfig.id })</span></div><div class="line" data-line="217" id="test-server-L217"><span class="ln">217</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">FirstId</span> = <span class="tok-t">First</span>.body.run.id</span></div><div class="line" data-line="218" id="test-server-L218"><span class="ln">218</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Second</span> = <span class="tok-k">await</span> call(<span class="tok-s">'/runs'</span>, <span class="tok-s">'POST'</span>, { dataset_id: F.dataset.id, run_config_id: F.runConfig.id, metric_config_id: F.metricConfig.id })</span></div><div class="line" data-line="219" id="test-server-L219"><span class="ln">219</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">SecondId</span> = <span class="tok-t">Second</span>.body.run.id</span></div><div class="line" data-line="220" id="test-server-L220"><span class="ln">220</span><span class="lc"> </span></div><div class="line" data-line="221" id="test-server-L221"><span class="ln">221</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Queued</span> = <span class="tok-k">await</span> call(<span class="tok-s">`/datasets/${F.dataset.id}/baseline`</span>, <span class="tok-s">'PUT'</span>, { run_id: <span class="tok-t">FirstId</span> })</span></div><div class="line" data-line="222" id="test-server-L222"><span class="ln">222</span><span class="lc">    peek(<span class="tok-s">'queued baseline'</span>, <span class="tok-t">Queued</span>.body)</span></div><div class="line" data-line="223" id="test-server-L223"><span class="ln">223</span><span class="lc">    expect(<span class="tok-t">Queued</span>.status).toBe(<span class="tok-n">409</span>)</span></div><div class="line" data-line="224" id="test-server-L224"><span class="ln">224</span><span class="lc">    expect(<span class="tok-t">Queued</span>.body.code).toBe(<span class="tok-s">'E_EVAL_RUN_NOT_DONE'</span>)</span></div><div class="line" data-line="225" id="test-server-L225"><span class="ln">225</span><span class="lc"> </span></div><div class="line" data-line="226" id="test-server-L226"><span class="ln">226</span><span class="lc">    <span class="tok-k">await</span> <span class="tok-t">Repo</span>.finishRun(<span class="tok-t">FirstId</span>, <span class="tok-s">'done'</span>, { duration_ms: <span class="tok-n">1</span> })</span></div><div class="line" data-line="227" id="test-server-L227"><span class="ln">227</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Adopted</span> = <span class="tok-k">await</span> call(<span class="tok-s">`/datasets/${F.dataset.id}/baseline`</span>, <span class="tok-s">'PUT'</span>, { run_id: <span class="tok-t">FirstId</span> })</span></div><div class="line" data-line="228" id="test-server-L228"><span class="ln">228</span><span class="lc">    peek(<span class="tok-s">'adopted baseline'</span>, <span class="tok-t">Adopted</span>.body?.dataset?.baseline_run_id)</span></div><div class="line" data-line="229" id="test-server-L229"><span class="ln">229</span><span class="lc">    expect(<span class="tok-t">Adopted</span>.status).toBe(<span class="tok-n">200</span>)</span></div><div class="line" data-line="230" id="test-server-L230"><span class="ln">230</span><span class="lc">    expect(<span class="tok-t">Adopted</span>.body.dataset.baseline_run_id).toBe(<span class="tok-t">FirstId</span>)</span></div><div class="line" data-line="231" id="test-server-L231"><span class="ln">231</span><span class="lc"> </span></div><div class="line" data-line="232" id="test-server-L232"><span class="ln">232</span><span class="lc">    <span class="tok-k">await</span> <span class="tok-t">Repo</span>.finishRun(<span class="tok-t">SecondId</span>, <span class="tok-s">'done'</span>, { duration_ms: <span class="tok-n">1</span> })</span></div><div class="line" data-line="233" id="test-server-L233"><span class="ln">233</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Still</span> = (<span class="tok-k">await</span> call(<span class="tok-s">'/datasets'</span>)).body.datasets.find((D: <span class="tok-t">EvalDataset</span>) =&gt; D.id === F.dataset.id)</span></div><div class="line" data-line="234" id="test-server-L234"><span class="ln">234</span><span class="lc">    expect(<span class="tok-t">Still</span>.baseline_run_id).toBe(<span class="tok-t">FirstId</span>)</span></div><div class="line" data-line="235" id="test-server-L235"><span class="ln">235</span><span class="lc"> </span></div><div class="line" data-line="236" id="test-server-L236"><span class="ln">236</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Other</span> = <span class="tok-k">await</span> fixtures(<span class="tok-s">'baseline-other'</span>)</span></div><div class="line" data-line="237" id="test-server-L237"><span class="ln">237</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Foreign</span> = <span class="tok-k">await</span> call(<span class="tok-s">`/datasets/${Other.dataset.id}/baseline`</span>, <span class="tok-s">'PUT'</span>, { run_id: <span class="tok-t">SecondId</span> })</span></div><div class="line" data-line="238" id="test-server-L238"><span class="ln">238</span><span class="lc">    expect(<span class="tok-t">Foreign</span>.status).toBe(<span class="tok-n">400</span>)</span></div><div class="line" data-line="239" id="test-server-L239"><span class="ln">239</span><span class="lc">    expect(<span class="tok-t">Foreign</span>.body.code).toBe(<span class="tok-s">'E_EVAL_BASELINE_DATASET'</span>)</span></div><div class="line" data-line="240" id="test-server-L240"><span class="ln">240</span><span class="lc"> </span></div><div class="line" data-line="241" id="test-server-L241"><span class="ln">241</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">MissingRun</span> = <span class="tok-k">await</span> call(<span class="tok-s">`/datasets/${F.dataset.id}/baseline`</span>, <span class="tok-s">'PUT'</span>, { run_id: <span class="tok-s">'00000000-0000-4000-8000-000000000000'</span> })</span></div><div class="line" data-line="242" id="test-server-L242"><span class="ln">242</span><span class="lc">    expect(<span class="tok-t">MissingRun</span>.status).toBe(<span class="tok-n">404</span>)</span></div><div class="line" data-line="243" id="test-server-L243"><span class="ln">243</span><span class="lc"> </span></div><div class="line" data-line="244" id="test-server-L244"><span class="ln">244</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Deleted</span> = <span class="tok-k">await</span> call(<span class="tok-s">`/runs/${FirstId}`</span>, <span class="tok-s">'DELETE'</span>)</span></div><div class="line" data-line="245" id="test-server-L245"><span class="ln">245</span><span class="lc">    expect(<span class="tok-t">Deleted</span>.status).toBe(<span class="tok-n">204</span>)</span></div><div class="line" data-line="246" id="test-server-L246"><span class="ln">246</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Cleared</span> = (<span class="tok-k">await</span> call(<span class="tok-s">'/datasets'</span>)).body.datasets.find((D: <span class="tok-t">EvalDataset</span>) =&gt; D.id === F.dataset.id)</span></div><div class="line" data-line="247" id="test-server-L247"><span class="ln">247</span><span class="lc">    expect(<span class="tok-t">Cleared</span>.baseline_run_id).toBeNull()</span></div><div class="line" data-line="248" id="test-server-L248"><span class="ln">248</span><span class="lc"> </span></div><div class="line" data-line="249" id="test-server-L249"><span class="ln">249</span><span class="lc">    <span class="tok-k">await</span> drop(<span class="tok-t">Other</span>)</span></div><div class="line" data-line="250" id="test-server-L250"><span class="ln">250</span><span class="lc">    <span class="tok-k">await</span> drop(F)</span></div><div class="line" data-line="251" id="test-server-L251"><span class="ln">251</span><span class="lc">  })</span></div></div></div></div><aside class="notes" aria-label="test-server 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-server" data-lines="214-230" data-note="test-server-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">排队 409 → done 200</span><span class="badge b-now">7.3</span></div><p class="note-range">L214–230</p><div class="note-body"><p>先在 queued 状态采纳，断言 409；<code>finishRun</code> 后再采纳，断言 200 且返回的 <code>baseline_run_id</code> 就是这条 run。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-server" data-lines="232-242" data-note="test-server-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">不采纳不改基线</span><span class="badge b-now">7.3</span></div><p class="note-range">L232–242</p><div class="note-body"><p>第二条 run 跑完不会自动改基线；换一个数据集采纳别人的 run → 400 <code>E_EVAL_BASELINE_DATASET</code>；不存在的 run → 404。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-server" data-lines="244-251" data-note="test-server-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">删基线 run 清空</span><span class="badge b-now">7.3</span></div><p class="note-range">L244–251</p><div class="note-body"><p>DELETE 该 run 后，数据集的 <code>baseline_run_id</code> 变 null；最后按依赖顺序清理 dataset / case / configs。</p></div></article></aside></div></div><div class="block" id="block-test-web"><div class="explain"><div class="code-card"><div class="code-head"><span class="traffic"><i></i><i></i><i></i></span><span class="code-path">app/web/src/components/evals/evals-page.test.tsx</span><span class="code-lang">TS</span><button type="button" class="copy-code" data-copy="test-web">复制代码</button></div><div class="code-scroll"><div class="code" data-code="test-web"><div class="line" data-line="240" id="test-web-L240"><span class="ln">240</span><span class="lc">  it(<span class="tok-s">'对照 tab：没有基线时说明怎么设'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="241" id="test-web-L241"><span class="ln">241</span><span class="lc">    render(&lt;<span class="tok-t">EvalsPage</span> /&gt;)</span></div><div class="line" data-line="242" id="test-web-L242"><span class="ln">242</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Results</span> = screen.getByRole(<span class="tok-s">'region'</span>, { name: <span class="tok-s">'运行结果'</span> })</span></div><div class="line" data-line="243" id="test-web-L243"><span class="ln">243</span><span class="lc">    <span class="tok-k">await</span> within(<span class="tok-t">Results</span>).findByText(<span class="tok-s">'L1-01'</span>)</span></div><div class="line" data-line="244" id="test-web-L244"><span class="ln">244</span><span class="lc"> </span></div><div class="line" data-line="245" id="test-web-L245"><span class="ln">245</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="246" id="test-web-L246"><span class="ln">246</span><span class="lc">      screen.getByRole(<span class="tok-s">'tab'</span>, { name: <span class="tok-s">'对照'</span> }).click()</span></div><div class="line" data-line="247" id="test-web-L247"><span class="ln">247</span><span class="lc">    })</span></div><div class="line" data-line="248" id="test-web-L248"><span class="ln">248</span><span class="lc">    expect(screen.getByText(<span class="tok-s">'这个数据集还没有基线'</span>)).not.toBeNull()</span></div><div class="line" data-line="249" id="test-web-L249"><span class="ln">249</span><span class="lc">    expect(screen.getByText(<span class="tok-s">'在一条已完成的运行上点「采纳为基线」；不采纳就一直是旧基线。'</span>)).not.toBeNull()</span></div><div class="line" data-line="250" id="test-web-L250"><span class="ln">250</span><span class="lc">  })</span></div><div class="line" data-line="251" id="test-web-L251"><span class="ln">251</span><span class="lc"> </span></div><div class="line" data-line="252" id="test-web-L252"><span class="ln">252</span><span class="lc">  it(<span class="tok-s">'对照 tab：总分并排 + 相同条目平均 + 基线缺的 case 显示—'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="253" id="test-web-L253"><span class="ln">253</span><span class="lc">    vi.mocked(listEvalDatasets).mockResolvedValue([<span class="tok-t">BaselineDataset</span>])</span></div><div class="line" data-line="254" id="test-web-L254"><span class="ln">254</span><span class="lc">    vi.mocked(fetchEvalRun).mockImplementation(<span class="tok-k">async</span> (<span class="tok-t">Id</span>) =&gt; (<span class="tok-t">Id</span> === <span class="tok-t">BaselineDetail</span>.id ? { run: <span class="tok-t">BaselineDetail</span>, summary: <span class="tok-t">BaselineSummary</span> } : { run: <span class="tok-t">RunDetail</span>, summary: <span class="tok-t">Summary</span> }))</span></div><div class="line" data-line="255" id="test-web-L255"><span class="ln">255</span><span class="lc">    render(&lt;<span class="tok-t">EvalsPage</span> /&gt;)</span></div><div class="line" data-line="256" id="test-web-L256"><span class="ln">256</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Results</span> = screen.getByRole(<span class="tok-s">'region'</span>, { name: <span class="tok-s">'运行结果'</span> })</span></div><div class="line" data-line="257" id="test-web-L257"><span class="ln">257</span><span class="lc">    <span class="tok-k">await</span> within(<span class="tok-t">Results</span>).findByText(<span class="tok-s">'L1-01'</span>)</span></div><div class="line" data-line="258" id="test-web-L258"><span class="ln">258</span><span class="lc"> </span></div><div class="line" data-line="259" id="test-web-L259"><span class="ln">259</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="260" id="test-web-L260"><span class="ln">260</span><span class="lc">      screen.getByRole(<span class="tok-s">'tab'</span>, { name: <span class="tok-s">'对照'</span> }).click()</span></div><div class="line" data-line="261" id="test-web-L261"><span class="ln">261</span><span class="lc">    })</span></div><div class="line" data-line="262" id="test-web-L262"><span class="ln">262</span><span class="lc"> </span></div><div class="line" data-line="263" id="test-web-L263"><span class="ln">263</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Side</span> = screen.getByRole(<span class="tok-s">'complementary'</span>, { name: <span class="tok-s">'右栏'</span> })</span></div><div class="line" data-line="264" id="test-web-L264"><span class="ln">264</span><span class="lc">    expect(<span class="tok-k">await</span> within(<span class="tok-t">Side</span>).findByText(<span class="tok-s">'总分（全部 case）'</span>)).not.toBeNull()</span></div><div class="line" data-line="265" id="test-web-L265"><span class="ln">265</span><span class="lc">    expect(within(<span class="tok-t">Side</span>).getAllByText(<span class="tok-s">'25.0%'</span>)).toHaveLength(<span class="tok-n">1</span>)</span></div><div class="line" data-line="266" id="test-web-L266"><span class="ln">266</span><span class="lc">    expect(within(<span class="tok-t">Side</span>).getByText(<span class="tok-s">'相同条目 · 1 条'</span>)).not.toBeNull()</span></div><div class="line" data-line="267" id="test-web-L267"><span class="ln">267</span><span class="lc">    expect(within(<span class="tok-t">Side</span>).getByText(<span class="tok-s">'L5-01'</span>)).not.toBeNull()</span></div><div class="line" data-line="268" id="test-web-L268"><span class="ln">268</span><span class="lc">    expect(within(<span class="tok-t">Side</span>).getAllByText(<span class="tok-s">'—'</span>)).toHaveLength(<span class="tok-n">1</span>)</span></div><div class="line" data-line="269" id="test-web-L269"><span class="ln">269</span><span class="lc">  })</span></div><div class="line" data-line="270" id="test-web-L270"><span class="ln">270</span><span class="lc"> </span></div><div class="line" data-line="271" id="test-web-L271"><span class="ln">271</span><span class="lc">  it(<span class="tok-s">'对照 tab：选中的就是基线 → 提示且不给采纳'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="272" id="test-web-L272"><span class="ln">272</span><span class="lc">    vi.mocked(listEvalDatasets).mockResolvedValue([{ ...<span class="tok-t">Dataset</span>, baseline_run_id: <span class="tok-t">RunDetail</span>.id }])</span></div><div class="line" data-line="273" id="test-web-L273"><span class="ln">273</span><span class="lc">    render(&lt;<span class="tok-t">EvalsPage</span> /&gt;)</span></div><div class="line" data-line="274" id="test-web-L274"><span class="ln">274</span><span class="lc">    <span class="tok-k">const</span> <span class="tok-t">Results</span> = screen.getByRole(<span class="tok-s">'region'</span>, { name: <span class="tok-s">'运行结果'</span> })</span></div><div class="line" data-line="275" id="test-web-L275"><span class="ln">275</span><span class="lc">    <span class="tok-k">await</span> within(<span class="tok-t">Results</span>).findByText(<span class="tok-s">'L1-01'</span>)</span></div><div class="line" data-line="276" id="test-web-L276"><span class="ln">276</span><span class="lc"> </span></div><div class="line" data-line="277" id="test-web-L277"><span class="ln">277</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="278" id="test-web-L278"><span class="ln">278</span><span class="lc">      screen.getByRole(<span class="tok-s">'tab'</span>, { name: <span class="tok-s">'对照'</span> }).click()</span></div><div class="line" data-line="279" id="test-web-L279"><span class="ln">279</span><span class="lc">    })</span></div><div class="line" data-line="280" id="test-web-L280"><span class="ln">280</span><span class="lc">    expect(screen.getByText(<span class="tok-s">'当前这次运行就是基线'</span>)).not.toBeNull()</span></div><div class="line" data-line="281" id="test-web-L281"><span class="ln">281</span><span class="lc">    expect(screen.queryByRole(<span class="tok-s">'button'</span>, { name: <span class="tok-s">'采纳为基线'</span> })).toBeNull()</span></div><div class="line" data-line="282" id="test-web-L282"><span class="ln">282</span><span class="lc">    expect(screen.getByText(<span class="tok-s">'当前基线'</span>)).not.toBeNull()</span></div><div class="line" data-line="283" id="test-web-L283"><span class="ln">283</span><span class="lc">  })</span></div><div class="line" data-line="284" id="test-web-L284"><span class="ln">284</span><span class="lc"> </span></div><div class="line" data-line="285" id="test-web-L285"><span class="ln">285</span><span class="lc">  it(<span class="tok-s">'采纳为基线：调 PUT 并重拉数据集'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="286" id="test-web-L286"><span class="ln">286</span><span class="lc">    render(&lt;<span class="tok-t">EvalsPage</span> /&gt;)</span></div><div class="line" data-line="287" id="test-web-L287"><span class="ln">287</span><span class="lc">    <span class="tok-k">await</span> screen.findByText(<span class="tok-s">'Qwen3 8B · k=8'</span>)</span></div><div class="line" data-line="288" id="test-web-L288"><span class="ln">288</span><span class="lc"> </span></div><div class="line" data-line="289" id="test-web-L289"><span class="ln">289</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="290" id="test-web-L290"><span class="ln">290</span><span class="lc">      screen.getByRole(<span class="tok-s">'button'</span>, { name: <span class="tok-s">'采纳为基线'</span> }).click()</span></div><div class="line" data-line="291" id="test-web-L291"><span class="ln">291</span><span class="lc">    })</span></div><div class="line" data-line="292" id="test-web-L292"><span class="ln">292</span><span class="lc">    <span class="tok-k">await</span> waitFor(() =&gt; expect(setEvalBaseline).toHaveBeenCalledWith(<span class="tok-s">'d-1'</span>, <span class="tok-s">'run-1'</span>))</span></div><div class="line" data-line="293" id="test-web-L293"><span class="ln">293</span><span class="lc">    <span class="tok-k">await</span> waitFor(() =&gt; expect(vi.mocked(listEvalDatasets).mock.calls.length).toBeGreaterThanOrEqual(<span class="tok-n">2</span>))</span></div><div class="line" data-line="294" id="test-web-L294"><span class="ln">294</span><span class="lc">  })</span></div><div class="line" data-line="295" id="test-web-L295"><span class="ln">295</span><span class="lc"> </span></div><div class="line" data-line="296" id="test-web-L296"><span class="ln">296</span><span class="lc">  it(<span class="tok-s">'删除运行：两步确认，第一下不删'</span>, <span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="297" id="test-web-L297"><span class="ln">297</span><span class="lc">    vi.mocked(listEvalRuns).mockResolvedValueOnce([<span class="tok-t">RunItem</span>]).mockResolvedValue([])</span></div><div class="line" data-line="298" id="test-web-L298"><span class="ln">298</span><span class="lc">    render(&lt;<span class="tok-t">EvalsPage</span> /&gt;)</span></div><div class="line" data-line="299" id="test-web-L299"><span class="ln">299</span><span class="lc">    <span class="tok-k">await</span> screen.findByText(<span class="tok-s">'Qwen3 8B · k=8'</span>)</span></div><div class="line" data-line="300" id="test-web-L300"><span class="ln">300</span><span class="lc"> </span></div><div class="line" data-line="301" id="test-web-L301"><span class="ln">301</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="302" id="test-web-L302"><span class="ln">302</span><span class="lc">      screen.getByRole(<span class="tok-s">'button'</span>, { name: <span class="tok-s">'删除运行'</span> }).click()</span></div><div class="line" data-line="303" id="test-web-L303"><span class="ln">303</span><span class="lc">    })</span></div><div class="line" data-line="304" id="test-web-L304"><span class="ln">304</span><span class="lc">    expect(deleteEvalRun).not.toHaveBeenCalled()</span></div><div class="line" data-line="305" id="test-web-L305"><span class="ln">305</span><span class="lc"> </span></div><div class="line" data-line="306" id="test-web-L306"><span class="ln">306</span><span class="lc">    <span class="tok-k">await</span> act(<span class="tok-k">async</span> () =&gt; {</span></div><div class="line" data-line="307" id="test-web-L307"><span class="ln">307</span><span class="lc">      screen.getByRole(<span class="tok-s">'button'</span>, { name: <span class="tok-s">'确认删除'</span> }).click()</span></div><div class="line" data-line="308" id="test-web-L308"><span class="ln">308</span><span class="lc">    })</span></div><div class="line" data-line="309" id="test-web-L309"><span class="ln">309</span><span class="lc">    <span class="tok-k">await</span> waitFor(() =&gt; expect(deleteEvalRun).toHaveBeenCalledWith(<span class="tok-s">'run-1'</span>))</span></div><div class="line" data-line="310" id="test-web-L310"><span class="ln">310</span><span class="lc">    <span class="tok-k">await</span> waitFor(() =&gt; expect(vi.mocked(listEvalRuns).mock.calls.length).toBeGreaterThanOrEqual(<span class="tok-n">2</span>))</span></div><div class="line" data-line="311" id="test-web-L311"><span class="ln">311</span><span class="lc">  })</span></div></div></div></div><aside class="notes" aria-label="test-web 逐行讲解"><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-web" data-lines="240-250" data-note="test-web-0"><div class="note-head"><span class="note-num">01</span><span class="note-title">无基线空态</span><span class="badge b-now">7.3</span></div><p class="note-range">L240–250</p><div class="note-body"><p>对照 tab 不画假数字，只给「怎么设基线」的指引。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-web" data-lines="252-283" data-note="test-web-1"><div class="note-head"><span class="note-num">02</span><span class="note-title">数字定义</span><span class="badge b-now">7.3</span></div><p class="note-range">L252–283</p><div class="note-body"><p>基线只有 1 条结果：总分的 25.0% 只出现一次、<code>—</code> 只出现一次、「相同条目 · 1 条」可见；选中就是基线时不给采纳按钮。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-web" data-lines="285-294" data-note="test-web-2"><div class="note-head"><span class="note-num">03</span><span class="note-title">采纳接线</span><span class="badge b-now">7.3</span></div><p class="note-range">L285–294</p><div class="note-body"><p>点采纳 → <code>setEvalBaseline(d-1, run-1)</code>，随后数据集被重拉（调用次数 ≥ 2）。</p></div></article><article class="note" tabindex="0" role="button" aria-pressed="false" data-code="test-web" data-lines="296-311" data-note="test-web-3"><div class="note-head"><span class="note-num">04</span><span class="note-title">删除两步</span><span class="badge b-now">7.3</span></div><p class="note-range">L296–311</p><div class="note-body"><p>第一下只改按钮文案，<code>deleteEvalRun</code> 零调用；第二下才 DELETE，并重拉运行列表。</p></div></article></aside></div></div></section>
+
+<section class="section" id="decisions">
+  <header class="section-head">
+    <span class="kicker">06 · 取舍与坑</span>
+    <h2>为什么不给「判法不一致」黄条</h2>
+    <p class="section-sub">Lynx 2026-10-29 改口径：总分直接可比，题集差异用「相同条目平均」消化，而不是拦着不让比。</p>
+  </header>
+  <div class="choice-grid">
+    <article class="choice">
+      <div class="choice-no">WHY TOTALS</div>
+      <h3>总分并排 + 交集平均</h3>
+      <p>两次 run 的总分先摆出来；如果 case 集合不同，再给只算交集的平均并标条数。既保留「全部 case」的口径，又给一个 apples-to-apples 的数。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">NO VERDICT</div>
+      <h3>不算变好/退化</h3>
+      <p>不做 diff、不标红绿箭头、不算新增/消失。系统只摆事实，结论归人；这也让 7.4 引入 judge 后不需要推翻这里。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">DONE ONLY</div>
+      <h3>只有 done 能当基线</h3>
+      <p>queued/running 还没有完整结果，failed/cancelled 是残卷；拿它们当基线会把后面的对照带偏。409 的话术直接说「只有完成的运行才能当基线」。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">NO FK</div>
+      <h3>基线列没有外键</h3>
+      <p>7.1 定表时因循环 FK 会拖垮 drizzle 生成，<code>baseline_run_id</code> 没挂外键；删 run 的清理放在 7.2 的事务里做。代价：采纳与删 run 并发时有极小悬空窗口（单用户下接受）。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">TWO STEP</div>
+      <h3>删除要两下</h3>
+      <p>删一条 run 会丢掉整份历史结果；两步确认与资源页的肌肉记忆一致。切 run 立即解除装填，4 秒后自动收回。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">ORDER</div>
+      <h3>顺序跟当前 run</h3>
+      <p>对照的行序取当前 run 的 <code>snapshot.cases</code>，不取基线也不另排序；题集中途改过，历史 run 的对照顺序也不变。</p>
+    </article>
+  </div>
+  <div class="callout strong"><strong>踩坑：</strong><code>—</code> 与「错误」都占一格；不要为了好看把缺失行隐藏掉——那会变成事实上的「消失」判定。另：基线 run 详情是额外一次 GET，删除/采纳后必须重拉数据集，否则徽标与对照对象会不同步。</div>
+</section>
+
+<section class="section" id="verify">
+  <header class="section-head">
+    <span class="kicker">07 · 自测清单</span>
+    <h2>复制的命令与真跑结果</h2>
+    <p class="section-sub">静态检查 + 真库真跑；浏览器视觉归 Lynx。</p>
+  </header>
+  <div class="choice-grid">
+    <article class="choice">
+      <div class="choice-no">BACKEND</div>
+      <h3>路由与 repo</h3>
+      <p><code>cd app/server &amp;&amp; npx tsc --noEmit</code></p>
+      <p><code>npx vitest run test/eval-runs-route.test.ts</code></p>
+      <p>期望：5/5；包含排队 409、采纳 200、跨数据集 400、删基线 run 清空。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">FRONTEND</div>
+      <h3>定义测试</h3>
+      <p><code>cd app/web &amp;&amp; npx tsc --noEmit</code></p>
+      <p><code>npx vitest run src/components/evals/evals-page.test.tsx</code></p>
+      <p>期望：13/13；对照四种空态 + 总分/交集/缺失 + 采纳 + 两步删除。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">REAL RUN</div>
+      <h3>真库真跑（隔离库）</h3>
+      <p><code>PORT=3100 npm start</code> 后：临时数据集 1 条 case → run done（recall 100% / MRR 50%）→ 采纳 200；排队中采纳 409 <code>E_EVAL_RUN_NOT_DONE</code>；跨数据集 400 <code>E_EVAL_BASELINE_DATASET</code>；删基线 run 后 baseline = null；临时数据清理 204。</p>
+    </article>
+    <article class="choice">
+      <div class="choice-no">FULL</div>
+      <h3>全量</h3>
+      <p>前端 <code>npm test</code>：85 文件 / 727 tests；<code>npm run build</code> 绿。后端串行全量 154/155（唯一失败为远端 MinIO 抖动，单跑 10/10），远端库断连时 9 个失败文件重跑 49/49。</p>
+    </article>
+  </div>
+  <div class="callout"><strong>真跑过 vs 代码路径存在：</strong>采纳/删除/清空副作用与 409/400 都是真库真跑；前端交互只过了 jsdom 测试，浏览器视觉（两列对齐、徽标迁移、窄屏）留给 Lynx。</div>
+</section>
+
+<section class="section" id="continuity">
+  <header class="section-head">
+    <span class="kicker">08 · 与前后 story 的衔接</span>
+    <h2>7.2 交来的 run，7.3 钉成基线，7.4 再评答案</h2>
+    <p class="section-sub">三步各管一段：跑出来 → 定基线并排 → 判回答质量。</p>
+  </header>
+  <div class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-no">FROM 7.2</div>
+      <h3>run 与结果已就绪</h3>
+      <p><code>eval_runs.snapshot/results</code>、单队列执行器、逐条 recall/MRR、运行删除后端端点都是 7.2 的交付；7.3 只是把 <code>baseline_run_id</code> 用起来并补 UI。</p>
+    </article>
+    <article class="summary-card">
+      <div class="summary-no">7.3 NOW</div>
+      <h3>基线 + 对照 + 删除</h3>
+      <p>数据集一个基线；对照只摆总分与相同条目平均；运行删除两步确认。7.1 的「先删 N 次运行」终于有了 UI 出路。</p>
+    </article>
+    <article class="summary-card">
+      <div class="summary-no">TO 7.4</div>
+      <h3>答案评测仍整格未收口</h3>
+      <p>OQ-7.4-1..5 要在开工前拍板：断言匹配、judge 模型、rubric、HITL 形态、分数合成。gold 前端挑选也归 7.4 / 未排期。</p>
+    </article>
+  </div>
+  <div class="callout strong"><strong>下一步入口：</strong>epics.md › Story 7.4；sprint-status 7.3 转 review 后待 Lynx 浏览器验收。对照若以后要加趋势/跨数据集对比，先回 PRD Non-Goals 对口径。</div>
+</section>
+<footer class="footer"><span>Story 7.3 · 对照与基线</span><span>Generated from the working tree · 2026-10-29</span></footer></main>
+</div>
+<button type="button" class="to-top" id="to-top" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  var root = document.documentElement;
+  var progress = document.getElementById('progress');
+  var toTop = document.getElementById('to-top');
+  var themeToggle = document.getElementById('theme-toggle');
+  var expandAll = document.getElementById('expand-all');
+  var expanded = false;
+
+  function readTheme() {
+    try {
+      var saved = localStorage.getItem('story-walkthrough-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
+    try { localStorage.setItem('story-walkthrough-theme', theme); } catch (e) {}
+  }
+
+  applyTheme(readTheme());
+
+  themeToggle.addEventListener('click', function () {
+    applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  function onScroll() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = max > 0 ? window.scrollY / max : 0;
+    progress.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+    toTop.classList.toggle('show', window.scrollY > 600);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function codeOf(id) {
+    return document.querySelector('.code[data-code="' + id + '"]');
+  }
+
+  function clearHighlights(id) {
+    var code = codeOf(id);
+    if (!code) return;
+    code.querySelectorAll('.line.hl').forEach(function (line) { line.classList.remove('hl'); });
+  }
+
+  function parseLines(spec) {
+    var set = new Set();
+    spec.split(',').forEach(function (part) {
+      var bits = part.trim().split('-').map(Number);
+      if (bits.length === 2 && isFinite(bits[0]) && isFinite(bits[1])) {
+        for (var i = bits[0]; i <= bits[1]; i += 1) set.add(i);
+      } else if (bits.length === 1 && isFinite(bits[0])) {
+        set.add(bits[0]);
+      }
+    });
+    return set;
+  }
+
+  function highlight(id, spec, scroll) {
+    var code = codeOf(id);
+    if (!code) return;
+    clearHighlights(id);
+    var numbers = parseLines(spec);
+    var first = null;
+    numbers.forEach(function (n) {
+      var line = code.querySelector('.line[data-line="' + n + '"]');
+      if (line) {
+        line.classList.add('hl');
+        if (first === null) first = line;
+      }
+    });
+    if (first && scroll !== false) {
+      var scroller = code.closest('.code-scroll');
+      if (scroller) {
+        var top = first.offsetTop - Math.round(scroller.clientHeight * 0.28);
+        scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+  }
+
+  document.querySelectorAll('.note').forEach(function (note) {
+    function activate() {
+      var id = note.getAttribute('data-code');
+      var lines = note.getAttribute('data-lines');
+      document.querySelectorAll('.note.active').forEach(function (n) { n.classList.remove('active'); n.setAttribute('aria-pressed', 'false'); });
+      note.classList.add('active');
+      note.setAttribute('aria-pressed', 'true');
+      highlight(id, lines, true);
+    }
+    note.addEventListener('click', activate);
+    note.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        activate();
+      }
+    });
+  });
+
+  document.querySelectorAll('.journey-step').forEach(function (step) {
+    step.addEventListener('click', function () {
+      var target = step.getAttribute('data-goto');
+      var bits = target.split(':');
+      var id = bits[0];
+      var lines = bits[1];
+      var code = codeOf(id);
+      if (!code) return;
+      var section = code.closest('.section');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(function () { highlight(id, lines, true); }, 260);
+    });
+  });
+
+  document.querySelectorAll('.copy-code').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var id = button.getAttribute('data-copy');
+      var code = codeOf(id);
+      if (!code) return;
+      var text = Array.from(code.querySelectorAll('.line[data-line] .lc')).map(function (line) {
+        return line.textContent;
+      }).join('\n');
+      var done = function () {
+        var old = button.textContent;
+        button.textContent = '已复制';
+        window.setTimeout(function () { button.textContent = old; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        });
+      } else {
+        try {
+          var area = document.createElement('textarea');
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          document.body.removeChild(area);
+          done();
+        } catch (e) {
+          button.textContent = '复制失败';
+          window.setTimeout(function () { button.textContent = '复制代码'; }, 1600);
+        }
+      }
+    });
+  });
+
+  expandAll.addEventListener('click', function () {
+    expanded = !expanded;
+    document.querySelectorAll('.code-scroll').forEach(function (scroller) {
+      scroller.style.maxHeight = expanded ? 'none' : '';
+    });
+    expandAll.textContent = expanded ? '收起代码' : '展开代码';
+  });
+
+  var tocLinks = Array.from(document.querySelectorAll('#toc a'));
+  var sections = tocLinks.map(function (link) {
+    return document.getElementById(link.getAttribute('data-toc'));
+  }).filter(Boolean);
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(function (link) {
+          var active = link.getAttribute('data-toc') === entry.target.id;
+          link.classList.toggle('active', active);
+        });
+      });
+    }, { rootMargin: '-18% 0px -70% 0px', threshold: 0.01 });
+    sections.forEach(function (section) { observer.observe(section); });
+  }
+})();
+</script>
+<script src="anim/story-link.js?v=20261026p" defer></script>
+<script src="anim/stories.js?v=20261026s"></script>
+<script src="anim/story-guide.js?v=20261026s"></script>
+</body>
+</html>

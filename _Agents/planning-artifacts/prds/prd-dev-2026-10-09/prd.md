@@ -226,10 +226,10 @@ Knowledge Copilot 在 v1（P1）**不做**以下事情（面向"它不是什么"
 > 本产品定义的扩展性内核。P1 之后，产品沿下列阶段持续长大；每阶段绑定一类 Vercel AI SDK 能力。此处仅记录愿景，各阶段 FR 在对应阶段更新本 PRD 时展开。技术映射细节见 `addendum.md` C。
 
 - **P1（本文档范围；2026-10-24 已收口）** RAG 检索问答 + 流式 + 引用 —— `streamText` / embed。P1 期间已提前交付：多会话历史（Story 2.5）、检索工具化（Story 2.6，原属 P3 的一格）、观测 trace（Epic 3，P1.x 工程支线）。
-- **P2（2026-10-24 定）** 结构化输出与渲染 + 文件与存储 —— `generateText + Output.object`（`generateObject` 已弃用）、GFM/CSV 客户端渲染、MinIO 原始文件归档与 `.md/.txt`/ZIP 上传。落点见 `_Agents/planning-artifacts/epics.md` Epic 4/5。原路线图的「多轮会话管理」已在 P1 交付，不再计入 P2。
+- **P2（2026-10-24 定）** 结构化输出与渲染 + 文件与存储 —— `generateText + Output.object`（`generateObject` 已弃用）、GFM/CSV 客户端渲染、MinIO 原始文件归档与 `.md/.txt`/ZIP 上传。落点见 `_Agents/planning-artifacts/epics.md` Epic 4/5。原路线图的「多轮会话管理」已在 P1 交付，不再计入 P2。**2026-10-29 追加 Epic 8（P2 收尾）**：agent 工具箱（`resource` / `codebase` 两只只读 + `meta` 改会话标题），为 P3 Agent loop 铺底；不占 P3 主线能力点，落点见 `epics.md` Epic 8。
 - **P3** 联网工具 + Agent loop —— tool calling、agents。检索工具化已由 P1 Story 2.6 提前交付，P3 只剩联网工具与多步 Agent 编排。
   - **P3 工程项（与能力主线并行，不占同一轮）**：**批量入库 + 后台队列 + 跨进程取消**。多文件一次提交；入库从"占着 HTTP 请求跑完"改成交给后台队列（**Redis 在此引入**，作队列存储，参照 WeKnora 的 asynq 用法——它自己的 Redis 就是队列不是取消信箱）；任务带超时/重试/死信；取消信号跨进程可达，取代 P1 的进程内 `InflightRegistry`。练的是并发、队列与幂等，**不是 AI SDK 能力**，故不挤占 P3 主线那一轮。P1 已留好接口位：`Pipeline.batch(KBData[])` 已实现但没有任何端点调用它。
-- **P3 前置工程支线（2026-10-28 立）** 评测（eval）—— 以 Langfuse Datasets / Experiments 为载体，golden set + 检索指标（recall@k / MRR / nDCG）+ LLM-as-judge；落点 `_Agents/planning-artifacts/epics.md` Epic 7。目的：在 Agent loop 改动回答链路前建立可复现基线，并把 SM-2 的人工抽样升级为可重复指标；不占 P3 主线的 AI SDK 能力点，不自建 eval 表 / 面板。
+- **P3 前置工程支线（2026-10-28 立）** 评测（eval）—— 载体为**本地表 + 自建 `/evals` 工作站面板**（原定 Langfuse Datasets / Experiments，2026-10-28 当天改口径；Langfuse 只做 trace 观测），golden set + 检索指标（recall@k / MRR / nDCG）+ LLM-as-judge；落点 `_Agents/planning-artifacts/epics.md` Epic 7。目的：在 Agent loop 改动回答链路前建立可复现基线，并把 SM-2 的人工抽样升级为可重复指标；不占 P3 主线的 AI SDK 能力点。7.0 评测连接已交付（默认主库、可选隔离库）。
 - **P4** 回答内渲染图表 / 交互卡片 —— `streamUI`、React Server Components（简历亮点；对前端选型有约束，见 `addendum.md` A）。
 - **P5** MCP 集成 + 多模态输入（图片/音频入库）+ 部署上线 —— MCP client、multimodal、生产部署。
 

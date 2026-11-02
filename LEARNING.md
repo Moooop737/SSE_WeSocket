@@ -3,9 +3,11 @@
 > Knowledge Copilot 的"真懂"记录。按 AGENTS.md §二 每阶段循环第 5 步沉淀：这一阶段练了什么、踩了什么坑、做了什么取舍。
 > 项目主线是吃透 **Vercel AI SDK**（顺带深化 RAG）。Story 1.1 属基础设施地基，AI SDK 链路从 Epic 2 起才正式登场。
 
-> **P1 已收口（2026-10-24）**：Epic 1–3 全 `done`。**P2 进行中（2026-10-27）**：Epic 5（文件与存储 5.1–5.4）全 `done`；Epic 4 · 4.1 暂缓。学习沉淀按下面各节，不另写汇总。
+> **P1 已收口（2026-10-24）**：Epic 1–3 全 `done`。**P2（2026-10-29）**：Epic 5（5.1–5.4）全 `done`；Epic 4 的 4.4/4.5 已 `done`，4.1–4.3 暂缓。**Epic 7 评测支线**：7.0 `done`，7.1–7.3 `review`，7.4 `backlog`。学习沉淀按下面各节，不另写汇总。
+>
+> 纯前端轮次（装饰层、排版 HCI、UX 轮、4.4/4.5 渲染）自 2026-10-29 起记在 [`app/web/LEARNING.md`](app/web/LEARNING.md)；带后端代码的 story 仍记在本文件。
 
-**索引（2026-10-24 补，2026-10-27 加 P2）**
+**索引（2026-10-29 补 2.2–2.6 / 3.1 / 7.x）**
 
 | 段落 | 位置 |
 |---|---|
@@ -13,15 +15,20 @@
 | Story 1.2 URL 入库 | §P1 · Epic 1 — Story 1.2 |
 | Story 1.3 Markdown/纯文本 | §P1 · Epic 1 — Story 1.3 |
 | Story 1.4 查看与删除 | §P1 · Epic 1 — Story 1.4 |
-| 前端：纸/光/呼吸、排版 HCI、UX 轮 | 三个「前端」小节（2026-10-14/15） |
 | 基础层迁移 | §P1 · 基础层迁移（2026-10-15） |
 | Story 2.1 混合检索 | §P1 · Epic 2 — Story 2.1 |
+| Story 2.2 / 2.3 / 2.4 / 2.6 补记 | §Epic 2 补记（2026-10-29） |
 | DI 改造 / Story 2.5 / Epic 2 收口 | §P1 · Epic 2 附带一刀 — 装配面换 DI、§2026-10-21 · Story 2.5 |
+| Story 3.1 通用端点轨迹 | §2026-10-22 · Story 3.1 通用端点轨迹 |
 | Story 3.2 / 3.3 / 3.4 观测 | 三个「2026-10-22/23」小节 |
 | Story 5.1 对象存储 | §2026-10-26 · Story 5.1 对象存储适配器 |
+| Story 5.2 归档 / 两段式 ingest | §2026-10-27 · Story 5.2 原始归档与两段式入库 |
+| Story 5.3 去重 / 批量 / 回收站 | §2026-10-27 · Story 5.3 内容去重、整批两段式与回收站 |
+| Story 5.4 代码库 ZIP | §2026-10-27 · Story 5.4 代码库 ZIP：独立域、不解压、按需读 |
+| Epic 6 取消（文件 URI 折回 5.2） | §2026-10-27 · Epic 6 取消：文件 URI 折回 Story 5.2 |
 | Story 7.0 评测连接 | §2026-10-28 · Story 7.0 评测连接 |
-
-> 缺口：Story 3.1（通用 endpoint 壳）没有单独立节；它的取舍在 `_Agents/walkthroughs/epic3-story1-endpoint-trace.html` 与 `sprint-status.yaml` 的 3-1 注释里。
+| Story 7.1 题集与配置 / 7.2 发起运行 / 7.3 对照与基线 | §2026-10-29 · Story 7.1 / 7.2 / 7.3 |
+| 前端：纸/光/呼吸、排版 HCI、UX 轮、4.4/4.5 渲染 | [`app/web/LEARNING.md`](app/web/LEARNING.md) |
 
 ---
 
@@ -183,48 +190,11 @@
 - **AI SDK 仍是一行没写。** Embedder 是自己发的 `fetch`（打 Ollama 的 OpenAI 兼容端点），ChatModel 端口空着。Epic 2 才正式经 provider 抽象走 `streamText`，那时再补流式、tool、provider 三条学习记录。
 - **前端两个按钮 + 列表轮询挂到 Epic 2**（见 `frontend-deferred.md`）：不轮询的话"处理中"在界面上根本不出现，`/abort` 就没有可被点到的时刻。
 
-## P1 · 前端装饰效果层 — Paper Shaders + Motion（2026-10-14，设计自驱：纸 · 光 · 呼吸）
+## 前端学习（已迁出到 `app/web/LEARNING.md`）
 
-> 这一节不是某个 story 的产物，是"给界面加效果"的一次独立设计迭代。要点全在**怎么让装饰有语义、且能被工程约束住**。
-
-### 学到的（可直接复用的判断）
-
-- **装饰必须绑语义，不然就是噪点。** 最后落成的三层是：纸＝静默大面积（CSS 点阵+斜光，0 context）；光＝"需要被注意"的状态（MeshGradient，色相直接等于严重度：danger 泛红 / warning 泛琥珀 / accent 泛蓝）；呼吸＝"此刻正在发生"（PulsingBorder 只圈提交中的面板）。健康状态下页面是安静的 —— "没有坏消息就不发光"本身就是设计决定。
-- **判据要能算，不能靠眼。** 上一版"光看不见"的账，根因是**没有判据**：亮档三色与 canvas 差 17，再被一层 `bg-canvas/70` 满铺遮罩一叠，合成后 Δ≈3/255。现在把判据写进 `index.css`：**装饰色与同档 canvas 的逐通道最大差 ≥ 20/255**，改值时按它复算。
-- **单一真值来源这件事，CSS→WebGL 这一段是断的。** WebGL 只吃具体色值，读不到 `light-dark()`。解法：探针元素把 `color` 设成 `var(--color-x)` 再读 `getComputedStyle().color`，拿到解析后的 `rgb()`（库认逗号 rgb 语法，已核实物）。于是色板从"两份手抄"变回一份。
-- **Tailwind v4 的 `@theme` 默认是懒落地的**：只有被某个 utility 用到的自定义属性才进 CSS。JS 探针读的 token 没有 utility 消费者 ⇒ 会被摇掉，而且**摇掉之后是静默变灰，构建全绿**。解法 `@theme static`（实测 `--color-accent-soft` 从 0 次变 1 次，CSS 只涨 0.5 kB）。顺带给探针加了哨兵灰：var 缺失和"值非法→IACVT→inherit"两种失败都收敛成同一个可识别的灰并 warn。
-- **库的默认值会咬人**：`PulsingBorder` 的 `defaultPreset` 带 `scale: 0.6`，不显式覆盖时"一圈光"只画在容器中央 60% 的区域上，看着像渲染残缺。同理 `MeshGradient` 三笔色时 `swirl` 会把整片蓝聚到一角 —— 六笔交替才铺得开。**参数不是玄学，是 preset 与数组长度这些具体输入。**
-- **浏览器给的 context 要自己还**：库的 `dispose()` 只 `canvas.remove()`，全包 `grep loseContext` 命中 0 —— context 等 GC，而 Chrome 约 16 个封顶。现在释放预算名额时对 `hostRef.querySelector('canvas')` 显式 `loseContext()`。实测：5 轮 / ↔ /components 后画廊恒 3、概览恒 0，再一次性申请 12/12 全成功。
-- **Motion 的 `reducedMotion="user"` 只管 transform。** 凡补间 `height`（换源表单、分块面板、Alert）都得自己按 `useReducedMotion()` 掐时长，否则减动效用户照样看到抖动。而**换高度差很大的两块要用 `height: 0↔auto`，不要用 `layout`** —— layout 是 `transform: scale` 实现的，会把里面的输入框和文字一起拉伸。
-- **数值入场用 `animate(from,to,{onUpdate})` 逐帧写 `textContent`**（不逐帧 setState），但 JSX 里的初始值必须写取整后的数：React 记忆的子节点会在任何一次父级重渲染时把浮点写回 DOM。
-
-### 踩过的坑 / 方法论
-
-- **"我修好了"要能被反证。** 三 lens 复审里，本轮自己上一版的两条"修复"被当场抓出来：① `children === undefined` 兜不住 `{cond && <X/>}` 传进来的 `false`（真修法是真值判断）；② 概览页 stagger 的注释写"顶栏先落、内容随后"，实际卡片先落 —— 因为容器只编排**接了 variants 的直接子元素**，中间隔了普通 div 就断链，而自带 `initial/animate` 的卡片根本不在那条时间线上。
-- **内联 style 会盖掉 utility 类。** 调用方给装饰层传 `opacity-45` 控制强度，淡入层却把 `opacity` 写成内联 ⇒ 整条控制失效。修法是把"挂 className"和"做动画"拆成两层。
-- **评审的静态断言要复核后再决定改不改。** 26 条里 1 条被否证（"pulse 的 neutral 是死分支" —— 画廊 tone 切换器就是活路径），其余成立。交叉命中是信号，不是结论。
-- **能不开 WebGL 就不开。** 处理中那行的呼吸导轨用的是 CSS keyframes 而不是 shader：列表里可能同时 N 行 processing，逐行开 context 会直接撞穿预算闸。**"用什么技术"要由"这里可能同时有几个"决定。**
-
-## P1 · 界面排版与 HCI 精化轮（2026-10-14，设计自驱：问答界面先行 + 真接口接线）
-
-### 学到的（能复用的判断）
-
-- **"后端有没有这个端点"要去问代码，别问规划文档。** 我按 `sprint-status.yaml`（epic-2 全 backlog）把整个问答页做成了 mock，评审第一枪就打穿了前提：`POST /retrieve` 其实已经上线（`app/server/src/index.ts:18` 挂载）。curl 一发 200、字段 camelCase、`lexicalScore` 给 null、空查询 400 —— 于是检索命中改真接口，mock 只留"生成"和"会话"。**判据顺序：挂载表 → 路由源码 → curl 实测，规划文档只说明"该不该做"，不说明"做没做"。**
-- **一个契约只能有一份。** mock 层里自己定义过 `RetrievalHit`（snake_case）之后，真端点的 `RetrievalHit`（camelCase）就在同一个仓库里并存 —— "界面先行定的形状"和"后端已上线的形状"谁也不认谁。现在 mock 直接 `import type { RetrievedHit } from './api'`，命中类型不再在 mock 里出现。
-- **hover 的高亮面积必须等于可点面积。** 之前整行 `hover:bg-fill`、可点的只有标题那截 button：用户在日期/类型上反复点，以为抽屉坏了。改法：行内一个 `absolute inset-0` 的透明"行靶"，源链接与动作簇用 `z-10` 盖回自己那片。
-- **破坏性动作的步数要在每个入口一致。** 列表里删除要两步（就地二次确认），抽屉页脚却一步就删 —— 用户学不到哪个安全。同一个 arm 状态在两个入口共用，换资源/关抽屉自动收回。
-- **"至多一行处于确认态"得由父级持有。** 行内私有 state 做不到互斥，两行同时挂着「确认删除」正是弹窗想避免的那个失效模式（点了 A 的收回、删的却是 B）。
-- **轮询与本地变更要比分发先后。** 一次已经在飞的 `GET /resources` 会在 DELETE 成功之后落地，把刚删那行原样放回列表 —— 界面同时显示"已删除"和那一行还活着。做法：变更前置代次，落地时 seq 不最新就丢这份响应。
-- **行内箭头函数进了子组件的 effect 依赖，就是每渲染重跑一遍副作用。** 抽屉的"记 opener + 抢焦点 + 挂 Escape"依赖了 `onClose`，结果开着抽屉时每 3s 轮询都把它重跑一次：用户刚 Tab 到「复制 id」就被无声拽回面板顶。收进 ref，依赖只留 `[open]`。
-- **文案里的承诺也是待实现的断言。** 概览写「列表每 3s 自动刷新」而轮询只在资源页存在 —— 和上一轮"画了 ⌘K 却没监听"是同一类毛病，只是从图标侧换到了文字侧。修法不是改文案，是把轮询抽成 `use-resources.ts` 让两页共用一份口径。
-- **验收窗口会替你藏住 bug。** 两栏布局在 lg(1024) 开启，而我只在 1280 验过：那里左列约 780px 刚好装得下。1024 下左列只剩 360px，固定段超 340 ⇒ 标题压成 0、删除按钮溢出卡外。以后新布局至少量 1024 / 900 两档（`scrollWidth - clientWidth` 一条式子就够）。
-- **有界高度是"滚动交互"的前提。** 「贴着底部才跟着滚」这条承诺，在 `min-h + flex-1` 且外层没有高度约束的容器里永不成立 —— 它根本不 overflow，滚动条挂在 document 上，`onScroll` 一次都不触发。给容器 `h-[min(54dvh,36rem)]` + ResizeObserver 跟内容长高，承诺才落地。
-- **aria-modal 不是写完就完了**：可及名（`aria-labelledby`）、Tab 圈在面板内、背景滚动锁，少一样，键盘用户就能 Tab 进遮罩背后那条列表并按下"确认删除"。
-
-### 方法论
-
-- **评审的"前提级"结论优先于"缺陷级"结论。** 本轮 40+ 条里最值钱的不是任何一条 bug，而是"你以为没有的端点其实有"。它改的是做法，不是补丁。
-- **不动用户的库**：删除/取消只验到"确认条出现与收回"，真删真取消留给 Lynx。同理，并行会话把本地库清空时（`GET /resources` 返回 `[]`），我不去重新灌数据，改用字段与真返回逐一对齐的 `DEMO_HITS` 验组件，并把这条限制写进未闭环清单。
+> 2026-10-29 起，纯前端的轮次写在 [`app/web/LEARNING.md`](app/web/LEARNING.md)：
+> 纸/光/呼吸装饰层（2026-10-14）、排版与 HCI 精化轮（2026-10-14）、视效强度档 / 头像 / 侧栏 / 入库队列（2026-10-15）、Epic 4.4/4.5 聊天渲染（2026-10-29）。
+> 判据：纯前端轮次 → web 那份；带后端代码的 story → 仍记在本文件（含 5.2/5.3、7.0–7.3 的前端落点）。
 
 ## P1 · Epic 2 — Story 2.1：混合检索问答（基础）（2026-10-14，status: review）
 
@@ -288,43 +258,6 @@
 - **rerank / 查询改写没做。** rerank 在 SPINE 的 Deferred 里，但 SDK 有 `rerank({model, query, documents, topN})` 的抽象位，将来接 provider 即可。
 - **模型以工具方式调 `retrieve`（ReAct）留 P3** —— 它才是"资料不足该拒答还是该反问"的正解；P1 先由模型自然说话，不校验话术。
 - **"两路皆空 ⇒ 未找到"在交付配置下打不到**（OR 语义下标点问句几乎全表命中），已记 `deferred-work.md`：判据交给模型，这条只剩兜底。
-
-## P1 · 前端 UX 轮（2026-10-15，设计自驱：视效强度档 + shader 头像 + 可自定义侧栏 + 入库队列）
-
-> 这轮不练 AI SDK，练的是"怎么让一个界面层的开关真的成立"。工件在 `app/web/Agent/legacy/summary/summary-2026-10-15-motion-tier-avatar-nav-ingest.md`，这里只留方法。
-
-### 学到的
-
-- **"刷新就好了"的 bug，九成不在渲染层。** 概览小组件移动/放大挤掉邻居，直觉会去查 Motion 的 `layout` 投影（本轮也确实有 scale 与 layout 同元素这回事）。真因是 `move()` 里两行赋值写的交换：`next[target]=next[from]` 先覆盖，再 `next[from]=next[target]` 读回自己 ⇒ 存档里两个同 id、邻居那张直接没了。控制台那句 `Encountered two children with the same key` 早就把答案喊出来了，是我先入为主去看了动画。**先看控制台，再看动画。**
-- **读档时的"好心修复"会替 bug 打掩护。** `readLayout()` 的去重 + 缺失项追加末尾，正好让上面那个坏存档在刷新后看起来正常。数据层的自愈能力越强，越要把"我改写过什么"说出来（本轮给这条补了测试，而不是补一段日志）。
-- **一档"用户可选的强度"要能被反向钉死。** `silent / calm / lush` 这种开关最容易长成"只改了一个 attribute"。做法是把承诺拆成可测的三件事：静默必须关掉**每一条**无限循环（含 Tailwind 内置的 `animate-pulse/spin`，它们不在 CSS 正文里，只能反查源码）、必须给**停住值**（只 `animation-name:none` 会把纸纹光泽停在框外、柔光停在峰值）、尽情必须**真有更快的时长**。三条都进了 `styles-guard`，Playwright 再逐档量了一遍 `animationName/animationDuration/left` 与 `<canvas>` 数（1→1→0→1）。
-- **系统偏好与用户审美要一个入口。** 一开始用 Motion 的 `useReducedMotion()` 判"别动"，后来发现它只看 OS、不看用户档位 ⇒ 会出现"选了静默但 Spinner 照转"和"选了尽情但系统没减"两种分裂。收敛成 `useMotionFactor()`：0 就是别动，谁都不许自己判。
-- **WebGL 名额是全局资源，新面必须走同一只闸。** 头像完全可以自己 `new MeshGradient`，但那样就有第二套预算计数，Chrome 约 16 个 context 的顶穿只是时间问题。做法是给既有的 `ShaderBackdrop` 加 `Effect/Rate/Colors/Floor` 四个 prop，让它继续做唯一的出口；名额数字只留在 `BUDGET` 表一处（本轮被评审抓到三处注释各写一个值）。
-- **第二个同类功能要复用第一个的实现，不是复用它的描述。** 侧栏自定义与概览面板自定义"心智一致"这句话，一开始只写在注释里，于是长出了两种 chip 尺寸、两种编辑按钮尺寸、两套两步确认文案。真正的收口是把 `EditAction` 与 `ADDBACK_CHIP` 从 widget 导出给侧栏用 —— 一致这件事只有"一份代码"能保证。
-- **进度条只能说真话。** 后端一个请求跑完整条管线、中途没有事件，所以"抓取→解析→切块→嵌入"的阶段灯是演出来的。改成只报真信号：本地秒表 + 每条跑完的真实用时。同理：批量是串行，界面上就不写"并行"。
-- **`pointer-events-none` 不是"锁住"。** 它挡鼠标不挡键盘：批量入库跑到一半，Tab 进分段控件把来源一切，剩下的行就拿着 URL 去走正文那条路。锁一块 UI 用 `inert`（本轮 Widget 已有先例）。
-- **`setGranted(false)` + `setGranted(true)` 在同一批里抵销 ⇒ 子树根本不重挂。** 第 4 轮把 `budget` 加进 WebGL 名额 effect 的依赖（本意是"尽情档要放更多名额时让被挡住的实例重试"），结果 cleanup 朝**还挂在文档里、库还在逐帧画**的那只 canvas 调了 `loseContext()`：净值没变 ⇒ React 不重挂 ⇒ 光永久冻成平涂，而 rAF 还在空转。这条靠推理推不出来，也不在任何测试的视野里（`getContext` 被桩成 null，granted 分支根本不可达）。判据只有两个读数：`gl.isContextLost()` 与 `document.contains(canvas)` —— 修复前 `true / true`，修复后旧节点 `false`、新节点 `alive`，连点六圈档位全程 alive。**改视效的预算闸，必须拿真 context 验，不能拿元素个数验。**
-- **降级路径才是"开关是真是假"的判据。** 隐私模式（`setItem` 抛、`getItem` 恒 null）下 `readTier()` 回落默认，于是 `cycleTier` 永远从 calm 起算 —— 用户一点再一点**一次都进不了静默档**，而 `data-motion` 已经是新档。写侧成功、读侧粘住，就是"一个档位三个真相"的第三种形状。同一条修在 `theme.ts` 上（图标说"跟随系统"而页面是深色）。
-- **live region 的判据要精确到"属性不能翻"，而不是"节点要先在"。** 第 3 轮把 `role/aria-live` 从 Alert 本体搬到常驻容器就算合规了；第 4 轮才被指出：那只容器按 tone 翻属性，翻成 assertive 那一刻多数 AT 当新区域重新登记，**正要立即播报的错误反而整条丢掉**。收敛成两只常驻区域（status/polite 与 alert/assertive），属性永不随消息变。顺带一条边界：插入一个带 `role=status` 的**新节点**主流 AT 会播，那不算同一个失效形状 —— 判据分清楚，才不会把所有条件渲染都改错。
-- **`disabled` 表达边界 = 把焦点从用户脚下抽走。** 移位按钮按到末位后自己变 `disabled` ⇒ 浏览器 blur 它、`activeElement` 掉回 `<body>`，"键盘可抵达的自定义排列"在边界处断掉。改 `aria-disabled` + onClick 守卫 + `aria-disabled:pointer-events-none`：仍声明边界、仍可聚焦播报、动作照样吞掉。
-- **jsdom 的 `localStorage` 是 Proxy：`vi.spyOn(Storage.prototype,'setItem')` 拦不住。** 用它写的"写失败"用例其实 setItem 没抛，于是假绿在另一半上。要模拟"只写不进"就整只换掉 `localStorage`（`vi.stubGlobal`）。
-- **首帧闪色的根因是"同步只挂在订阅里"。** `use-avatar` 的 `syncFromStorage()` 只在第一个 listener 的 `subscribe` 里跑，而 subscribe 在 effect 阶段 ⇒ 每次刷新先画默认配方再跳色。用 `addInitScript` 在应用加载前挂 MutationObserver 才量得出来：修复后第一个落地的地板类就是存档那一族（`bg-glow-danger`），默认那帧不存在了。这类"只在第一帧发生"的缺陷，事后 `querySelector` 永远看不见。
-
-### 踩过的坑 / 方法论
-
-- **三个独立 lens 并行是对的，但要自己复核。** 美术 lens 报"静默档柔光停在 opacity 1"、交互 lens 独立报"静默档没关掉 animate-pulse" —— 两条同源、互相佐证，才敢当 BLOCKER 修。反过来，"尽情档改了画面内容"这类 NOTE 就不值得改代码，写进注释即可。**同一维度两个视角都指到的，才是真问题。**
-- **给子代理开真环境的代价。** 让布局透镜"真去量不要猜"，它就往真库里 POST 了一条测试 URL（留下一行 failed）。以后凡是"允许真操作"的评审任务，要么先声明只读边界，要么先起一个隔离库。
-- **测试要跟着契约走，不要跟着文案走。** URL 域从单行 input 变成多行 textarea 后，`getByPlaceholderText('整句示例')` 红了 —— 那是测试把自己绑在了一句提示语上。改成 `getByRole('textbox')` 之后，文案再改也不会红。
-- **收敛判定要事先给 lens 一个"承认没找到"的出口。** 第 4 轮我给三个 lens 的口径是：「若你只能靠测试措辞、守卫风格、审美偏好凑数，就单独写一行 `CONVERGENCE: no production defects`」。三个都**拒绝**写这一行 —— 事后证明它们是对的（13 条真生产缺陷，其中两条是"点一下就坏、不刷新不恢复"）。反过来，第 5 轮如果它们只能给出措辞类，那行就会自己出现，那时才算收敛。
-- **lens 的静态断言一律复核或实测，并标核验状态。** "焦点会掉回 body" 是推断，`document.activeElement` 的读数才是事实；"canvas 被打死" 是推断，`isContextLost()=true && document.contains=true` 才是事实。本轮每一条被采纳的缺陷都在浏览器里量过，标"实测"的才有资格写进总结。
-- **规则变了要当着测试的面说。** 第 4 轮把边界态从 `disabled` 换成 `aria-disabled`，`widget.test.tsx` 那条原钉旧规则的用例随之改口径 —— 总结与用例注释都写明"这是规则变了（焦点不掉 body），不是实现漂了"，否则下一轮的人会以为测试又被顺手改绿。
-
-### 还没碰（留给下一轮）
-
-- ~~五个本机 store 里只有后两个有 `persistFailed`；`ask/alert/resource-list` 仍在用 `useReducedMotion()`~~ —— 本轮已全部收口：四只 store 都有 `useXPersistFailed()`，`repo-guard` 现在按"源码里 `useReducedMotion` 出现 0 次"钉住。
-- **两个标签页同时编辑 `kc-nav` / `kc-dashboard` 会丢更新**（整数组快照写 + 只 pull 不 merge）。要修得加 `rev` 或改增量写，四只 store 一起动。
-- **WebGL 名额闸的测试仍然不可达**：`shader-backdrop.test.tsx` 把 `getContext` 桩成 null ⇒ granted 分支、`loseContext` 配对、第 4 轮那个 `key={budget}` 全都没人钉。要补就得换成"返回一只带 `WEBGL_lose_context` 的假 gl"，那是另一次接线。
-- 六种 shader 效果的 uniforms 是猜的第一版，等人判哪几支该删。
 
 ## P1 · 基础层迁移（2026-10-15，`adapters/` → `adapter/`，spec-adapter-layer-migration）
 
@@ -398,6 +331,51 @@
 - **ingest 整条链路零自动验证**：这一刀动了它的装配形状，但没有任何测试跑得通它，正确性靠一次真 HTTP 端到端（deferred-work）。
 - **库不可达时 `/retrieve` 冒 500**，而 `/chat` 的契约是"一律 200 答案体"——`E_DIMENSION_UNKNOWN` 删掉之后这个不对称显形了（deferred-work）。
 
+## Epic 2 补记 — Story 2.2 / 2.3 / 2.4 / 2.6（2026-10-15 → 10-21，补记 2026-10-29）
+
+> 这四格此前只有走读页与 sprint 注记，没进学习日志；补记只收「判断与坑」，完整代码讲解在 `_Agents/walkthroughs/epic2-story{2,3,4,6}-*.html`。
+
+### 2.2 流式输出与 loading
+
+- **用 SDK 的 UI Message Stream，不自造 JSON 协议。** `useChat`、`UIMessage.parts`、tool part、error/abort 语义都是现成的；代价是必须按 `type` 理解帧，不能当普通 JSON 读。
+- **HTTP 状态码在流开始后就改不了了。** `createUIMessageStreamResponse` 一发出 200 头和首帧，模型中途报错只能发 `{"type":"error"}`；前端从 `useChat().error` 读，路由的 500 覆盖不到。
+- **abort 帧 ≠ error。** 本机实测：只喂 `{"type":"abort"}`，`Chat` 最终 `status=ready`、`error=none`，半截 text part 甚至还是 `state:"streaming"`。所以手动停止必须自己 `markCut`，不能指望 SDK 标「未完整」。
+- **「回答未完整」只有两个可靠入口**：用户手动停、`useChat` 真报了 error。错误分支还要判 `messages.at(-1)?.role === 'assistant'`，否则会把上一轮完整回答永久标成半截（cut 从不回收）。
+- **`submitted` 与 `streaming` 是两个阶段。** submitted 时本轮 assistant 还没进 messages，按「最后一条 assistant」挂光标会挂到上一轮；用 `status === 'streaming'` 挡住。
+- **两个 `onError` 别混。** `streamText` 的 onError 只记日志/给 trace；`toUIMessageStream` 的 onError 才决定客户端 `errorText`。改错一个，用户看到的文案不会变。
+- **`stop()` 没有上界。** 忙时取消前一条的方案配了 800ms 竞速：停不干净就拒绝这一问并提示，绝不让两条流共用一只 Chat 互相拨 status。
+- **中断不落 assistant。** 取消直接 return，库里只留 user 消息；代价是刷新后半截消失，「未完整」标记只在内存。
+- **超时三条款整体推后。** 没有真实上游首块延迟样本前拍超时值只是拍脑袋；代价是 inter-token 卡住只能手动停（`CHAT_TIMEOUT_*` 至今零命中）。
+
+### 2.3 引用标记与映射
+
+- **唯一真相 = 同一条流里的 tool 输出。** 之前 `/ask` 平行再打一次 `/retrieve`，两批命中并排却不互相担保；现在回答与命中来自同一次工具调用，`/recall` 仍打 `/retrieve`（只检索不生成的调试台）。
+- **`[n]` 是模型写的，界面只做顺序对齐。** 第 n 个标号对应最后一次 hits 的第 n 条；越界就原样留文字，不替模型编来源、不给假按钮。
+- **编号按首次出现，不按召回名次。** 正文出现 2、3、6、8 的跳号很难读；右栏、按钮、正文统一读 `citedHits` 的首次出现顺序。
+- **数字名次只属于本轮，跨轮只认 8 位 chunkId。** 同一个 `[1]` 在上一轮是另一条命中；`[12345678]` 看着像数字也按 chunkId 前缀解析，不当名次查下标。
+- **多步：面板与数字用最后一次，8 位 id 用全集。** 更早一次重查的命中只能通过 8 位 id 被正文引用，数字对不上是预期行为。
+- **工具键名就是 part 名。** registry 的 `retrieve` 被拼成 `tool-retrieve`；历史上 `retrive` 改名时前端没跟，面板整轮显示「未检索」而模型其实查了。
+- **缺 `chunkId` 的畸形 hit 仍可能抛。** `hitFor` 的 `byId` 直接读 `H.chunkId.toLowerCase()`；与「越界索引」不是同一件事，已记 deferred。
+
+### 2.4 原文回链与来源快照
+
+- **快照 vs 重取 chunk：选快照。** 重取得的是「现在」的块，不是「回答当时」的块；来源删了还会 404/500。快照跟消息走，历史回答可复现、无额外请求；代价是消息体积，且旧块不跟随后续编辑。
+- **404 只标不拦，500 保持沉默。** 页面只认 `ApiError` 且 `status === 404` 才出现「来源已删除」；后端挂了、代理返 HTML、形状不对都不标，内容仍可读。410 条款 2026-10-21 已作废。
+- **本轮 `[n]` 两步，跨轮一步。** 当前轮先点亮右栏那一行（让用户看到引用与命中是同一套编号），跨轮引用直接开抽屉，避免点了没反应。
+- **Resource 级删除判据。** 只查 `GET /resources/:id`，不逐 chunk 探测；代价是「只删了 chunk、资源还在」不会标已删除。
+- **粘贴内容没有 `source`。** `/ask` 只在 source 非空时渲染链接，粘贴只有 `docTitle`；唯一指针在 `resourceId` / `dataUri` 里。
+
+### 2.6 检索工具化（模型自调 retrieve）
+
+- **从「服务端先检索、再塞 prompt」改成「模型自己调用检索工具」。** 这是 P3 能力的一次有期限前置（AGENTS §五），不是 Agent loop。
+- **`streamText` 默认单步。** `ai@7` 默认 `stopWhen = isStepCount(1)`，不显式写 `stepCountIs(5)`，工具执行完循环就停（本机 7.0.148 仍在 `dist/index.js`）。
+- **step 数不等于工具调用数。** 文档曾写「5 步 = 4 次往返」；2026-10-28 实测 5 步可出 7 次工具调用，按「最多 4 次」的外推表述不准。
+- **工具错误要 return，不要 throw。** SDK 对 tool error 走 JSON 序列化，而 `Error.message` 是非枚举属性——实测 `JSON.stringify(new RetrieverError(...))` 只剩 `name/code`，中文原因会被抹掉。return 结构化 error 才能让模型读到。
+- **业务错误没有 `output-error`。** 被 catch 成正常 output 后 part state 仍是 `output-available`，前端必须读 `Out.error`；只有非 `RetrieverError` 真 throw 才会出现 `output-error`。
+- **SSE 状态码一次性。** `/chat` 是 200 + 工具 error，`/retrieve` 是 409，同一个错误的两种出口。
+- **两个旋钮各管一条路**：`topK` 归模型（工具 schema 4–19），`limit` 归 `/retrieve`；`/chat` 不再收 limit。
+- **键名就是 part 名**；注释也会漂（`app/web/src/api/chat.ts` 的注释仍写 `stopWhen 2`，服务端已是 `stepCountIs(5)`）——读注释不能代替读实现。
+
 ## 2026-10-21 · Story 2.5 多轮与 Epic 2 收口
 
 ### 学到的
@@ -407,6 +385,27 @@
 - **历史只回灌 text parts。** tool-retrieve output 里是上轮命中的全文，回灌既撑 token，又会让模型引用旧 chunk；引用只该来自本轮工具结果。
 - **模型看得到历史时，会自己把指代展开成检索词。** 实测第二问「那 ef_construction 呢？」→ tool input「HNSW 索引的 m 参数和 ef_construction 参数默认值是多少？」。显式查询改写不是必需；先跑再决定要不要多付一次 LLM 调用。
 - **`Chat` 实例没有公开的 `setMessages`；用 `useChat({ chat })` 返回的 setter 恢复历史。** `chatFor` 仍是模块级单例，hydrate 放页面 effect，且只在实例无消息、不在流时写。
+
+## 2026-10-22 · Story 3.1 通用端点轨迹（补记 2026-10-29）
+
+> 通用 endpoint 壳：所有业务路由共用一个中间件记 trace。此前只有走读页与 sprint 注记，这里补判断与坑。
+
+### 学到的
+
+- **route 存模板，不存真实路径。** `/resources/abc` 归一成 `/resources/:id`，同一个接口的上千次请求才能聚合；存真 id 只会碎成无数行。
+- **payload 只记失败 + 白名单成功。** 失败时 request/response 两侧都记；成功时只对三个写接口记 request，且 `POST /resources` 只留元数据。chat/retrieve 一字节不记，它们另有落点。
+- **SSE 先记 `ok`，后面再覆盖。** 中间件只看得到响应头，看不到流结束；真正的 `ok/error/cancelled` 由 3.2 的 `onEnd` 覆盖同一行。
+- **观测写失败绝不拖垮业务。** `insertTrace` / `finishTrace` / `recordStage` 的异常全部吞成一行 `E_TRACE_WRITE` 日志——trace 丢了业务还得成，这是观测的边界。
+- **列表不返回 payloads。** 3KB × 50 行太重；列表只给公共字段，详情才给载荷。
+- **`session_id` / `resource_id` 不加外键。** trace 是审计数据，业务行删了它还得在；外键会把删除变成级联或让写入被约束卡住。
+
+### 踩过的坑 / 方法论
+
+- **HTTP body 是流，只能读一次。** 中间件要读就先 `c.req.raw.clone()`；直接 `await c.req.text()` 会让后面的 handler 拿到空 body。
+- **别把 `/traces` 自己记成 trace。** 读观测的请求也走中间件；不跳过，点一次刷新就多一条噪音。
+- **别在 SSE 上等流结束。** 中间件拿到的响应已经是流，等它读完会把请求挂住；最终状态交给流回调。
+- **Header 全量落库 = 泄密。** Authorization / Cookie / Key 一律不落，白名单之外不记，`SECRET_HEADER` 是第二道保险。
+- **真实 path 不能做统计。** UUID 会让每个请求都成为「新路由」，先归一成 `:id`。
 
 ## 2026-10-22 · Story 3.2 chat 链路交 Langfuse
 
@@ -471,9 +470,115 @@
 ### 还没碰
 
 - 公网下载鉴权（登录/退出吊销、per-IP、一次性 token、边缘反代）→ P5。
-- MinIO 专用用户与 `HeadBucket` 权限 → 5.2。
+- MinIO 专用用户与 `HeadBucket` 权限 → P5（上公网前；5.2 之后确认不随文件层进来）。
 - `test/` 仍被 gitignore；health 测试与 env loader 修复不在版本控制。
 - 前端 health 三卡布局与页面视觉由 Lynx 手测。
+
+## 2026-10-27 · Story 5.2 原始归档与两段式入库
+
+> 一句话：入库从「一个请求抓完、解析完」拆成「先把原始字节落 MinIO（归档）→ 再从 `data_uri` 派生（ingest）」。本格只做归档/门禁/下载/恢复；去重、批量、回收站是 5.3 的补丁。
+
+### 学到的
+
+- **两段式的分界线是「原始字节 vs 派生数据」。** `POST /resources` 只让原始对象落地、把行推到 `uploaded`；`POST /:id/ingest` 只从 `data_uri` 读原文派生 chunks/embeddings。3.4 的五段（fetch/parse/chunk/embed/write）一个没改——`fetch` 的来源从「抓 URL」换成「读 MinIO」（`StorageFetcher`），同一段代码同时服务 URL / 粘贴 / 文件。
+- **六状态每格只有一个写者**（AD-7）：archive 写 `uploading → uploaded / upload_failed`；ingest 写 `uploaded → processing → ready / process_failed`；restore 写「软删 → uploaded」。启动清扫只兜两种中断：`processing → process_failed`、超 24h 的 `uploading → upload_failed`。
+- **三种来源共用一个端点，但「谁写字节」不同。** 文件：后端只建行 + 签 `presignPut`，浏览器直传 MinIO；URL/粘贴：后端抓/收，服务端 `put`。前者省后端带宽与内存，代价是 presigned PUT 不能预限大小 ⇒ 前端先拦、ingest 用 `stat` 事后拦（缺失 / 0 字节 / >10 MiB / 类型不符 → 删错对象 + `upload_failed`）。
+- **`data_uri` 就是文件地址，用实际路径，不插 `resources/<id>`。** 形如 `kc://oss/minio/<bucket>/<key>`，key 保留文件名/相对目录（URL 用 host+pathname，粘贴用 title slug）。好处是 URI 与对象 key 一对一、人能读；代价是重名要分配：`allocateKey` 同时查 DB 的 `data_uri` 与 MinIO 的 `stat`，冲突加 8 位短后缀，`kc://%` 的部分唯一索引兜并发。
+- **`source` 只记外部来源。** URL 存原 URL；文件/粘贴存 null。`kc://` 是内部地址，只能待 `data_uri`——之前写进 `source` 的测试行已一次性归一为 null。
+- **软删与彻底删除是两件事。** `DELETE` 删 chunks（embeddings 随 FK），**原对象保留**；restore 先 `stat`，完整才清 `deleted_at` 回 `uploaded`，缺对象 409 `E_NO_ORIGINAL` 且行保持软删。动对象是 purge（5.3）的事。
+- **下载只签地址，不代理字节。** `GET /:id/original` → 302 到 1h `presignGet`，强制 `attachment` + `Cache-Control: no-store`，不记 Location。一旦改成代理，Range/断点/大文件全要自己写。
+- **归档失败也要留行。** URL 抓取/写存储失败先建 `uploading` 行再转 `upload_failed`（422 带 resource）；只有输入错误（空内容/坏 URL/非文本）才是建行前 400。行是「办砸了」的证据，前端据此展示原因与重试入口。
+- **观测按「谁干活」归属。** 五个 stage 挂在 `POST /:id/ingest` 的 trace 下；归档端点那条 trace 0 段。前端 RunWatch 改读新端点。
+
+### 踩过的坑 / 方法论
+
+- **CORS 没配 ≠ 浏览器传不上去。** 桶级 CORS 为空，但 MinIO 默认对任意 Origin 回 `200 + Allow-Methods: PUT + Allow-Headers: Content-Type`，无签名 PUT 的 403 也带 ACAO ⇒ 前端读得到状态码。真正会挡的是 HTTPS 页面直传 HTTP MinIO 的 mixed content（fetch 直接 block，改 CORS 无效），手测走 `http://localhost:5173` 规避；TLS 归 P5。
+- **旧数据选「清空」而不是回填。** 29 行旧资源的 `data_uri` 是 URL / `urn:kc:paste:`，没有真实对象；伪造一个「原文件」比清空更糟。迁移清 resources/chunks/embeddings/traces，保留 sessions/messages。**判据是旧数据能不能表达新语义，不是迁移成本。**
+- **对象 key 分配要同时看两个存储。** 行与对象不在一个事务里：先建行后 PUT 失败留空行，先 PUT 后建行失败留孤儿对象。两边都查 + 唯一索引兜底，是对「两个存储没有分布式事务」的务实回应。
+- **同一个字段不能装两个语义。** `source` 混过 `kc://` 之后，「按来源查重/展示」和「内部存储地址」会互相污染；拆开后查重只看 `source`（URL）与 `content_hash`（内容）。
+
+### 还没碰
+
+- PUT 失败留下的 `uploading` 行（现靠 24h 清扫/手删）→ 未排期。
+- URL 标题被 hostname 占位、ingest 不覆盖（分不清用户是否显式给过 title）→ 未排期。
+- 原对象丢失时从 `source` 自动重抓 → 未排期（要先接受页面可能已变）。
+- HTTPS/TLS 部署（mixed content）→ P5。
+- 浏览器手测按约定由 Lynx 做（Epic 5 收口时判定），agent 未代测。
+
+## 2026-10-27 · Story 5.3 内容去重、整批两段式与回收站
+
+> 一句话：给资源补上「内容身份」（SHA-256）与「内容生命周期」（去重门 → 回收站 → 彻底删除 → 重入库）。原 5.3 的单文件上传方向已被 5.2 覆盖，本格重定义为批量。
+
+### 学到的
+
+- **去重键是内容，不是名字。** SHA-256 打在归档原始字节上（文件字节 / HTML / UTF-8 文本），不看文件名/标题；换名同内容也能命中。浏览器用 Web Crypto 算文件 hash，URL/粘贴服务端算。
+- **唯一索引必须包含软删行。** `content_hash` 全表唯一（`WHERE content_hash IS NOT NULL`，不排除 `deleted_at`）⇒ 软删行也占位；命中软删行时恢复它，而不是插第二行。否则回收站里同内容两行，「恢复哪一行」没有答案，hash 也不再是身份。
+- **去重门在 DB 与 MinIO 两个写入之前。** 文件：先算 hash → 查库 → 命中就**不 create、不 presign、不 PUT**；URL/粘贴：先取内容算 hash → 查 → 命中就**不 put、不建行**。命中时两个存储都不写。
+- **客户端 hash 只是预检键，不是事实。** 它只用来「早跳过」，裁决在服务端：ingest 从 MinIO 读回同一份 Buffer 再算 SHA-256，与 `resources.content_hash` 比对，不一致 → `E_HASH_MISMATCH`（不 parse/chunk/embed，落 `process_failed`）。**凡是客户端能伪造的判据，都要在服务端复核一次。**
+- **同批要先做 hash 预检。** 否则第一项 create 之后，第二项同内容会命中「自己刚建的 uploading 行」，被标成 duplicate 而不是同批去重。预检只合并同批；跨批/并发仍靠唯一索引 + 23505 重查。
+- **整批两段式不是后台队列。** 阶段一：全部 create + 上传/归档（文件 presign PUT → `confirm-upload`、URL/粘贴归档、软删命中恢复），收 resource ids；阶段二：全部 ingest。原因：三种来源的完成时机不同，混跑会让 ingest 在对象没到位时 `stat` 失败。队列仍是内存，刷新即丢；不建服务端任务表/worker/Redis。
+- **`confirm-upload` 的意义是给「上传完成」一个服务端事实。** PUT 成功只说明浏览器说传完了；服务端 `stat`/类型/大小过门禁才转 `uploaded`。gate 两条入口共用：confirm 只接 `uploading/uploaded/upload_failed`，ingest 还允许 `ready/process_failed`。
+- **回收站不是第二套状态机。** 用 `GET /resources/deleted` + 状态筛选「已删除」；软删行仍只有一种语义。**purge 只接软删行**（active 409 `E_NOT_DELETED`），先幂等删对象、再删行；对象丢失也允许清行；对象删除失败保留行可重试。顺序固定为先对象后行，避免孤儿对象。
+- **ready 重入库是「替换」，不是「追加」。** 写事务里先 `SELECT … FOR UPDATE` 锁资源行（串行化同一资源的并发重入库），再删旧 chunks/embeddings，再插新，最后转 ready；失败整体回滚并落 `process_failed`，旧 chunks 不保留（Lynx 拍）。宁可短时空窗，不要半新半旧或双份。
+- **SDK 的 batching 只看条数上限，不看耗时。** `embedMany` 只按 `maxEmbeddingsPerCall`（2048）拆；实测 qwenembed ≈480ms/条（32 条 15.4s、64 条 30.5s），118 块一次调用必超 30s。改为 32 条/批串行、每批各带一份 30s 超时，结果按批序拼接。**超时是按调用计的，批次大小要按耗时定。**
+
+### 踩过的坑 / 方法论
+
+- **状态机的「入口集合」每加一个状态都要全局对齐。** 重试 bug 的根因：`markResourceUploaded` 的允许集合漏了 `process_failed` ⇒ 重试 0.4s 就 409 `E_RESOURCE_GONE`，看起来像「资源消失了」。修法是把 `process_failed` 与 `ready` 一起列为重试入口（对应 gate 的 `AllowReady` 分支）。
+- **Web Crypto 只在安全上下文。** `crypto.subtle` 在 localhost/HTTPS 才有；普通 HTTP 局域网页面没有兜底（已知限制，未做降级）。jsdom 测试要补 Node `webcrypto`。
+- **「资源损坏后允许重传」必须留一条彻底删除。** 只软删的话，坏对象的行 + hash 还占着唯一索引，重传会被自己的坏行挡住——这是 purge 的业务理由，不是「清理垃圾桶」。
+- **内存队列 ≠ 后台队列，但「换页即丢」可以消。** 5.3 之后同一轮前端工作把队列从上传面板搬到根布局（`src/lib/upload-queue.tsx` + dock 胶囊）：换页不丢、提交不因离开 `/ingest` 中断；**刷新仍即丢**。边界说清：消掉的是导航中断，不是进程崩溃或多端恢复。
+- **purge/restore 并发还有一个极小窗口**：purge 先删对象、restore 抢先 `stat` 通过后 `UPDATE`。单用户单页几乎不可见；正解是 `SELECT … FOR UPDATE` 持行锁跨对象删除。已记 deferred。
+- **不要顺手把 MinIO 生命周期写进业务用例。** ingest 复算 hash 失败只落 `process_failed`，不删对象、不清 hash；对象删除/重试/校验/清理统一归「MinIO 薄层子系统」（Lynx 2026-10-27 拍「之后做，现在先不做」）。
+
+### 还没碰
+
+- purge/restore 并发行锁 → 未排期。
+- 硬删审计留痕 → P5（本轮只有 trace）。
+- MinIO 薄层子系统 → P2 工程项（未排期）。
+- 批量下载 / ZIP → 不做（ZIP 只在 5.4 做代码库）。
+- 浏览器手测按约定由 Lynx 做，agent 未代测。
+
+## 2026-10-27 · Story 5.4 代码库 ZIP：独立域、不解压、按需读
+
+> 一句话：代码库是「文件管理」，不是知识库语料。独立 `codebases` 域，ZIP 留 MinIO，只读中央目录做校验，预览按条目 range 读。
+
+### 学到的
+
+- **代码库不是 `resources` 的 subtype。** 独立 `codebases` 表 + 独立能力盒 + `/codebases` 路由；不进 `resources`、不进 ingest、不写 chunks/embeddings、不进检索。混进去会污染六状态/去重/回收站，并把代码强行塞进 embed 管线。只复用基础设施（DB/ObjectStore/config/日志/trace）。
+- **没有沙箱就不解压。** ZIP 留在 MinIO，`complete` 只把包下载到受控临时文件、用 `yauzl` 读中央目录，`finally` 删临时文件；不落条目文件、不执行仓库内容。解压 = 路径穿越/符号链接/zip bomb/执行 hook 的风险面，这些在「只读目录」下都不存在。
+- **清单是持久化的派生快照，不是缓存。** `codebases.manifest` jsonb 存扁平条目（path / entry_index / is_dir / compressed_size / uncompressed_size / compression_method）；列表与树读 DB，不在每次请求时重解 ZIP。`entry_index` 是回 ZIP 的坐标（yauzl 原始序号，被忽略的目录也占号）。
+- **预览永远纯文本。** 文本/代码统一 `text/plain; charset=utf-8` + `X-Content-Type-Options: nosniff`，前端 `<pre>`；绝不把 HTML/SVG 条目当页面执行（XSS）。二进制给元信息 + 下载。
+- **限额只有一个，其余交给「读时截断」。** ZIP 上传 100MB；单条目读取按**实际**解压字节 100MB 截断（不信中央目录虚报）；不做文件数/压缩比/深度细限额——没有证据支撑的阈值只会误杀。
+- **硬删是这个域的删除语义。** 没有软删/回收站；`processing` 拒绝删除；先幂等删对象再删行，对象丢失允许清行，对象删除失败保留行可重试。
+- **ZIP 校验清单化。** 拒 `..`/绝对路径/反斜杠/控制字符/空段/重名/符号链接/设备文件/加密/不可解码/空包；默认忽略 `.git`、`node_modules`、`dist`、`build`（常量表）。`yauzl` 自己会拒 `..` 与绝对路径，`strictFileNames: true` 才拒反斜杠。
+
+### 踩过的坑 / 方法论
+
+- **随机读适配器要按「调用模式」设计，不是按接口语义。** 高 entryIndex 打开超时，根因是 yauzl 每读一条中央目录记录调一次 `read`（46 字节），旧 `S3ZipReader` 每个小 read 发一次 Range GET ⇒ 1493 条目的 ZIP 点后面的文件要排队上千次请求。修复是给 reader 加 1MB 块缓存（上限 16 块），条目正文仍单次 Range GET。**性能问题先数「一次操作会发生多少次 IO」，再改实现。**
+- **TanStack 的 autoCodeSplitting 会把 route 文件的组件搬走。** route 文件再导出组件，dev 下会拿到 undefined（组件被切到 `?tsr-split=component`）。页面组件住 `components/`，route 文件只留 `createFileRoute` 薄壳。
+- **「中央目录声明的解压字节」不能当内存上限用。** 它可能虚报，所以预览按实际解压字节截断；上传大小用 `stat` 复核，不信请求里声明的 size。
+- **无沙箱的边界要写进 AC，不只在注释里。** 5.4 把「不解压、不执行、不上 AST」写成不做项，才挡得住后面「顺手跑个 analyze.mjs」的冲动。
+
+### Epic 5 收口对账（2026-10-27）
+
+- 5.1–5.4 全 `done`，四份走读页齐（`epic5-story{1..4}-*.html`）；后端/前端全量与 build 均绿（明细以 `sprint-status.yaml` 为准）。
+- 遗留去向：mixed-content/TLS、MinIO 专用用户/`HeadBucket`、硬删审计 → **P5**；purge/restore 行锁、PUT 失败行、URL 标题、source 重抓、MinIO 薄层子系统、多存储/多桶 → **未排期**；代码图 / 代码 RAG → **另立 Epic**。
+
+## 2026-10-27 · Epic 6 取消：文件 URI 折回 Story 5.2
+
+> 这一节记「没做的那一刀」为什么不做。Epic 6 编号不复用（现在的 Epic 7 是评测，晚一天立项）。
+
+- **原方案**：`kc://oss/<provider>/<bucket>/<key>` + 4 格（6.1 URI 解析/`/resolve`/`/files` → 6.2 `storage_uri`/`storage_key` 列 → 6.3 两段式 → 6.4 restore/retention）。
+- **取消理由**（2026-10-26 立项，2026-10-27 折回 5.2）：
+  1. **事实已经存在。** `resources.data_uri` 本来就在（P1 存 URL / `urn:kc:paste:`），换成语义正确的 `kc://` 实际路径即可；再加 `storage_uri` + `storage_key` 是同一事实三份，唯一索引、回链、去重都会被撕开。
+  2. **真正缺的不是 URI 解析层，是「上传与解析分开」。** 原文先落地、ingest 再派生——那是 5.2 的两段式，不值得一个 Epic。
+  3. **`/resolve`、`/files` 没有调用方。** 它们是为「假设中的通用文件解析器」建的入口；通用层要等第二个调用方出现再抽。
+  4. **流程仪式太重。** Lynx 判定 Epic/OQ/AC/走读页这一套对「只改已有字段的用法」太重（原话：太繁琐，全是仪式）。
+- **落地差异**：只保留 `adapter/storage/uri.ts` 的 `buildDataUri`/`parseDataUri`（进程内用，不开 HTTP 解析端点）；`source` 只记外部来源；不建 `storage_key` 列；不做 resource/chunk/message/trace 的身份 URI（引用仍靠 `chunkId` + 资源 `data_uri`）。
+- **复用价值**：Epic 6 的 kickoff 不是白写——「原文是 source of truth、chunk/embedding 是派生、软删不删原文、restore 从原文重放」这套语义原样进了 5.2/5.3；被否掉的只是它的容器（新 Epic + resolver + 两个新列）。
+
+**判据（可复用）：先问「这个事实是不是已经存在」，再问「要不要为它新建一层」。** URI 这类「看起来优雅」的抽象，最容易长成只有作者使用的通用层。
 
 ## 2026-10-28 · Story 7.0 评测连接（默认主库 / 可选隔离库）
 
@@ -537,3 +642,214 @@
 - 7.2 的运行配置（k / topK / minSimilarity）还没参数化：7.0 用环境值跑通，7.2 再把 config 来源改成 run 快照。
 - 浏览器手测项（三视图页头、窄屏、health 第 4 卡、后端停掉的未知态）留给 Lynx。
 - 7.0 的连接代码尚未提交（`136857e` 只含 eval-probe/cases 与 Epic 5 尾巴）。
+
+## 2026-10-29 · Story 7.1 题集与配置底座
+
+### 学到的 / 定下的
+
+- **配置用「一张表 + kind + jsonb」，把校验责任推到 API。**
+  run 与 metric 同住 `eval_configs(id, kind, name, config jsonb)`：加参数不用改表，历史 run 快照也能原样存。代价是 DB 不知道 `k` 该是正整数、`min_similarity` 该在 0..1 —— **规则只能住一处**（`parseConfig`），前端不复制第二套。DB 只保三件事：kind 合法、name 非空、config 是对象。
+  默认值不为空串之外的东西：`name` 唯一为导入按名找数据集服务；配置名允许重复（复制仍自动找空位只是 UI 体面）。
+
+- **runs 骨架先建，是为了让 AC 能落地，不是提前做 7.2。**
+  「数据集跑过 run 就拒删」需要一张表；骨架只给 `id / dataset_id / status / created_at`，`dataset_id` 的 `ON DELETE RESTRICT` 当最后一道闸，路由先数再删以产出「先删掉关联的 N 次运行」。快照与结果列 7.2 同表 ALTER，**不要为了今天的删除保护把 7.2 的形状写死**。
+
+- **循环外键在 ORM 生成物里是实打实的坑。**
+  `eval_datasets → eval_runs → eval_datasets` 让 drizzle introspect 出的 `schema.ts` 出现 TS7022/7024（自引用推断），运行期能跑、`tsc` 过不了。`baseline_run_id` 最终只是可空 uuid，归属校验放 7.3 的采纳动作。**外键不是越多越好：先问它服务哪条业务断言。**
+
+- **drizzle-kit 把空串默认值导坏：`text().default('')` → `default(')`（未闭合字符串）。**
+  修在生成脚本（归一化 + 断言），不手改 `schema.ts`。生成物一旦要手改，下一次生成就会覆盖回去。
+
+- **gold 用「可读路径 + 块号 + 内容前缀」，不用随机 uuid。**
+  `path` 后缀可能命中多条资源（legacy 与 planning 的 `ARCHITECTURE-SPINE.md` 同名）：导入要求**恰好命中 1 条**，0 条或多条都让该条失败，不猜。`content_prefix` 取块正文 trim 后前 80 字，是**软指纹**（不是哈希，也不是安全校验）；7.2 用它判「这块还是不是原来那块」。
+
+- **评测数据必须跟随选中的库解析。**
+  隔离库资源的 `data_uri` 带 `eval/<hash>/` 前缀，共享模式没有。所以 `eval:cases:import` 一律经 `EvalAssembly.repo`，在目标库里把 `path` 解析成 `data_uri`；换模式后题集要在新库再导一次，否则 7.2 会整片报 gold 失效。
+
+- **前端接真接口的最小模式：写后重拉、错误原文上屏、不做乐观更新。**
+  题集页写完重新拉数据集（`case_count` 变了）与 case 表；副本选中返回的新 id。删除 409 直接把服务端 message 放进提示条，不在前端拼话术。**复制 case 只是前端模板**（打开新建表单、不发请求），复制数据集才由后端深拷贝。
+
+- **运行时契约在页面外：**
+  三个评测页各挂同一个 `eval-mode-badge`（自取 `/eval/status`，不轮询）；`/evals` 运行视图仍读 mock（`evals-store` 只剩 runs），7.2 再接。**别误以为题集改了 run 会重跑。**
+
+### 踩过的坑 / 方法论
+
+- **条件渲染的提示条不能挂 `role="alert"`**：仓库的 `repo-guard.test.ts` 会拦（live region 必须在常驻节点上）；保持「可见条 + 常驻 sr-only role=status」的既有形状。
+- **测试里 `findByText` 撞多处**：同一个名字在左栏与中栏各出现一次时用 `within(区域)`，别把「多元素」误判成「没渲染」。
+- **约束探针要放进保存点**：一次 `BEGIN` 里第一条违反就整框 aborted，后续全被忽略；`SAVEPOINT` + `ROLLBACK TO` 才能一次验多条。
+- **两库验收 = 同一条迁移跑两次 + 分别真跑**：主库与 `ragdb_eval` 各 17 applied；共享模式导入验完后删主库副本，避免两处题集漂移。
+- **并发会话**：本轮期间 `app/web` 有另一会话在改 `session-list`，一度让 tsc/测试红；收口时其自行恢复。**看到不相关文件的红，先分辨归属再动手。**
+
+- **`LIKE '%/' || suffix` 不是「后缀精确匹配」：`_` 与 `%` 是通配符。** 实测传 `prd_7a87a934.md` 会命中 `prd-7a87a934.md`，让「必须恰好 1 条」的护栏失效、gold 静默指错文件。改用 `right(data_uri, length($1)+1) = '/' || $1`；路径匹配要按字面量，不要用模式匹配。
+- **同一个字段的两条写入口径必须一致。** 导入把 `content_prefix` trim 后截 80 字，但 API 的 `parseGold` 曾原样存——7.2 按 80 字比对就会误判 gold 过期。规则住一处（常量 + 归一化），两边都走它。
+- **mock 的状态机不能挂在组件生命周期上。** `/evals` 的 2 秒完成定时器原本在卸载时清掉：切页再回来，run 永远 `running`、按钮永远禁用。定时器只改外部 store、不改组件 state 时，卸载不必清它。
+- **`Promise.all` 的失败是一损俱损。** 配置页一次拉两组，一组 500 会让另一组的新数据也不回写，写成功却看起来没成功。部分失败用 `allSettled`，逐个 set + 统一提示。
+- **双击是真实的输入。** 复制/删除没有 in-flight 守卫时，双击会生成两份副本，或第二次 404 被读成「删除失败」。一个 busy 状态把这些按钮串起来。
+- **审查要分镜头，且要自核。** 本轮跑了「对抗/边界」与「验收/接线」两个独立镜头，再自己复现关键指控（LIKE 通配符、卸载定时器）。有三条建议按设计口径驳回（配置名唯一、导入删除对账、GET 超时），理由写进 handoff，避免下一轮被当成遗漏再提。
+
+### 还没碰（留给后续）
+
+- 7.2：run 表加列、队列、快照、recall/MRR；config 的 k/topK/minSimilarity 要真正参数化（当前 Retriever 仍读 AppConfig）。
+- 7.3：baseline 写值（同数据集校验）、并排对照。
+- 7.4：judge / HITL / 断言 / 隔离会话。
+- gold 的前端挑选/编辑；JSON 导出；配置删除的 run 用量保护。
+- 浏览器视觉验收（三栏、窄屏、编辑器、409 文案）留给 Lynx；走读页行号随 7.2 改动重生成。
+
+> Epic 4.4 / 4.5 的聊天渲染学习（Markdown、引用、Mermaid、CSV、导出）已移到 [`app/web/LEARNING.md`](app/web/LEARNING.md)。
+
+## 2026-10-29 · Story 7.2 发起检索评测
+
+### 学到的 / 定下的
+
+- **一行 run 自带完整历史：snapshot（输入）+ results（输出）两个 jsonb。** Lynx 拍板不建 `eval_run_cases` 明细表：读法永远是整份 run，15 条规模下 SQL 聚合/join 换不来收益；删 run 就是删一行。代价是跨 run 趋势/筛选会难受——那属于未排期的趋势图，届时再迁移。
+- **每 run 参数走 `SearchOptions` 覆盖位，不另造 retriever。** 每 run 造一个带假 AppConfig 的实例能少改代码，但会把“当前检索是什么”变成两份真相；覆盖位让 `/retrieve` 与 run 始终同源（缺省回落 AppConfig）。
+- **队列进程内、不持久化；重启靠清扫。** `markInterruptedRuns` 把 queued/running 全标 cancelled（实测日志 `I_EVAL_RUN_CLEANUP … 1`），已完成的行保留。取消/中止都不回滚已写的 case。
+- **中止只在 case 之间。** 检索没有 signal，硬拆会把“一条 case 跑一半”变成新状态；取消后的 run 保留已完成行（实测 202 → cancelled，results=1）。
+- **case 错误只污染该行。** 检索抛错 → 该行 error + 0 分，run 继续；只有快照参数不合法或执行器异常才让 run failed。
+- **metric 只冻结不执行。** 7.2 只算 recall/MRR；judge 属 7.4；model/temperature 对检索评测不生效，只记录在快照。
+- **负例要 `hit_count`。** 负例没有 gold，`matched/total` 恒为 0/0；没有原始命中数就看不出“拒答成功”还是“碰巧”。AC 的「命中数」在正负例上是两个语义，字段要分开。
+- **配置删除不再需要保护：** run 靠 snapshot 展示配置名与参数，配置行删了 FK 置空即可；7.1 记的“配置删除的 run 用量保护”以快照方案自然解决。
+- **运行删除只做后端（Lynx 拍板）：** 运行中 409「先中止」；删行事务清 `baseline_run_id`；UI 入口留 7.3。7.1 的「先删 N 次运行」现在有 API 出路。
+
+### 踩过的坑 / 方法论
+
+- **jsonb 数组追加用 `results = results || $2::jsonb`**，每次写一条；单 runner 串行，不需要行锁。
+- **`markInterruptedRuns` 是全局动作**：集成测试里要加「库里活跃 run 是否恰好只有本用例的」守卫，否则会误伤真实 run（测试里已加并会在不独占时跳过断言）。
+- **真跑数字要按口径核**：15 条 18.2s，recall 75.56% / MRR 53.45% / failed 3（三条负例各命中 8 条）；取消 202 → cancelled 保留 1 条；跑一半重启 → cancelled / 进程重启 保留 2 条。
+- **远端库会抖**：本轮一次 `ETIMEDOUT` 让 3 条集成测试失败，恢复后重跑全绿；不要把网络抖动直接当成代码回归。
+- **AC 的措辞要反推字段**：「最好名次、命中数/总数」在负例上推不出 0/0 以外的信息，于是补了 `hit_count`。
+
+### 还没碰（留给后续）
+
+- ~~7.3：基线采纳、逐条并排对照、运行删除 UI~~（2026-10-29 已交付，见下节）；7.4：judge / HITL / 答案评测。
+- 跨 run 趋势/筛选（jsonb 方案的取舍）；同数据集并发点「运行」的排队压测；运行级 failed 的真断库演练。
+- 浏览器视觉（轮询刷新、取消、右栏三 tab、另存两路、窄屏）归 Lynx；走读页行号随 7.3 改动重生成。
+
+## 2026-10-29 · Story 7.3 对照与基线
+
+> 一句话：把「两次 run 的数字并排」和「哪一次算基线」做成显式动作。只摆事实，不下判决。
+
+### 学到的 / 定下的
+
+- **基线只能显式采纳，且只接 `done`。** queued/running/failed/cancelled 一律不可；run 跑完只是候选，不自动改基线。换基线是一次明确的用户动作。
+- **不做判法一致性黄条，改给「相同条目平均」。** 原 AC 要「判法不一致」提示与「不可直接比」；Lynx 当天改口径：总分（各自全部 case 的平均 recall/MRR）直接并排，另给「相同条目 · N 条」平均（交集）作为 apples-to-apples 的数。用交集消掉题集差异，而不是拦着不让比。
+- **对照不替人下结论。** 不算 diff、不标变好/退化/新增/消失；基线缺的 case 显示 `—`，错误行标红。系统只摆事实（与「不做自动归因」的既定口径一致）。
+- **顺序以当前 run 的快照为准。** 题集中途改过也不影响历史 run 的对照顺序。
+- **当前即基线时不摆两列。** 同一份数字摆两遍没有意义；给一句提示即可。
+- **删除入口放右栏顶部，两步确认 4 秒。** 左侧 run 行本身是 button，不在按钮里嵌按钮；运行中隐藏入口，后端仍 409 兜底。
+- **不做乐观更新。** 采纳/删除成功后重拉数据集、运行列表与详情；界面状态来自库。
+- **对照多一行基线身份**（时间 · 运行配置名）：否则两列数字不知道被钉的是哪次 run。
+
+### 踩过的坑 / 方法论
+
+- **`baseline_run_id` 无 FK 是 7.1 循环外键的遗留。** 采纳与删 run 之间有一个极小并发窗口：可能留下指向已删 run 的基线。对照会显示「读取基线运行失败」，重新采纳即可；单用户下接受，不为此加事务壳。
+- **删 run 清基线沿用 7.2 的事务**，不新增逻辑；删基线 run 后前端靠重拉数据集把徽标一起更新。
+- **「相同条目平均」只有前端单测覆盖**（交集、缺 case、百分比）；没在真库构造两次题集不同的 run 做端到端对照——测试边界要标清。
+- **真跑口径**：后端 155 条（远端 MinIO/Postgres 抖动后重跑通过）、前端 85 文件 / 727 条；临时数据集 run done（recall 100% / MRR 50%）→ 采纳 200；排队中采纳 409 `E_EVAL_RUN_NOT_DONE`；跨数据集采纳 400 `E_EVAL_BASELINE_DATASET`；删基线 run 后 `baseline_run_id` = null。
+
+### 还没碰（留给后续）
+
+- 7.4 答案评测整格（OQ-7.4-1..6 已收口，待放行）；gold 的前端挑选/编辑。
+- 自动 diff、趋势图、跨数据集对比 → 未排期。
+- 浏览器视觉（两列对齐、采纳后徽标迁移、两步删除、窄屏）归 Lynx。
+
+## 2026-10-29 · Story 7.4 答案评测
+
+> 一句话：同一题的「回答」也要能评。断言是硬门，judge 给三维分，人可以改分或独立打分；系统按「断言 > 人判 > judge、取更严」给结论。
+
+### 学到的 / 定下的
+
+- **run 类型不加列，用快照推断**：`judge_model` 非空或任一 case 有断言 → 答案评测；否则仍是 7.2 的检索评测。历史 run 的模式由快照决定，改题集/配置不会改历史。
+- **2026-10-30 追加：发起时可显式选「召回 / 对话」**（默认召回）。选了就写进 `snapshot.mode`，读路径优先用它；不传才回落到上面的推断。这样有断言的题集也能跑纯召回，不会被「全部变成对话测试」。
+- **断言 = 子串（大小写不敏感）+ 每条可选正则**；正则保存时校验可编译，匹配统一 `i`。`expect` 全中、`reject` 全不中才算过。
+- **judge 不设默认、不强制不同源**：任意在册模型都行，null 即不跑；单条失败只记该 case，不杀 run。
+- **rubric 存版本名，正文住代码**：建 run 时把版本 + 解析后的正文冻进 snapshot，旧 run 的含义不随代码变化。
+- **合成规则是「断言硬门 + 取更严」**：断言失败 → fail；有 judge 与人判时两者都 pass 才 pass；只剩一个就听它；都没有且有断言 → pass，没断言 → unscored。回答失败直接 fail；judge 失败不伪造分数。
+- **人工复核不改写机器结果**：人判单独存 `human_results`，一致率用「人判 vs judge 原值」算；人可以改题面，写回 `eval_cases`，当前 run 快照不动。
+- **一致率按 level 汇总**；低于整体一致率的题组在页面上标「低」，不设绝对阈值。
+
+### AI SDK 实测
+
+- **`generateText` + `Output.object({ schema })` 在 DeepSeek Flash 上可用**：1.7s 返回合法 JSON；SDK 把 JSON schema 以兼容模式注入 system message（会有一条 warning，不影响结果）。
+- **2026-10-30 修正：judge 不再走 `Output.object`，改纯文本 JSON + zod 校验。** 原因：router1（OpenAI-compatible）不支持 json_schema，`Output.object` 每次都刷 `responseFormat is not supported` warning；虽然模型仍返回合法 JSON，但警告会污染日志、也把「任意在册模型」绑死在支持 structuredOutputs 的厂商上。改后 router1 与 DeepSeek 都实测返回合法 JSON、无 warning；解析失败仍逐条记 `judge.error`。
+- **qwen-plus 结构化输出本轮没验成**：报 `Incorrect API key provided`，是环境里的 Key 问题，不是代码路径；不设默认 judge 后，这条不影响 7.4 落地，但首次用 qwen-plus 当 judge 前要先修 Key。
+- **`generateText` 带 tools 会返回 `steps[]`**：每步有 `toolCalls` / `toolResults`；retrieve 命中在 `toolResults[].output.hits`，按出现顺序编号 1..N 即回答里的 `[n]`。spike 2 步、28.8s、命中 5 条、最终文本 `0.42`。
+- **答案 run 不写 `sessions` / `messages`**：直接 `generateText` + `INSTRUCTIONS` + `buildAgentTools`，不经过 `ChatService` 的历史与落库；评测与聊天统计天然隔离。
+- **真跑口径**：1 条 case 37s；回答 `0.42`、5 条引用；断言过；judge 因回答没带 `[n]` 判 citation=0 → fail；人判 pass/fail 可覆盖，一致率与 level 汇总按预期。
+
+### 踩过的坑 / 方法论
+
+- **回答链路与聊天链路的复用边界**：复用 `INSTRUCTIONS` + retrieve 工具即可，不复用 `ChatService`（它绑死 session、流式与落库）；评测要的是「一次非流式调用 + 结果快照」。
+- **答案错误与 judge 错误不是一回事**：回答失败 → case fail；judge 失败 → 只有断言能兜底，没断言且没人判则 unscored。
+- **final verdict 在读取时算**：机器 verdict 只是运行时的；人判后 summary 与逐条 `final_verdict` 都由读取时用 `human_results` 重算，避免两处写。
+- **跨模式对照要拦**：基线是检索 run、当前是答案 run 时数字不是同一量纲，页面只提示「模式不同，不能并排」，不硬摆两列。
+- **回答 run 的检索字段是空壳**：`rank/matched/recall` 填 0/null，`hit_count` 记引用数；聚合走 `summarizeAnswerResults`，不要拿 `summarizeResults` 算答案 run。
+
+### 还没碰（留给后续）
+
+- 多次采样与置信区间 → 未排期；pairwise → 后续；人工标注平台 → 不做。
+- gold 的前端挑选/编辑 → 未排期（7.4 只做断言与题面修正）。
+- 浏览器视觉（答案详情、人判表单、对照模式分支、窄屏）归 Lynx。
+
+## 2026-10-30 · 测试真链路化
+
+> 一句话：把测试里的「模拟后端 / 网络 / 模型」清掉，流程测试真打真后端、真库、真 MinIO、真 Ollama/LLM；真实造不出的坏输入仍构造，但明确标成边界输入。
+
+### 学到的 / 定下的
+
+- **真链路分三层**：后端单测直接打真依赖（真库/MinIO/Ollama/LLM）；前端 jsdom 流程测试打一只真后端进程（3101）；用户主路径走 Playwright（真浏览器 → preview → 后端 3102）。
+- **共享真库 → 文件级串行**：`fileParallelism: false`。并行会互相压住（`/traces` 5s 查询超时、ingest 抢 Ollama），串行后 758 用例 144s，比并行慢但稳定。
+- **前端 jsdom 的 `/api` 前缀由测试 setup 剥**：浏览器里这段是 vite proxy 的职责，测试里补同一段传输层适配，产品代码零改动。
+- **错误路径保留构造的判据**：真后端不可能产生的输入（坏 JSON、缺分页、401/429、断网、挂起）→ 构造；能真造的（错签名 403、未软删 409、不可达端口 ECONNREFUSED）→ 真造。
+- **编排测试的假协作者可以留**：`eval-runner` 的慢检索/抛错、`eval-runs-route` 的假执行器，是「可控时序」夹具；真实链路由 `retrieve-chain`、`eval-route`、`eval-answer-runner`、`eval-repo` 覆盖。
+- **真链路测试必须自己清场**：唯一前缀 + `afterAll` 删除；文件内容也要带前缀，否则跨运行的 content_hash 会撞车，后端按 hash 去重直接返回 duplicate、没有 upload。
+
+### 踩过的坑
+
+- **jsdom 的 `File` 不是 undici 的 `Blob`**：`fetch(body: File)` 会把它当普通对象转成字符串 `[object File]`（13 字节），MinIO 里存的就是这 13 个字节，本地 sha256 与后端归档 hash 必不一致。测试 setup 里把全局 `File` 换成 `node:buffer` 的 `File` 才对。
+- **`tsx` CLI 会 fork 子进程**：只 `child.kill()` 父进程会把真正跑服务的 node 留在 3101。spawn 用 `detached: true`，teardown 按 `process.kill(-pid)` 收整组，并以「端口释放」为准；启动前还要能自愈清理上次残留。
+- **`node --env-file` 剥引号，手写 loader 不剥**：`LANGFUSE_BASE_URL="https://..."` 带引号进 `process.env`，`new URL` 直接抛；测试 loader 要与 Node 对齐。
+- **Qwen3-8B 在「库里没有明确答案」的问题上会把 `<tool_call>` 写进 reasoning**：第二步 `finishReason=stop`、`text=""`、`reasoning` 里是伪工具调用文本。不是模型不能用；答案评测的 query 要选库里有答案的（如「P1 的 Non-Goals 有哪些？」）。
+- **URL 归档会加 `archive_test=<uuid>` query**：后端防缓存行为，`source` 不能按精确字符串断言。
+- **Playwright 里底部胶囊的 `aria-label="待入库队列"` 只在展开后出现**：折叠态是 `button "1 条待入库 · 60 B"`，E2E 要先点胶囊再点「开始入库」。
+- **`npm test` 的输出别用 `tail` 截断**：失败详情在中间，只留尾部会丢失 9 个文件的失败原因；重跑时直接写日志文件。
+
+### AI SDK / 产品事实
+
+- `generateText` 的 `Result.text` 是回答文本；reasoning 单独在 `Result.reasoning`。tool-loop 下模型可能只产 reasoning，评测链路的 `answerCase` 会得到空 answer。
+- 答案评测采用 8B answer + `deepseek:deepseek-v4-pro` judge；8B 做 judge 时 `Output.object` 在长 prompt 下偶发 schema 不匹配，judge 模型留在支持结构化输出的模型上。
+
+### 测试数据清场（同日补）
+
+- 真链路测试会写库：资源、代码库、评测、会话、消息、端点 trace。收尾统一调 `app/server/scripts/cleanup-test-data.ts` 物理删，不再依赖各测试自己的 `afterAll`。
+- 三个入口：Vitest `globalSetup` teardown、Playwright `e2e/fixtures.ts`（每条用例后）、`e2e/global-teardown.ts`（整轮收尾，webServer 已停也能跑，脚本直连 DB）。
+- **会话 DELETE 是软删**（`deleted_at`），行和 messages 仍留；清场必须走 SQL 硬删。
+- E2E `/ask` 的新浏览器 context 不一定是空会话：不先点「新会话」会把问答写进列表第一条用户会话；评测发起抽屉的 datasetId 会被详情轮询覆盖（`launchOpen` 时跳过同步）。
+- 边界：测试窗口内用户同时操作的 trace 会被一并清；测试结束后本机页面的请求保留。
+
+### 还没碰（留给后续）
+
+- E2E 已覆盖 `/ask`、`/ingest`、`/traces`、`/codebases`、`/evals-cases`、`/evals` 发起运行（答案 run 用 Qwen3-8B）；人判与基线对照 UI 未进 E2E。
+- 本轮测试数据已清理（23 资源 / 18 代码库 / 41 对象）。
+- 离线环境跑不了：真链路套件依赖 Tailscale 上的真库/MinIO/Ollama/LLM/Langfuse。
+
+## 2026-10-30 · repo 层 Drizzle 化
+
+> 一句话：adapter/repo 里能表达成 Drizzle 的读写全迁了；只剩 chunks/embeddings、BM25、向量索引与两处 join chunks / right-length 表达式是裸 SQL。
+
+### 学到的 / 定下的
+
+- **边界**：Drizzle 只碰 `schema.ts` 里有的表；chunks/embeddings 仍归 `chunk.ts` 裸 SQL（halfvec、`FOR UPDATE`、批量写），资源事务里的 `DELETE FROM chunks` 用 `tx.execute(sql...)` 保留。
+- **对外签名不变**：repo 函数从 `Pool` 换成 `Orm`，contract 方法只换传参；路由与测试零改动。
+- **时间戳**：schema 是 `mode:'date'`，写入口把 ISO 字符串 `new Date()`，读出口的 `iso()` 仍负责 Date→ISO。
+- **`now()` 用 `sql\`now()\``**，不换应用时钟；`COALESCE($x, col)` 改成“只有非空才放进 set”。
+- **rowCount**：Drizzle 的 update/delete 用 `.returning({ id })` 判长度。
+- **数组查询**：能 `inArray(column, values)` 就 `inArray`；裸表（chunks）用 `inArray(sql\`col\`, values)`。
+
+### 踩过的坑
+
+- **Drizzle 把 pg 错误包进 `DrizzleQueryError.cause`**：路由里 `err.code === '23505'` 全部失效（重名从 409 变 500）。修法是沿 `cause` 链取 `code`（`routes/eval.ts`、`resource/archive.ts`）。
+- **sql 模板不会把 JS 数组绑成 PG 数组**：`ANY(${ids}::uuid[])` 生成 `ANY(($1)::uuid[])`，pg 收到单值字符串报 malformed array literal；改用 `inArray(sql\`resource_id\`, ids)`。
+- **相关子查询里的列引用可能不带表名**：`sql\`... WHERE c.dataset_id = ${eval_datasets.id}\`` 渲染成未限定的 `"id"`，`case_count` 恒 0；用字面表名 `eval_datasets.id`。
+- **复制名 LIKE 要转义**：名字里的 `% _ \` 会把副本探测变成通配符；`escapeLike` 后实测 `a_b%c\d` 连续复制得到「副本 / 副本 2」。
+- **列表/详情只取需要的列**：`codebases.manifest` 实测最大 42KB，`SELECT *` p50 84.4ms，显式列 58.5ms；列表、详情、complete/purge 状态检查统一走 `CodebaseSummary`（不含 manifest），只有树/文件读取才取完整行。
